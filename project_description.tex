@@ -1,0 +1,63 @@
+% Created 2020-01-28 Tue 11:00
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\bibliographystyle{plain}
+\bibliography{report/refs}
+\author{Nikolaj Sidorenco}
+\date{\today}
+\title{Project Description}
+\hypersetup{
+ pdfauthor={Nikolaj Sidorenco},
+ pdftitle={Project Description},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 26.3 (Org mode 9.3)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+
+\section{Project}
+\label{sec:org9c2bfa8}
+
+In this project I aim to formalise Sigma-protocols and commitment schemes within
+EasyCrypt with the help of existing formalisations.
+Moreover, I seek to understand the differeces between the available
+cryptographic proof assistents by comparing my formalisations to existings ones
+in the cryptHOL proof assistent.
+
+
+When fomalising Sigma-protocols I also aim to prove general constructions, like
+the OR-construction, and proving them the be secure. Having formalised both
+Sigma-Protocols and Commitment schemes I will provide several concrete instantiations
+and prove their security in presence of passively corrupted parties.
+
+
+Time permitting I will either prove the relation between Sigma protocols and
+Commitment schemes, the Fiat-Shamir protocol for non-interactive Sigma-protocols
+or other possible extensions.
+
+
+\section{Litterature}
+\label{sec:org23981b6}
+\begin{itemize}
+\item Butler, D., Lochbihler, A., Aspinall, D., \& Gascon, A. (2019). Formalising
+\(\Sigma\)-protocols and commitment schemes using cryptHOL.
+\item Metere, R., \& Dong, C. (2017). Automated cryptographic analysis of the
+Pedersen commitment scheme. CoRR, abs/1705.05897(), .
+\item Damgård, I. (2011). On \(\Sigma\)-protocols.
+\end{itemize}
+\end{document}

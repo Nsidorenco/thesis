@@ -1,0 +1,24 @@
+#+TITLE: timeline
+
+* Formalise bit-strings (maybe?`)
+* Negligible functions
+* Sigma Protocols
+** TODO Formalise protocol description
+DEADLINE: <2020-02-03 Mon>
+** Formalise OR-construction
+DEADLINE: <2020-02-10 Mon>
+** Concrete instatiations
+*** Schnorr
+DEADLINE: <2020-02-24 Mon>
+*** WAIT Okamoto
+*** WAIT Chaum-Pedersen
+* Commitment Schemes
+** TODO Formalise protocol description
+DEADLINE: <2020-03-02 Mon>
+** Perfect or Computational hiding?
+** Concrete instantiations
+*** TODO Pedersen Commitments
+DEADLINE: <2020-03-16 Mon>
+*** WAIT Rivest
+* Relation between Sigma Protocols and Commitment Schemes
+* Extension
