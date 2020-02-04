@@ -23,7 +23,7 @@ Commitment schemes, the Fiat-Shamir protocol for non-interactive Sigma-protocols
 or other possible extensions.
 
 
-* Litterature
+* Literature
 - Butler, D., Lochbihler, A., Aspinall, D., & Gascon, A. (2019). Formalising
   \Sigma-protocols and commitment schemes using cryptHOL.
 - Metere, R., & Dong, C. (2017). Automated cryptographic analysis of the

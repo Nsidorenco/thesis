@@ -262,6 +262,19 @@ INPUT /usr/local/texlive/2019basic/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/vf/adobe/times/ptmb8t.vf
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmb8t.tfm
+INPUT sections/easycrypt.tex
+INPUT sections/easycrypt.tex
+INPUT sections/sigma_protocols.tex
+INPUT sections/sigma_protocols.tex
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmr8t.tfm
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmb8t.tfm
+INPUT /usr/local/texlive/2019basic/texmf-dist/tex/latex/psnfss/omsptm.fd
+INPUT /usr/local/texlive/2019basic/texmf-dist/tex/latex/psnfss/omsptm.fd
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm
+INPUT sections/commitment.tex
+INPUT sections/commitment.tex
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/vf/adobe/times/ptmb8t.vf
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/vf/adobe/times/ptmb8t.vf
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT main.bbl
@@ -272,6 +285,7 @@ INPUT ./main.out
 INPUT /Users/niko/Library/texlive/2019basic/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/enc/dvips/base/8r.enc
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc
+INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/type1/public/lm/lmss12.pfb
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/type1/public/lm/lmss17.pfb
 INPUT /usr/local/texlive/2019basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb
