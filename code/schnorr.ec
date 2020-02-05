@@ -111,7 +111,7 @@ section Security.
   rewrite log_pow log_mul inv_def.
   field.
   - rewrite ofint0. smt.
-  - ring. algebra.
+  - algebra.
   qed.
 
   lemma schnorr_shvzk:
@@ -124,8 +124,8 @@ section Security.
         seq 1 1 : (#pre /\ ={e}). auto=> //=.
         rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}). auto.
       move=> &1 &2 [[[heq weq] hrel] eeq]; progress; subst; try algebra.
-      - smt.
-      - smt.
+      - apply FDistr.dt_funi.
+      - apply FDistr.dt_fu.
     qed.
 
   (* lemma schnorr_secure: *)
