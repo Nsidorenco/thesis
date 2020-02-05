@@ -114,29 +114,21 @@ section Security.
   - ring. algebra.
   qed.
 
-lemma schnorr_shvzk:
-    equiv[SHVZK(Schnorr, Helpers).ideal ~ SHVZK(Schnorr, Helpers).real : true ==> ={res}].
-    proof.
-    proc. inline *.
-      (* seq 3 3 : (={h0, w0} /\ h{1} = g ^ w{1} /\ h{2} = g ^ w{2}). auto=> //=. *)
-      seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
-      swap{1} 4 -2. swap{2} 3 -2. swap{2} 6 -5. wp.
-      seq 1 1 : (#pre /\ ={e}). auto=> //=.
-      rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}). auto.
-    (* move=> &1 &2 [sh_eq [w1w_eq [[h0_eq w0w_eq] [h1_gw_eq h2_gw_eq]]]]. *)
-    move=> &1 &2 [[[heq weq] hrel] eeq].
-      split. move=> //=*.
-      rewrite weq eeq. algebra.
-    move=> r0Req. split=> *.
-    smt. (* TODO: remove smt *)
-    split. smt.
-    move=> *. split.
-      rewrite weq eeq. algebra.
-    move=> *. split. rewrite eeq hrel.
-    algebra.
-    split=> //=.
-    algebra.
+  lemma schnorr_shvzk:
+      equiv[SHVZK(Schnorr, Helpers).ideal ~ SHVZK(Schnorr, Helpers).real : true ==> ={res}].
+      proof.
+      proc. inline *.
+        seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
+      (* sim / true : #pre. *)
+        swap{1} 4 -2. swap{2} 3 -2. swap{2} 6 -5. wp.
+        seq 1 1 : (#pre /\ ={e}). auto=> //=.
+        rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}). auto.
+      move=> &1 &2 [[[heq weq] hrel] eeq]; progress; subst; try algebra.
+      - smt.
+      - smt.
     qed.
 
+  (* lemma schnorr_secure: *)
+  (*     schnorr_correctness /\ schnorr_special_soundness /\ schnorr_shvzk. *)
 
 end section Security.
