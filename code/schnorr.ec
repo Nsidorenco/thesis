@@ -126,6 +126,7 @@ section Security.
       move=> &1 &2 [[[heq weq] hrel] eeq]; progress; subst; try algebra.
       - apply FDistr.dt_funi.
       - apply FDistr.dt_fu.
+      - smt.
     qed.
 
   (* lemma schnorr_secure: *)

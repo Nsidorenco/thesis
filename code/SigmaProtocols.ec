@@ -11,6 +11,8 @@ theory SigmaProtocol.
   type challenge.
   type response.
 
+  type transcript = message * challenge * response.
+
   (* define the relations *)
   op R (x : statement) (w : witness) : bool.
 
@@ -35,7 +37,7 @@ theory SigmaProtocol.
     proc witness_extractor(h : statement, m : message,
                            e : challenge, z : response,
                            e' : challenge, z' : response) : witness
-    proc simulator(h : statement, e : challenge) : message * challenge * response
+    proc simulator(h : statement, e : challenge) : transcript
   }.
 
   module Completeness (S : Protocol) = {
@@ -52,21 +54,33 @@ theory SigmaProtocol.
   }.
 
   module SHVZK (S : Protocol, A : Algorithms) = {
-    proc real() : message * challenge * response = {
-      var h, r, w, a, e, z;
+    proc real() : transcript option = {
+      var h, r, w, a, e, z, b, ret;
       (h, w) = S.gen();
       (a, r) = S.init(h, w);
       e <$ dchallenge;
       z = S.response(h, w, a, r, e);
-      return (a, e, z);
+      b = S.verify(h, a, e, z);
+      if (b) {
+        ret = Some (a, e, z);
+      } else {
+        ret = None;
+      }
+      return ret;
     }
 
-    proc ideal() : message * challenge * response = {
-      var a, e, z, h, w;
+    proc ideal() : transcript option = {
+      var a, e, z, h, w, b, ret;
       (h, w) = S.gen();
       e <$ dchallenge;
       (a, e, z) = A.simulator(h, e);
-      return (a, e, z);
+      b = S.verify(h, a, e, z);
+      if (b) {
+        ret = Some (a, e, z);
+      } else {
+        ret = None;
+      }
+      return ret;
     }
   }.
 
