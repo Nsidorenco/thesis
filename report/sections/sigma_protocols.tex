@@ -1,0 +1,30 @@
+\section{Sigma Protocols}
+
+\subsection{Definition}
+\begin{itemize}
+  \item 3-move form
+  \item Completeness
+    \begin{itemize}
+      \item Protocol should always succeed with correct output, if both parties are honest.
+    \end{itemize}
+  \item Special soundness
+    \begin{itemize}
+      \item Given two transcripts, with different challenges it is possible to
+        compute an accepting witness for the statement in the relation.
+    \end{itemize}
+  \item Special Honest Verifier Zero-Knowledge.
+    \begin{itemize}
+      \item Exists an polynomial-time simulator M.
+      \item Given statement, x, and challenge, e, output an accepting
+        conversation (a, e, z).
+      \item Conversation should have the same distribution as an conversation
+        between honest parties.
+    \end{itemize}
+\end{itemize}
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:
