@@ -9,7 +9,7 @@ In this project I aim to formalise Sigma-protocols and commitment schemes within
 EasyCrypt with the help of existing formalisations.
 Moreover, I seek to understand the differeces between the available
 cryptographic proof assistents by comparing my formalisations to existings ones
-in the cryptHOL proof assistent.
+in the cryptHOL proof assistant.
 
 
 When fomalising Sigma-protocols I also aim to prove general constructions, like

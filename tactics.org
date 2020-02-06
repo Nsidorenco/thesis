@@ -1,0 +1,97 @@
+#+TITLE: tactics
+
+* have
+** Syntax:
+have : \phi
+
+where \phi is a statement.
+** Effect:
+When applying have : \phi the proof burden is changed to prove \phi.
+If \phi is proved it is then moved into the context for the original proof.
+
+Like assert in Coq.
+
+* rnd
+** Syntax:
+rnd
+rnd f
+rnd f g
+
+** Effect:
+If the last statement of the procedure is sampling from a distribution, sample
+it and proceed.
+
+If we have an relational proof burden, we can use f and g as ``converters'' to
+help map random samples from procedure one to procedure 2 (f). And vice-versa (g).
+
+* call
+** Syntax:
+call (_ : P ==> Q)
+call (_ : I)
+call (_ : B, I)
+call (_ : B, I, J)
+
+** Effect:
+If the last statement of the procedure is a call to another procedure then:
+ - Generate a new goal, proving the procedure with pre = P and post = Q
+ - Change the original goal by removing to procedure and alter the post
+   condition based on Q.
+
+If the procedure is **concrete** then it is only necessary to state an invariant
+for the procedure call. This automatically assumes equality of the procedures
+parameters in the relational logic and applies **proc I** to discharge to goal. If the
+procedure is **abstract** this the procedures are equal by definition.
+
+If ... is **abstract** then do the same as above, but only if the bad event B
+does not occur, otherwise I does not hold
+
+Same as above, but if B occurs, then J holds
+
+Always assumes equality of the result of the procedure, and the parameters
+provided, if using the invariant calling method.
+
+* rcond(t|f)
+** Syntax:
+rcond(t|f) n
+** Effect:
+Take a if statement at line n, and replace the guard by true or false.
+
+* alias
+renames variables or creates them
+
+* transitivity
+** Syntax:
+transitivity N.r (P1 ==> Q1) (P2 ==> Q2)
+
+** Effect:
+On a goal of the form: equiv[M1.p1 ~ M2.p2 : P ==> Q] change it into two new
+goals:
+- equiv[M1.p1 ~ N.r : P1 ==> Q1]
+- equiv[N.r ~ M2.p2 : P2 ==> Q2]
+
+* seq
+
+* sim
+
+* conseq
+Rule of consequence!
+** Syntax:
+conseq (_ : P ==> Q)
+
+** Effect:
+Weaken the pre-condition to P and strengthen the post-condition to Q.
+_ implies no change.
+
+Generates sub-goals to prove weakening and strengthening.
+
+* case
+like destruct in Coq!
+
+Only works on rHL, HL, rPHL goals
+** Syntax:
+case e, where e is valid within the context
+
+** Effect:
+generate two new sub-goals:
+- e is true in the pre-condition.
+- e is false in the pre-condition.

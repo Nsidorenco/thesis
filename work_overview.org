@@ -1,0 +1,37 @@
+#+TITLE: work overview
+
+* Formalise bit-strings (maybe?`)
+* Sigma Protocols
+** Formalise protocol description
+** Formalise OR-construction
+** Concrete instantiations
+*** Schnorr
+*** Okamoto
+*** Chaum-Pedersen
+* Commitment Schemes
+** Formalise protocol description
+** Perfect or Computational hiding?
+** Concrete instantiations
+*** Pedersen Commitments
+*** Rivest
+* Relation between Sigma Protocols and Commitment Schemes
+* Extension
+
+CertiCrypt being ported to EasyCrypt
+
+Papers for ZKCrypt (find them).
+
+Find article for the EasyCrypt formalisation.
+
+Chapter 7 and then 6.
+
+Shared log with all information.
+- Timeline/Todos?
+
+Tutorial for SSReflect (Template for EasyCrypt).
+
+Abstract theories (Explain in final report)? Not explained within the tutorial.
+
+move * vs move=> *
+
+coupling?
