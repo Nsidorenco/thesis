@@ -165,18 +165,10 @@ section Security.
       c = g^r * (g^a)^m /\ c = g^r' * (g^a)^m' =>
       a = (r - r') * inv(m' - m).
   proof. progress.
-  rewrite -div_def.
-  rewrite !pow_pow in H0.
-  rewrite !mul_pow in H0.
-  rewrite -pow_bij in H0.
-  ring. field. rewrite ofint0.
-  smt.
-  ring.
-  rewrite addC.
-  rewrite !addA.
-  have H1 : a * m' + r' = r' + a * m' by algebra.
-  rewrite H1. rewrite -H0.
-  algebra.
+  rewrite !pow_pow !mul_pow -pow_bij in H0.
+  field.
+  - apply: contra H=> meq; ring meq. (* NOTE: apply: contra is not documented at all? *)
+  - ring H0.
   qed.
 
   lemma pedersen_comp_binding (B <: BindingAdv) &m:
@@ -190,7 +182,5 @@ section Security.
     call (: true).
   auto=> //=.
   progress.
-  have a_rel : a{2} = (result_R.`4 - result_R.`5) * inv (result_R.`3 - result_R.`2).
-  - smt(special_soundness).
-  - by rewrite a_rel.
+  smt(special_soundness).
   qed.
