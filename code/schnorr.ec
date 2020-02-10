@@ -110,7 +110,7 @@ section Security.
   rewrite accept_1 accept_2.
   rewrite log_pow log_mul inv_def.
   field.
-  - rewrite ofint0. smt.
+  - apply: contra e_diff=> ceq; ring ceq.
   - algebra.
   qed.
 
@@ -126,7 +126,7 @@ section Security.
       move=> &1 &2 [[[heq weq] hrel] eeq]; progress; subst; try algebra.
       - apply FDistr.dt_funi.
       - apply FDistr.dt_fu.
-      - smt.
+      - apply: contra H4=> ?; algebra.
     qed.
 
   (* lemma schnorr_secure: *)
