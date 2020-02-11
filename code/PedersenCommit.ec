@@ -176,11 +176,6 @@ section Security.
       Pr[DLogGame(DLogPedersen(B)).main() @ &m : res].
   proof. byequiv (: (={glob B}) ==> _)=>  //=.
   proc. inline *.
-  seq 1 1 : (={a} /\ #pre). auto.
-  sp.
-    auto. progress. wp.
-    call (: true).
-  auto=> //=.
-  progress.
-  smt(special_soundness).
+  seq 1 1 : (={a} /\ #pre); auto.
+  - call (: true); auto; smt(special_soundness).
   qed.
