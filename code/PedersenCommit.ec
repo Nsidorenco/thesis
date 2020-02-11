@@ -85,7 +85,6 @@ section Security.
       Pr[Correctness(Pedersen).main(mes) @ &m : res] = 1%r.
   proof. byphoare=> //=.
   proc. inline *.
-  swap 6 -4.
   by auto; rewrite dr_ll.
   qed.
 
