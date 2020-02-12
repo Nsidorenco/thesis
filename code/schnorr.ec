@@ -104,31 +104,26 @@ section Security.
   proof. move=> e_diff accept_1 accept_2.
   (* Same trick again.  we need to introduce values earlier *)
   byphoare (_: s = h /\ m = msg /\ e = c /\ e' = c' /\ r = z /\ r' = z' ==> _)=> //.
-  proc. inline *. auto.
-  move=> &hr [Hs [Hm [He [He' [Hr Hr']]]]].
-  rewrite /R /R_DL Hr Hr' He He'.
-  rewrite F.div_def -pow_pow F.sub_def -mul_pow pow_opp log_bij.
-  rewrite accept_1 accept_2.
-  rewrite log_pow log_mul inv_def.
-  field.
-  - apply: contra e_diff=> ceq; ring ceq.
-  - algebra.
+  proc. inline *; auto; progress.
+  rewrite /R /R_DL.
+  rewrite div_def -pow_pow sub_def -mul_pow pow_opp.
+  rewrite accept_1 accept_2 inv_def.
+  algebra.
   qed.
 
   lemma schnorr_shvzk:
       equiv[SHVZK(Schnorr, Helpers).ideal ~ SHVZK(Schnorr, Helpers).real : true ==> ={res}].
-      proof.
-      proc. inline *.
-        seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
-      (* sim / true : #pre. *)
-        swap{1} 4 -2. swap{2} 3 -2. swap{2} 6 -5. wp.
-        seq 1 1 : (#pre /\ ={e}). auto=> //=.
-        rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}). auto.
-      move=> &1 &2 [[[heq weq] hrel] eeq]; progress; subst; try algebra.
-      - apply FDistr.dt_funi.
-      - apply FDistr.dt_fu.
-      - apply: contra H4=> ?; algebra.
-    qed.
+  proof.
+  proc. inline *.
+  seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
+  swap{1} 4 -2. swap{2} 3 -2. swap{2} 6 -5. wp.
+  seq 1 1 : (#pre /\ ={e}). auto=> //=.
+  rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}).
+  auto; progress; subst; try algebra.
+  - apply FDistr.dt_funi.
+  - apply FDistr.dt_fu.
+  - apply: contra H4=> ?; algebra.
+  qed.
 
   (* lemma schnorr_secure: *)
   (*     schnorr_correctness /\ schnorr_special_soundness /\ schnorr_shvzk. *)
