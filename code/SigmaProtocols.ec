@@ -73,11 +73,14 @@ theory SigmaProtocols.
       var w, a, e, z, h, b, ret;
       (h, w) = S.gen();
       e <$ dchallenge;
-      (a, e, z) = A.simulator(h, e);
+      (a, e', z) = A.simulator(h, e);
       b = S.verify(h, a, e, z);
       if (b) {
         ret = Some (a, e, z);
       } else {
+        ret = None;
+      }
+      if (e' <> e) {
         ret = None;
       }
       return ret;
