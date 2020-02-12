@@ -3,7 +3,7 @@ require import AllCore Distr.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
-theory SigmaProtocol.
+theory SigmaProtocols.
   type statement.
   type witness.
   type message.
@@ -17,11 +17,11 @@ theory SigmaProtocol.
   op R (x : statement) (w : witness) : bool.
 
   op dchallenge : {challenge distr | is_lossless dchallenge} as dchallenge_ll.
-  op dpub : {statement distr | is_lossless dpub} as dpub_ll.
+  (* op dpub : {statement distr | is_lossless dpub} as dpub_ll. *)
 
   (* Define set of all valid witness/statement pairs ?? *)
-  axiom domain_R : forall x w,
-    R x w = true => x \in dpub.
+  (* axiom domain_R : forall x w, *)
+  (*   R x w = true => x \in message. *)
 
 
   (* Sigma Protocol Algoritms *)
@@ -70,7 +70,7 @@ theory SigmaProtocol.
     }
 
     proc ideal() : transcript option = {
-      var a, e, z, h, w, b, ret;
+      var w, a, e, z, h, b, ret;
       (h, w) = S.gen();
       e <$ dchallenge;
       (a, e, z) = A.simulator(h, e);
@@ -85,6 +85,7 @@ theory SigmaProtocol.
   }.
 
   (* section OR_protocol. *)
+
 
   (* module ORProtocol (S : SigmaProtocol.Protocol) : SigmaProtocol.Protocol = { *)
   (*     proc init(x1 : SigmaProtocol.statement, w : SigmaProtocol.witness) = { *)
@@ -111,4 +112,4 @@ theory SigmaProtocol.
   (*     proof. admitted. *)
   (* end section OR_protocol. *)
 
-end SigmaProtocol.
+end SigmaProtocols.

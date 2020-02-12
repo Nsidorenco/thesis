@@ -17,21 +17,22 @@ theory Types.
   type response   = F.t.
 
   op R_DL h w     = (h = g^w).
-  (* op dpub         = (g) ^ (FDistr.dt). *)
 end Types.
 export Types.
 
 clone import SigmaProtocols as Sigma with
-  type SigmaProtocol.statement <- statement,
-  type SigmaProtocol.witness <- witness,
-  type SigmaProtocol.message <- message,
-  type SigmaProtocol.randomness <- randomness,
-  type SigmaProtocol.challenge <- challenge,
-  type SigmaProtocol.response <- response,
+  type SigmaProtocols.statement <- statement,
+  type SigmaProtocols.witness <- witness,
+  type SigmaProtocols.message <- message,
+  type SigmaProtocols.randomness <- randomness,
+  type SigmaProtocols.challenge <- challenge,
+  type SigmaProtocols.response <- response,
 
-  op SigmaProtocol.R = R_DL,
-  op SigmaProtocol.dchallenge = FDistr.dt.
-export SigmaProtocol.
+  op SigmaProtocols.R = R_DL,
+  op SigmaProtocols.dchallenge = FDistr.dt
+  proof *.
+  realize SigmaProtocols.dchallenge_ll by apply FDistr.dt_ll.
+export SigmaProtocols.
 
 
 module Schnorr : Protocol = {
