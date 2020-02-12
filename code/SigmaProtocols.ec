@@ -25,22 +25,19 @@ theory SigmaProtocols.
 
 
   (* Sigma Protocol Algoritms *)
-  module type Protocol = {
+  module type SProtocol = {
     proc gen() : statement * witness
     proc init(h : statement, w : witness) : message * randomness
     proc response(h : statement, w : witness,
                   m : message, r : randomness, e : challenge) : response
     proc verify(h : statement, m : message, e : challenge, z : response) : bool
-  }.
-
-  module type Algorithms = {
     proc witness_extractor(h : statement, m : message,
                            e : challenge, z : response,
                            e' : challenge, z' : response) : witness
     proc simulator(h : statement, e : challenge) : transcript
   }.
 
-  module Completeness (S : Protocol) = {
+  module Completeness (S : SProtocol) = {
     proc main(h : statement, w : witness) : bool = {
       var m, r, e, z, b;
 
@@ -53,7 +50,7 @@ theory SigmaProtocols.
     }
   }.
 
-  module SHVZK (S : Protocol, A : Algorithms) = {
+  module SHVZK (S : SProtocol) = {
     proc real() : transcript option = {
       var h, r, w, a, e, z, b, ret;
       (h, w) = S.gen();
@@ -70,10 +67,10 @@ theory SigmaProtocols.
     }
 
     proc ideal() : transcript option = {
-      var w, a, e, z, h, b, ret;
+      var w, a, e', e, z, h, b, ret;
       (h, w) = S.gen();
       e <$ dchallenge;
-      (a, e', z) = A.simulator(h, e);
+      (a, e', z) = S.simulator(h, e);
       b = S.verify(h, a, e, z);
       if (b) {
         ret = Some (a, e, z);

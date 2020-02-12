@@ -35,7 +35,7 @@ clone import SigmaProtocols as Sigma with
 export SigmaProtocols.
 
 
-module Schnorr : Protocol = {
+module Schnorr : SProtocol = {
   proc gen() : statement * witness = {
     var w, h;
     w =$ FDistr.dt;
@@ -63,9 +63,6 @@ module Schnorr : Protocol = {
     return (v = v');
   }
 
-}.
-
-module Helpers : Algorithms = {
   proc witness_extractor(s : statement, m : message, e : challenge,
                          r : response, e' : challenge, r' : response) : witness= {
     return (r - r') / (e - e');
@@ -79,6 +76,7 @@ module Helpers : Algorithms = {
   }
 
 }.
+
 
 (* Main Idea of the proof *)
 (* after using proc. all calculation depend on the memory &m *)
@@ -100,7 +98,7 @@ section Security.
       c <> c' =>
       g^z = msg * (h ^ c) =>
       g^z' = msg * (h ^ c') =>
-      Pr[Helpers.witness_extractor(h, msg, c, z, c', z') @ &m : (R h res)] = 1%r.
+      Pr[Schnorr.witness_extractor(h, msg, c, z, c', z') @ &m : (R h res)] = 1%r.
   proof. move=> e_diff accept_1 accept_2.
   (* Same trick again.  we need to introduce values earlier *)
   byphoare (_: s = h /\ m = msg /\ e = c /\ e' = c' /\ r = z /\ r' = z' ==> _)=> //.
@@ -112,7 +110,7 @@ section Security.
   qed.
 
   lemma schnorr_shvzk:
-      equiv[SHVZK(Schnorr, Helpers).ideal ~ SHVZK(Schnorr, Helpers).real : true ==> ={res}].
+      equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : true ==> ={res}].
   proof.
   proc. inline *.
   seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
