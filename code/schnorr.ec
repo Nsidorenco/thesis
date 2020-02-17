@@ -63,8 +63,7 @@ module Schnorr : SProtocol = {
     return (v = v');
   }
 
-  proc witness_extractor(s : statement, m : message, e : challenge,
-                         r : response, e' : challenge, r' : response) : witness= {
+  proc witness_extractor(s : statement, m : message, e : challenge, e' : challenge, r : response, r' : response) : witness= {
     return (r - r') / (e - e');
   }
 
@@ -94,14 +93,13 @@ section Security.
   algebra. (* replaces:  by rewrite pow_pow mul_pow mulC. *)
   qed.
 
-  lemma schnorr_special_soundness (h : statement) msg c c' z z' &m:
-      c <> c' =>
-      g^z = msg * (h ^ c) =>
-      g^z' = msg * (h ^ c') =>
-      Pr[Schnorr.witness_extractor(h, msg, c, z, c', z') @ &m : (R h res)] = 1%r.
-  proof. move=> e_diff accept_1 accept_2.
-  (* Same trick again.  we need to introduce values earlier *)
-  byphoare (_: s = h /\ m = msg /\ e = c /\ e' = c' /\ r = z /\ r' = z' ==> _)=> //.
+  lemma schnorr_special_soundness (x : statement) msg e e' r r' &m:
+      e <> e' =>
+      g^r = msg * (x ^ e) =>
+      g^r' = msg * (x ^ e') =>
+      Pr[SpecialSoundness(Schnorr).main(x, msg, e, e', r, r') @ &m : res] = 1%r.
+  proof. move => c_diff accept_1 accept_2.
+  byphoare (: h = x /\ m = msg /\ c = e /\ c' = e' /\ z = r /\ z' = r' ==> _)=> //=.
   proc. inline *; auto; progress.
   rewrite /R /R_DL.
   rewrite div_def -pow_pow sub_def -mul_pow pow_opp.
@@ -109,14 +107,17 @@ section Security.
   algebra.
   qed.
 
-  lemma schnorr_shvzk:
-      equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : true ==> ={res}].
+  lemma schnorr_shvzk h' w':
+      (* Pr[SHVZK(Schnorr).real(h, w) @ &m : res] = *)
+      (* Pr[SHVZK(Schnorr).ideal(h) @ &m : res]. *)
+      equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : (={h} /\ h{1} = h' /\ w{2} = w' /\ (R h' w')) ==> ={res}].
   proof.
-  proc. inline *.
-  seq 3 3 : (={h, w} /\ h{1} = g ^ w{1}). auto=> //=.
-  swap{1} 4 -2. swap{2} 3 -2. swap{2} 6 -5. wp.
+  proc. inline *. sp.
+  swap{2} 4 -3.
   seq 1 1 : (#pre /\ ={e}). auto=> //=.
-  rnd (fun z => z - e{2} * w{2}) (fun r => r + e{1} * w{1}).
+  wp. sp.
+  rnd (fun z => z - e{2} * w') (fun r => r + e{2} * w').
+  rewrite /R /R_DL.
   auto; progress; subst; try algebra.
   - apply FDistr.dt_funi.
   - apply FDistr.dt_fu.

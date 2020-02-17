@@ -1,5 +1,5 @@
 (* Formalization of Sigma Protocols *)
-require import AllCore Distr.
+require import AllCore Distr DBool.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
@@ -32,84 +32,65 @@ theory SigmaProtocols.
                   m : message, r : randomness, e : challenge) : response
     proc verify(h : statement, m : message, e : challenge, z : response) : bool
     proc witness_extractor(h : statement, m : message,
-                           e : challenge, z : response,
-                           e' : challenge, z' : response) : witness
+                           e : challenge, e' : challenge,
+                           z : response, z' : response) : witness
     proc simulator(h : statement, e : challenge) : transcript
   }.
 
   module Completeness (S : SProtocol) = {
     proc main(h : statement, w : witness) : bool = {
-      var m, r, e, z, b;
+      var m, r, e, z, v;
 
       (m, r) = S.init(h, w);
       e      <$ dchallenge;
       z      = S.response(h, w, m, r, e);
-      b      = S.verify(h, m, e, z);
+      v      = S.verify(h, m, e, z);
 
-      return b;
+      return v;
     }
   }.
 
+  module SpecialSoundness(S : SProtocol) = {
+    proc main(h : statement, m : message,
+              c : challenge, c' : challenge,
+              z : response, z' : response) : bool = {
+      var w, v, v';
+
+      v  = S.verify(h, m, c, z);
+      v' = S.verify(h, m, c', z');
+
+      w = S.witness_extractor(h, m, c, c', z, z');
+
+      return (c <> c' /\ (R h w) /\ v /\ v');
+    }
+  }.
+
+
   module SHVZK (S : SProtocol) = {
-    proc real() : transcript option = {
-      var h, r, w, a, e, z, b, ret;
-      (h, w) = S.gen();
+    proc real(h : statement, w : witness) : transcript option = {
+      var r, a, e, z, v, ret;
       (a, r) = S.init(h, w);
       e <$ dchallenge;
       z = S.response(h, w, a, r, e);
-      b = S.verify(h, a, e, z);
-      if (b) {
+      v = S.verify(h, a, e, z);
+      ret = None;
+      if (v) {
         ret = Some (a, e, z);
-      } else {
-        ret = None;
-      }
+      } 
       return ret;
     }
 
-    proc ideal() : transcript option = {
-      var w, a, e', e, z, h, b, ret;
-      (h, w) = S.gen();
+    proc ideal(h : statement) : transcript option = {
+      var a, e', e, z, v, ret;
       e <$ dchallenge;
       (a, e', z) = S.simulator(h, e);
-      b = S.verify(h, a, e, z);
-      if (b) {
+      v = S.verify(h, a, e, z);
+      ret = None;
+      if (v) {
         ret = Some (a, e, z);
-      } else {
-        ret = None;
-      }
-      if (e' <> e) {
-        ret = None;
       }
       return ret;
     }
   }.
-
-  (* section OR_protocol. *)
-
-
-  (* module ORProtocol (S : SigmaProtocol.Protocol) : SigmaProtocol.Protocol = { *)
-  (*     proc init(x1 : SigmaProtocol.statement, w : SigmaProtocol.witness) = { *)
-  (*       var x2, m, r; *)
-  (*       x2 <$ dpub; *)
-  (*       (m, r) = S.init(x1, w); *)
-  (*       return (m, r); *)
-  (*     } *)
-  (*     proc response(h : SigmaProtocol.statement, w : SigmaProtocol.witness, m : SigmaProtocol.message, r : SigmaProtocol.randomness, e : SigmaProtocol.challenge) = { *)
-  (*       var z; *)
-  (*       z = S.response(h, w, m, r, e); *)
-  (*       return z; *)
-  (*     } *)
-  (*     proc verify(h : SigmaProtocol.statement, m : SigmaProtocol.message, e : SigmaProtocol.challenge, z : SigmaProtocol.response) = { *)
-  (*       var b; *)
-  (*       b = S.verify(h, m, e, z); *)
-  (*       return b; *)
-  (*     } *)
-  (* }. *)
-
-  (* lemma or_completeness : forall (S <: SigmaProtocol.Protocol), *)
-  (*   hoare[SigmaProtocol.Completeness(S).main : true ==> res] => *)
-  (*   hoare[SigmaProtocol.Completeness(ORProtocol(S)).main : true ==> res]. *)
-  (*     proof. admitted. *)
-  (* end section OR_protocol. *)
 
 end SigmaProtocols.
