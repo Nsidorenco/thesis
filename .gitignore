@@ -8,3 +8,4 @@ report/*.toc
 report/*.fdb_latexmk
 report/*.aux
 /project_description.pdf
+/report/*.fls
