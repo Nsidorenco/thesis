@@ -4,12 +4,63 @@
 It this chapter we introduce the \easycrypt proof assistant...
 
 \easycrypt provides us with three important logics: a relational probabilistic
-Hoare logic (\textbf{rPHL}) and a probabilistic Hoare Logic (\textbf{pHL}).
-Furthermore, \easycrypt also has an Higher-order ambient logic, in which the two
+Hoare logic (\textbf{rPHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
+Hoare logic.
+Furthermore, \easycrypt also has an Higher-order ambient logic, in which the three
 previous logics are encoded within. This Higher-order logic allows us to reason
 about mathematical constructs, which in turn lets us reason about them within
-the Hoare logics.
+the different Hoare logics.
 
+\subsection{Modules}
+\label{subsec:ec_modules}
+To model algorithms within \easycrypt the module construct is provided.
+A module is a set of procedures and a record of global variables, where all
+procedures are written in \easycrypt embedded programming language, \texttt{pWhile}.
+\begin{draft}
+pWhile is a mild generalization of the language proposed by Bellare and Rogaway [2006]?
+\end{draft}
+
+Modules are, by default, allowed to interact with all other defined modules.
+This is a due to all procedures are executed within shared memory. This is to
+model actual execution of procedures, where the procedure would have access to
+all memory not protected by the operating system.
+
+From this, the set of global variables for any given module, is all its
+internally defined global variables and all variables the modules procedures
+could potentially read or write during execution. This is checked by a simple
+static analysis, which looks at all execution branches within all procedures of the module.
+
+A module can been seen as \easycrypt's abstraction of the class construct
+in object-oriented programming languages.
+
+\todo{Example of modules}
+
+\subsection{Abstract modules}
+\label{subsec:ec_abs_modules}
+Abstract modules is another features of \easycrypt modelling system, which
+enables us to define general structures of modules, without having to implement
+the procedures. A procedure without an implementation is called abstract, while
+a implemented one (The ones provided by modules) are called concrete.
+
+An important distinction between abstract and non-abstract modules is that,
+while non-abstract modules define a global state, in the sense of global
+variables, for the procedures to work within, the abstract counter-part does
+not. This has two important implications, first it means that defining abstract
+modules does not affect the global variables/state of non-abstract modules.
+\begin{draft}
+Moreover, it is also not possible to prove properties of abstract modules, since
+there is no context to prove properties within.
+\end{draft}
+
+It is, however, possible to define higher-order abstract modules with access to the global
+variables and procedures of another abstract module.
+
+This allows us to quantitate over all possible implementations of an abstract
+module in our proofs. This implications of this, is that it is possible to
+define adversaries and then proving that no matter what choice the adversary
+makes during execution, he will not be able to break the security of the procedure.
+
+\todo{Example of abstract modules}
 
 
 %%% Local Variables:

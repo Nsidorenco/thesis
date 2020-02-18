@@ -1,37 +1,38 @@
-#+TITLE: tactics
+#+TITLE: Notes
 
-* have
-** Syntax:
+* Tactics
+** have
+*** Syntax:
 have : \phi
 
 where \phi is a statement.
-** Effect:
+*** Effect:
 When applying have : \phi the proof burden is changed to prove \phi.
 If \phi is proved it is then moved into the context for the original proof.
 
 Like assert in Coq.
 
-* rnd
-** Syntax:
+** rnd
+*** Syntax:
 rnd
 rnd f
 rnd f g
 
-** Effect:
+*** Effect:
 If the last statement of the procedure is sampling from a distribution, sample
 it and proceed.
 
 If we have an relational proof burden, we can use f and g as ``converters'' to
 help map random samples from procedure one to procedure 2 (f). And vice-versa (g).
 
-* call
-** Syntax:
+** call
+*** Syntax:
 call (_ : P ==> Q)
 call (_ : I)
 call (_ : B, I)
 call (_ : B, I, J)
 
-** Effect:
+*** Effect:
 If the last statement of the procedure is a call to another procedure then:
  - Generate a new goal, proving the procedure with pre = P and post = Q
  - Change the original goal by removing to procedure and alter the post
@@ -50,48 +51,83 @@ Same as above, but if B occurs, then J holds
 Always assumes equality of the result of the procedure, and the parameters
 provided, if using the invariant calling method.
 
-* rcond(t|f)
-** Syntax:
+** rcond(t|f)
+*** Syntax:
 rcond(t|f) n
-** Effect:
+*** Effect:
 Take a if statement at line n, and replace the guard by true or false.
 
-* alias
+** alias
 renames variables or creates them
 
-* transitivity
-** Syntax:
+** transitivity
+*** Syntax:
 transitivity N.r (P1 ==> Q1) (P2 ==> Q2)
 
-** Effect:
+*** Effect:
 On a goal of the form: equiv[M1.p1 ~ M2.p2 : P ==> Q] change it into two new
 goals:
 - equiv[M1.p1 ~ N.r : P1 ==> Q1]
 - equiv[N.r ~ M2.p2 : P2 ==> Q2]
 
-* seq
+** seq
 
-* sim
+** sim
 
-* conseq
+** conseq
 Rule of consequence!
-** Syntax:
+*** Syntax:
 conseq (_ : P ==> Q)
 
-** Effect:
+*** Effect:
 Weaken the pre-condition to P and strengthen the post-condition to Q.
 _ implies no change.
 
 Generates sub-goals to prove weakening and strengthening.
 
-* case
+** case
 like destruct in Coq!
 
 Only works on rHL, HL, rPHL goals
-** Syntax:
+*** Syntax:
 case e, where e is valid within the context
 
-** Effect:
+*** Effect:
 generate two new sub-goals:
 - e is true in the pre-condition.
 - e is false in the pre-condition.
+
+
+* Modules
+- (Typed) global variables
+- (Concrete) procedures
+  - written in EasyCrypt's while-language
+- A procedure call in evaluated in the context of a **memory**
+  - The memory records all global information, from all declared modules
+  - Procedures are, therefore, allowed to alter the state of all modules
+    - Not only the one it was declared within
+- How are modules treated within proofs?
+- Every modules has a set of global variables
+  - Consists of every declared global variable within the module and all global
+    variables within other modules, that this module could potentially
+    read/write during any execution
+* Abstract Modules
+- Like an interface
+- Specifics the minimal expectations for what a module should implement
+- Cannot declare global variables of the modules that "implements" it
+- Different namespace than normal modules
+- When abstracting over adversaries having access to some module, they
+  automatically have access to all its procedures and state.
+  - Necessary to declare that abstract modules has memory independent of some modules
+  - Can also declare that the adversary does not have access to specific procedures
+- Abstract modules support "*" before a procedure to declare that this procedure
+  must initialize all global state.
+  - This is not a syntactic check.
+  - Validated by EasyCrypt's logic within proofs.
+* CryptHOL locales
+- uses Isabelle's locales.
+* CertiCrypt Modules
+- pWhile is deep-embedded within Coq.
+- Programs are well-typed instances of pWhile
+- Modules are the modules native to Coq. They work the same as in EasyCrypt
+- Proofs of programs, starts by requiring some relation between memory and program.
