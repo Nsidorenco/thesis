@@ -31,10 +31,8 @@ theory SigmaProtocols.
     proc response(h : statement, w : witness,
                   m : message, r : randomness, e : challenge) : response
     proc verify(h : statement, m : message, e : challenge, z : response) : bool
-    proc witness_extractor(h : statement, m : message,
-                           e : challenge, e' : challenge,
-                           z : response, z' : response) : witness
-    proc simulator(h : statement, e : challenge) : transcript
+    proc witness_extractor(h : statement, m : message, e e' : challenge, z z' : response) : witness
+    proc simulator(h : statement, e : challenge) : message * response
   }.
 
   module Completeness (S : SProtocol) = {
@@ -51,9 +49,7 @@ theory SigmaProtocols.
   }.
 
   module SpecialSoundness(S : SProtocol) = {
-    proc main(h : statement, m : message,
-              c : challenge, c' : challenge,
-              z : response, z' : response) : bool = {
+    proc main(h : statement, m : message, c c' : challenge, z z' : response) : bool = {
       var w, v, v';
 
       v  = S.verify(h, m, c, z);
@@ -81,9 +77,9 @@ theory SigmaProtocols.
     }
 
     proc ideal(h : statement) : transcript option = {
-      var a, e', e, z, v, ret;
+      var a, e, z, v, ret;
       e <$ dchallenge;
-      (a, e', z) = S.simulator(h, e);
+      (a, z) = S.simulator(h, e);
       v = S.verify(h, a, e, z);
       ret = None;
       if (v) {

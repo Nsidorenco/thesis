@@ -63,7 +63,7 @@ module Schnorr : SProtocol = {
     return (v = v');
   }
 
-  proc witness_extractor(s : statement, m : message, e : challenge, e' : challenge, r : response, r' : response) : witness= {
+  proc witness_extractor(s : statement, m : message, e e' : challenge, r r' : response) : witness= {
     return (r - r') / (e - e');
   }
 
@@ -71,7 +71,7 @@ module Schnorr : SProtocol = {
     var a, z;
     z =$ FDistr.dt;
     a = g ^ z * s ^ (-e);
-    return (a, e, z);
+    return (a, z);
   }
 
 }.
@@ -108,8 +108,7 @@ section Security.
   qed.
 
   lemma schnorr_shvzk h' w':
-      (* Pr[SHVZK(Schnorr).real(h, w) @ &m : res] = *)
-      (* Pr[SHVZK(Schnorr).ideal(h) @ &m : res]. *)
+      (* NOTE: This implicitly implies that \exists w, (R h' w) in the real case *)
       equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : (={h} /\ h{1} = h' /\ w{2} = w' /\ (R h' w')) ==> ={res}].
   proof.
   proc. inline *. sp.
