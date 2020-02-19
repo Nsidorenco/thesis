@@ -122,7 +122,9 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
   }.
 
-  (* TODO: prove releation between the experiment and normal SHVZK *)
-
+  lemma shvzk_real_never_fail (S <: SProtocol) h' w' &m:
+      Pr[SHVZK(S).real(h', w') @ &m : (res <> None)] =
+      Pr[Completeness(S).main(h', w') @ &m : res].
+  proof. byequiv=>//. proc. wp. do ? call (: true). rnd. by call (: true). qed.
 
 end SigmaProtocols.

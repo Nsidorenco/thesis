@@ -167,22 +167,18 @@ local module C2 = S2.SigmaProtocols.Completeness(SP2).
 local module SHVZK1 = S1.SigmaProtocols.SHVZK(SP1).
 local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
 
-axiom shvzk1_never_fails h' &m:
-      phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r.
-axiom shvzk2_never_fails h' &m:
-      phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h') ==> (res <> None)] = 1%r.
+axiom completeness_protocol1 h w &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w) @ &m : res] = 1%r.
+axiom completeness_protocol2 h w &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w) @ &m : res] = 1%r.
 
-axiom SP1_completeness h w &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w) @ &m : res] = 1%r.
-axiom SP2_completeness h w &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w) @ &m : res] = 1%r.
-
-local lemma SP2_completeness_pr h' w' : phoare[C2.main : (h = h' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
-    proof. bypr. progress. apply (SP2_completeness &m) in H. assumption. qed.
 local lemma SP1_completeness_pr h' w' : phoare[C1.main : (h = h' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
-    proof. bypr. progress. apply (SP1_completeness &m) in H. assumption. qed.
+    proof. bypr. progress. apply (completeness_protocol1 &m) in H. assumption. qed.
+local lemma SP2_completeness_pr h' w' : phoare[C2.main : (h = h' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
+    proof. bypr. progress. apply (completeness_protocol2 &m) in H. assumption. qed.
 
-
-axiom SP2_sim_ll : islossless SP2.simulator.
-axiom SP1_init_ll : islossless SP1.init.
+axiom shvzk1_ideal_never_fails h':
+      phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r.
+axiom shvzk2_ideal_never_fails h':
+      phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h') ==> (res <> None)] = 1%r.
 
 local module Completeness' = {
   var e1 : challenge
@@ -276,13 +272,13 @@ local module FakeIdeal = {
   local lemma fake1_ideal_equiv' h' &m:
       Pr[FakeIdeal.fake1(h') @ &m : res] = 1%r.
   proof.
-    byphoare (: h1 = h' ==> _)=>//. proc. by call (shvzk1_never_fails h' &m).
+    byphoare (: h1 = h' ==> _)=>//. proc. by call (shvzk1_ideal_never_fails h').
   qed.
 
   local lemma fake2_ideal_equiv' h' &m:
       Pr[FakeIdeal.fake2(h') @ &m : res] = 1%r.
   proof.
-    byphoare (: h2 = h' ==> _)=>//. proc. by call (shvzk2_never_fails h' &m).
+    byphoare (: h2 = h' ==> _)=>//. proc. by call (shvzk2_ideal_never_fails h').
   qed.
 
   local lemma completeness_sim_equiv h' w' &m:
@@ -328,7 +324,7 @@ local module FakeIdeal = {
     local lemma real1_true h' w' &m:
         (R1 h' w') =>
         Pr[Completeness'.real1(h', w') @ &m : res /\ (Completeness'.e = Completeness'.e1 ^^ Completeness'.e2 )] = 1%r.
-    proof. move=> rel. have H := (SP1_completeness h' w' &m).
+    proof. move=> rel. have H := (completeness_protocol1 h' w' &m).
     apply H in rel. rewrite - rel. smt. qed.
 
     local lemma real1_true' h' w':
@@ -355,7 +351,7 @@ local module FakeIdeal = {
     local lemma real2_true h' w' &m:
         (R2 h' w') =>
         Pr[Completeness'.real2(h', w') @ &m : res /\ (Completeness'.e = Completeness'.e1 ^^ Completeness'.e2 )] = 1%r.
-    proof. move=> rel. have H := (SP2_completeness h' w' &m).
+    proof. move=> rel. have H := (completeness_protocol2 h' w' &m).
     apply H in rel. rewrite - rel. smt. qed.
 
     local lemma real2_true' h' w':

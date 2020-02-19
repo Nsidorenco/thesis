@@ -31,7 +31,8 @@ clone import SigmaProtocols as Sigma with
   op SigmaProtocols.R = R_DL,
   op SigmaProtocols.dchallenge = FDistr.dt
   proof *.
-  realize SigmaProtocols.dchallenge_ll by apply FDistr.dt_ll.
+  realize SigmaProtocols.dchallenge_llfuni.
+      split. apply FDistr.dt_ll. apply FDistr.dt_funi. qed.
 export SigmaProtocols.
 
 
