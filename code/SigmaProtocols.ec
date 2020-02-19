@@ -16,12 +16,16 @@ theory SigmaProtocols.
   (* define the relations *)
   op R (x : statement) (w : witness) : bool.
 
-  op dchallenge : {challenge distr | is_lossless dchallenge} as dchallenge_ll.
+  op dchallenge : {challenge distr | is_lossless dchallenge /\ is_funiform dchallenge} as dchallenge_llfuni.
   (* op dpub : {statement distr | is_lossless dpub} as dpub_ll. *)
 
   (* Define set of all valid witness/statement pairs ?? *)
   (* axiom domain_R : forall x w, *)
   (*   R x w = true => x \in message. *)
+
+lemma dchallenge_ll : is_lossless dchallenge by have []:= dchallenge_llfuni.
+lemma dchallenge_funi : is_funiform dchallenge by have []:= dchallenge_llfuni.
+lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchallenge_funi|exact/dchallenge_ll].
 
 
   (* Sigma Protocol Algoritms *)
@@ -88,5 +92,37 @@ theory SigmaProtocols.
       return ret;
     }
   }.
+
+  module SHVZKExperiment(S : SProtocol) = {
+    module Game = SHVZK(S)
+
+    proc real(h : statement, w : witness) = {
+      var a, e, z, topt, v;
+      topt = Game.real(h, w);
+      if (topt = None) {
+        v = false;
+      } else {
+        (a, e, z) = oget topt;
+        v = S.verify(h, a, e, z);
+      }
+      return v;
+    }
+
+    proc ideal(h) = {
+      var a, e, z, topt, v;
+      topt = Game.ideal(h);
+      if (topt = None) {
+        v = false;
+      } else {
+        (a,e,z) = oget topt;
+        v = S.verify(h, a, e, z);
+      }
+      return v;
+    }
+
+  }.
+
+  (* TODO: prove releation between the experiment and normal SHVZK *)
+
 
 end SigmaProtocols.
