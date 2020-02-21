@@ -67,7 +67,7 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
 
   module SHVZK (S : SProtocol) = {
-    proc real(h : statement, w : witness) : transcript option = {
+    proc real(h : statement, w : witness) : (message * response) option = {
       var r, a, e, z, v, ret;
       (a, r) = S.init(h, w);
       e <$ dchallenge;
@@ -75,51 +75,22 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
       v = S.verify(h, a, e, z);
       ret = None;
       if (v) {
-        ret = Some (a, e, z);
+        ret = Some (a, z);
       } 
       return ret;
     }
 
-    proc ideal(h : statement) : transcript option = {
+    proc ideal(h : statement) : (message * response ) option = {
       var a, e, z, v, ret;
       e <$ dchallenge;
       (a, z) = S.simulator(h, e);
       v = S.verify(h, a, e, z);
       ret = None;
       if (v) {
-        ret = Some (a, e, z);
+        ret = Some (a, z);
       }
       return ret;
     }
-  }.
-
-  module SHVZKExperiment(S : SProtocol) = {
-    module Game = SHVZK(S)
-
-    proc real(h : statement, w : witness) = {
-      var a, e, z, topt, v;
-      topt = Game.real(h, w);
-      if (topt = None) {
-        v = false;
-      } else {
-        (a, e, z) = oget topt;
-        v = S.verify(h, a, e, z);
-      }
-      return v;
-    }
-
-    proc ideal(h) = {
-      var a, e, z, topt, v;
-      topt = Game.ideal(h);
-      if (topt = None) {
-        v = false;
-      } else {
-        (a,e,z) = oget topt;
-        v = S.verify(h, a, e, z);
-      }
-      return v;
-    }
-
   }.
 
   lemma shvzk_real_never_fail (S <: SProtocol) h' w' &m:

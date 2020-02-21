@@ -83,7 +83,7 @@ module Schnorr : SProtocol = {
 (* If we want to use our knowledge of our relation, *)
 (* then we need to rewrite before we start using the Hoare logic *)
 section Security.
-  lemma schnorr_correctness h' w' &m:
+  lemma schnorr_completeness h' w' &m:
       R h' w' => Pr[Completeness(Schnorr).main(h', w') @ &m : res] = 1%r.
   proof.
   rewrite /R /R_DL=> rel.
@@ -124,7 +124,65 @@ section Security.
   - apply: contra H4=> ?; algebra.
   qed.
 
+  lemma schnorr_shvzk_ideal_success h' &m:
+      Pr[SHVZK(Schnorr).ideal(h') @ &m : (res <> None)] = 1%r.
+  proof. byphoare(: h = h' ==> _)=>//. proc. inline *.
+  auto. progress. apply dchallenge_ll. apply FDistr.dt_ll.
+  algebra. qed.
+
   (* lemma schnorr_secure: *)
   (*     schnorr_correctness /\ schnorr_special_soundness /\ schnorr_shvzk. *)
 
 end section Security.
+
+require ORProtocol.
+
+clone import ORProtocol as OR with
+  type ORProtocol.statement1 <- statement,
+  type ORProtocol.statement2 <- statement,
+  type ORProtocol.witness    <- witness,
+  type ORProtocol.message1   <- message,
+  type ORProtocol.message2   <- message,
+  type ORProtocol.randomness <- randomness,
+  type ORProtocol.challenge  <- challenge,
+  type ORProtocol.response1  <- response,
+  type ORProtocol.response2  <- response,
+
+  op ORProtocol.R1 = R,
+  op ORProtocol.R2 = R,
+
+  op ORProtocol.dchallenge = dchallenge
+  proof *.
+  realize ORProtocol.dchallenge_llfuni. exact dchallenge_llfuni. qed.
+  realize ORProtocol.xorK. admitted.
+  realize ORProtocol.xorA. admitted.
+export ORProtocol.
+
+print OR.ORProtocol.ORProtocol.
+print ORProtocol.Completeness.
+print SigmaProtocols.Completeness.
+
+lemma or_schnorr_schnorr_completenes h' w' &m:
+    (R1 (fst h') w') \/ (R2 (snd h') w') =>
+    Pr[SigmaProtocols.Completeness(ORProtocol(Schnorr, Schnorr)).main(h', w') @ &m : res] = 1%r.
+  proof.
+    have H := (or_completeness Schnorr Schnorr _ _ _ _ h' w' &m); progress.
+      - have <- := (schnorr_completeness h w &m0 H).
+        byequiv=> //. proc. sim. rnd. call (: true). auto. progress.
+      - have <- := (schnorr_completeness h w &m0 H).
+        byequiv=> //. proc. sim. rnd. call (: true). auto. progress.
+      - have <- := (schnorr_shvzk_ideal_success h'0 &m0).
+        byequiv=>//. proc. sim. rnd. progress.
+      - have <- := (schnorr_shvzk_ideal_success h'0 &m0).
+        byequiv=>//. proc. sim. rnd. progress.
+  qed.
+
+
+
+  lemma schnorr_svhzk_ideal_success h' &m:
+
+  have completeness_schnorr1 := (schnorr_completeness (fst h') w' &m).
+  have completeness_schnorr2 := (schnorr_completeness (snd h') w' &m).
+  case (R1 (fst h') w'). move=> rel.
+  apply completeness_schnorr1 in rel.
+  apply H.

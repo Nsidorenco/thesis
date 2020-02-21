@@ -34,19 +34,6 @@ theory ORProtocol.
   axiom xorK x c1 : (x ^^ c1) ^^ c1 = x.
   axiom xorA x y : x ^^ y = y ^^ x.
 
-  clone SigmaProtocols as Sigma with
-    type SigmaProtocols.statement <- (statement1 * statement2),
-    type SigmaProtocols.witness <- witness,
-    type SigmaProtocols.message <- message,
-    type SigmaProtocols.randomness <- randomness,
-    type SigmaProtocols.challenge <- challenge,
-    type SigmaProtocols.response <- response,
-
-    op SigmaProtocols.R = fun x w => (R1 (fst x) w) \/ (R2 (snd x) w),
-    op SigmaProtocols.dchallenge = dchallenge
-    proof *.
-    realize SigmaProtocols.dchallenge_llfuni by apply dchallenge_llfuni.
-
   clone SigmaProtocols as S1 with
     type SigmaProtocols.statement <- statement1,
     type SigmaProtocols.witness <- witness,
@@ -72,6 +59,22 @@ theory ORProtocol.
     op SigmaProtocols.dchallenge = dchallenge
     proof *.
     realize SigmaProtocols.dchallenge_llfuni by apply dchallenge_llfuni.
+
+  clone SigmaProtocols as Sigma with
+    type SigmaProtocols.statement <- (statement1 * statement2),
+    type SigmaProtocols.witness <- witness,
+    type SigmaProtocols.message <- message,
+    type SigmaProtocols.randomness <- randomness,
+    type SigmaProtocols.challenge <- challenge,
+    type SigmaProtocols.response <- response,
+
+    op SigmaProtocols.R = fun x w => (R1 (fst x) w) \/ (R2 (snd x) w),
+    op SigmaProtocols.dchallenge = dchallenge
+    proof *.
+    realize SigmaProtocols.dchallenge_llfuni by apply dchallenge_llfuni.
+  export Sigma.
+
+
 
   module ORProtocol (P1 : S1.SigmaProtocols.SProtocol, P2 : S2.SigmaProtocols.SProtocol) : Sigma.SigmaProtocols.SProtocol = {
     var e1 : challenge
@@ -146,14 +149,17 @@ theory ORProtocol.
       return w;
     }
 
-    proc simulator(h : statement, e : challenge) : message * response = {
-      var h1, h2, a1, a2, z1, z2;
+    proc simulator(h : statement, c : challenge) : message * response = {
+      var h1, h2, a1, a2, z1, z2, c1, c2;
       (h1, h2) = h;
 
-      (a1, z1) = P1.simulator(h1, e);
-      (a2, z2) = P2.simulator(h2, e);
+      c2 <$ dchallenge;
+      c1 = c ^^ c2;
 
-      return ((a1, a2), (e1, z1, e2, z2));
+      (a1, z1) = P1.simulator(h1, c1);
+      (a2, z2) = P2.simulator(h2, c2);
+
+      return ((a1, a2), (c1, z1, c2, z2));
     }
 
   }.
@@ -167,18 +173,41 @@ local module C2 = S2.SigmaProtocols.Completeness(SP2).
 local module SHVZK1 = S1.SigmaProtocols.SHVZK(SP1).
 local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
 
-axiom completeness_protocol1 h w &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w) @ &m : res] = 1%r.
-axiom completeness_protocol2 h w &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w) @ &m : res] = 1%r.
+  axiom completeness_protocol1 h w &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w) @ &m : res] = 1%r.
+  axiom completeness_protocol2 h w &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w) @ &m : res] = 1%r.
 
+  (* axiom shvzk1 h' w' &m: *)
+  (*   Pr[S1.SigmaProtocols.SHVZK(SP1).real(h', w') @ &m : (res <> None)] = *)
+  (*   Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)]. *)
+  (* axiom shvzk2 h' w' &m: *)
+  (*   Pr[S1.SigmaProtocols.SHVZK(SP1).real(h', w') @ &m : (res <> None)] = *)
+  (*   Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)]. *)
+
+  (* local lemma shvzk1_ideal_completeness h' w' &m: *)
+  (*     Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)] = *)
+  (*     Pr[C1.main(h', w') @ &m : res]. *)
+  (* proof. have H := (shvzk1 h' w' &m). *)
+  (*   rewrite -H. *)
+  (*   have -> := (S1.SigmaProtocols.shvzk_real_never_fail SP1 h' w' &m). *)
+  (*   byequiv=>//. proc. sim. qed. *)
+  axiom shvzk1_ideal_never_fails_pr h' &m:
+      Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)] = 1%r.
+  axiom shvzk2_ideal_never_fails_pr h' &m:
+      Pr[S2.SigmaProtocols.SHVZK(SP2).ideal(h') @ &m : (res <> None)] = 1%r.
+
+  local lemma shvzk1_ideal_never_fails h':
+        phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r.
+  proof. have H := (shvzk1_ideal_never_fails_pr h'). bypr. progress. apply (H &m). qed.
+
+  local lemma shvzk2_ideal_never_fails h':
+        phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h') ==> (res <> None)] = 1%r.
+  proof. have H := (shvzk2_ideal_never_fails_pr h'). bypr. progress. apply (H &m). qed.
+
+  (* Converting the ambient logic to the pHoare logic *)
 local lemma SP1_completeness_pr h' w' : phoare[C1.main : (h = h' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
-    proof. bypr. progress. apply (completeness_protocol1 &m) in H. assumption. qed.
+    proof. bypr. progress. by apply (completeness_protocol1 &m) in H. qed.
 local lemma SP2_completeness_pr h' w' : phoare[C2.main : (h = h' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
-    proof. bypr. progress. apply (completeness_protocol2 &m) in H. assumption. qed.
-
-axiom shvzk1_ideal_never_fails h':
-      phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r.
-axiom shvzk2_ideal_never_fails h':
-      phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h') ==> (res <> None)] = 1%r.
+    proof. bypr. progress. by apply (completeness_protocol2 &m) in H. qed.
 
 local module Completeness' = {
   var e1 : challenge
@@ -272,7 +301,8 @@ local module FakeIdeal = {
   local lemma fake1_ideal_equiv' h' &m:
       Pr[FakeIdeal.fake1(h') @ &m : res] = 1%r.
   proof.
-    byphoare (: h1 = h' ==> _)=>//. proc. by call (shvzk1_ideal_never_fails h').
+    byphoare (: h1 = h' ==> _)=>//. proc.
+    by call (shvzk1_ideal_never_fails h').
   qed.
 
   local lemma fake2_ideal_equiv' h' &m:
@@ -330,7 +360,7 @@ local module FakeIdeal = {
     local lemma real1_true' h' w':
         phoare[Completeness'.real1 : (h1 = h' /\ w = w' /\ (R1 h' w')) ==> res /\ (Completeness'.e = Completeness'.e1 ^^ Completeness'.e2 )] = 1%r.
     proof. bypr. progress. have H1 := (real1_true h1{m} w{m} &m).
-    apply H1 in H. apply H. qed.
+    exact (H1 H). qed.
 
     local lemma real2_completeness2_equiv h' w' &m:
         Pr[Completeness'.real2(h', w') @ &m : res /\ (Completeness'.e = Completeness'.e1 ^^ Completeness'.e2 )] =
@@ -383,7 +413,7 @@ local module FakeIdeal = {
       have Hfake1 := (fake1_true (fst h')). call Hfake1. auto. smt().
     qed.
 
-    local lemma or_completeness h' w' &m:
+    lemma or_completeness h' w' &m:
         (R1 (fst h') w') \/ (R2 (snd h') w') =>
         Pr[Sigma.SigmaProtocols.Completeness(ORProtocol(SP1,SP2)).main(h', w') @ &m : res] = 1%r.
     proof.
@@ -391,6 +421,17 @@ local module FakeIdeal = {
       have Htrue := (completeness'_true h' w' &m).
       apply Htrue in rel. apply rel.
     qed.
+
+    (* local lemma or_shvzk h' w' &m: *)
+    (*     (R1 (fst h') w' ) \/ (R2 (snd h') w') => *)
+    (*     Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h', w') @ &m : (res <> None)] = *)
+    (*     Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h') @ &m : (res <> None)]. *)
+    (* proof. *)
+    (*   move=> rel. byequiv=>//. proc. inline *. sp. *)
+    (*   case (R1 (fst h') w'). *)
+    (*     - rcondt{1} 1. progress. *)
+    (*     - rcondt{1} 14. progress. wp. rnd. wp. call (: true). rnd. call (: true). progress. *)
+    (*   sim. wp. *)
 
 end section Security.
 end ORProtocol.
