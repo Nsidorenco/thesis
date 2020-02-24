@@ -67,7 +67,7 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
 
   module SHVZK (S : SProtocol) = {
-    proc real(h : statement, w : witness) : (message * response) option = {
+    proc real(h : statement, w : witness) : transcript option = {
       var r, a, e, z, v, ret;
       (a, r) = S.init(h, w);
       e <$ dchallenge;
@@ -75,19 +75,19 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
       v = S.verify(h, a, e, z);
       ret = None;
       if (v) {
-        ret = Some (a, z);
+        ret = Some (a, e, z);
       } 
       return ret;
     }
 
-    proc ideal(h : statement) : (message * response ) option = {
+    proc ideal(h : statement) : transcript option = {
       var a, e, z, v, ret;
       e <$ dchallenge;
       (a, z) = S.simulator(h, e);
       v = S.verify(h, a, e, z);
       ret = None;
       if (v) {
-        ret = Some (a, z);
+        ret = Some (a, e, z);
       }
       return ret;
     }
