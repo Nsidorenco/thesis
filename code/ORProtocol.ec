@@ -145,8 +145,16 @@ theory ORProtocol.
     proc witness_extractor(h : statement, m : message,
                            e : challenge, e' : challenge,
                            z : response, z' : response) : witness = {
-      var h', w;
-      (h', w) = gen();
+      var h1, h2, m1, m2, w, e1, e2, e1', e2', z1, z2, z1', z2';
+      (h1, h2) = h;
+      (m1, m2) = m;
+      (e1, z1, e2, z2) = z;
+      (e1', z1', e2', z2') = z';
+      if (e1 <> e1') {
+        w = P1.witness_extractor(h1, m1, e1, e1', z1, z1');
+      } else {
+        w = P2.witness_extractor(h2, m2, e2, e2', z2, z2');
+      }
       return w;
     }
 
