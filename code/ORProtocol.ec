@@ -27,6 +27,7 @@ theory ORProtocol.
   (* define the relations *)
   op R1 (x : statement1, w : witness) : bool.
   op R2 (x : statement2, w : witness) : bool.
+  op R = fun x w => (R1 (fst x) w) \/ (R2 (snd x) w).
 
   op dchallenge : {challenge distr | is_lossless dchallenge /\ is_funiform dchallenge} as dchallenge_llfuni.
 
@@ -68,7 +69,7 @@ theory ORProtocol.
     type SigmaProtocols.challenge <- challenge,
     type SigmaProtocols.response <- response,
 
-    op SigmaProtocols.R = fun x w => (R1 (fst x) w) \/ (R2 (snd x) w),
+    op SigmaProtocols.R = R,
     op SigmaProtocols.dchallenge = dchallenge
     proof *.
     realize SigmaProtocols.dchallenge_llfuni by apply dchallenge_llfuni.
@@ -186,7 +187,7 @@ local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
       Pr[S1.SigmaProtocols.SHVZK(SP1).real(h', w') @ &m : (res <> None)] =
       Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)].
   proof. move=>rel.
-  byequiv (shvzk1_equiv h' w'); trivial. qed.
+  by byequiv (shvzk1_equiv h' w'). qed.
 
   (* local lemma shvzk1_ideal_never_fails_pr h' &m: *)
   (*     Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)] = 1%r. *)
@@ -456,7 +457,7 @@ local module FakeIdeal = {
     qed.
 
     local module SHVZK' = {
-        proc real(h, w) = {
+        proc real(h, w) : transcript option = {
           var h1, h2, a1, a2, z1, z2, e1, e2, ret, t1, t2;
           (h1, h2) = h;
           if (R1 h1 w) {
@@ -467,7 +468,7 @@ local module FakeIdeal = {
             } else {
               (a1, e1, z1) = oget(t1);
               (a2, e2, z2) = oget(t2);
-              ret = Some ((a1, e1, z1), (a2, e2, z2));
+              ret = Some ((a1, a2), (e1^^e2), (e1, z1, e2, z2));
             }
           } else {
             t2 = SHVZK2.real(h2, w);
@@ -477,12 +478,12 @@ local module FakeIdeal = {
             } else {
               (a1, e1, z1) = oget(t1);
               (a2, e2, z2) = oget(t2);
-              ret = Some ((a1, e1, z1), (a2, e2, z2));
+              ret = Some ((a1, a2), (e2^^e1), (e1, z1, e2, z2));
             }
           }
           return ret;
         }
-        proc ideal(h) = {
+        proc ideal(h) : transcript option = {
           var h1, h2, a1, a2, z1, z2, e1, e2, ret, t1, t2;
           (h1, h2) = h;
           t1 = SHVZK1.ideal(h1);
@@ -492,16 +493,16 @@ local module FakeIdeal = {
           } else {
             (a1, e1, z1) = oget(t1);
             (a2, e2, z2) = oget(t2);
-            ret = Some ((a1, e1, z1), (a2, e2, z2));
+            ret = Some ((a1, a2), e1^^e2, (e1, z1, e2, z2));
           }
           return ret;
         }
       }.
 
-      local lemma real_real'_equiv h' w' &m :
-          Pr[SHVZK'.real(h', w') @ &m : (res <> None)] =
-          Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h', w') @ &m : (res <> None)].
-      proof. byequiv=>//.
+      local equiv real_real'_equiv h' w':
+        SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real :
+        (h{2} = h' /\ w{2} = w' /\ (R h' w') /\ ={h, w, glob SP1, glob SP2}) ==> ={res}.
+      proof.
       proc. inline *. sp. case (R1 (fst h') w').
       (* case: relation is true *)
       rcondt{1} 1. progress.
@@ -515,13 +516,12 @@ local module FakeIdeal = {
       auto. call (:true). swap{1} 4 -2. wp.
       rnd (fun z => z ^^ e0{1}) (fun q => q ^^ ORProtocol.e2{2}).
       rnd. call (:true).
-      auto. progress.
-      - apply S1.SigmaProtocols.dchallenge_fu.
+      auto. progress=>//.
       - by rewrite xorK.
       - apply S1.SigmaProtocols.dchallenge_funi.
       - apply S1.SigmaProtocols.dchallenge_fu.
       - by rewrite xorK.
-      - smt(xorA xorK).
+      - apply : contra H12. progress. by rewrite xorK xorA.
      (* case: relation is false *)
       rcondf{1} 1. progress.
       rcondf{2} 1. progress.
@@ -534,19 +534,18 @@ local module FakeIdeal = {
       auto. call (:true). swap{1} 4 -2. wp.
       rnd (fun z => z ^^ e4{1}) (fun q => q ^^ ORProtocol.e1{2}).
       rnd. call (:true).
-      auto. progress.
-      - apply S1.SigmaProtocols.dchallenge_fu.
+      auto. progress=>//.
       - by rewrite xorK.
       - apply S1.SigmaProtocols.dchallenge_funi.
       - apply S1.SigmaProtocols.dchallenge_fu.
       - by rewrite xorK.
-      - smt(xorA xorK).
+      - apply : contra H12. progress. by rewrite xorK xorA.
       qed.
 
-      local lemma ideal_ideal'_equiv h' &m:
-          Pr[SHVZK'.ideal(h') @ &m : (res <> None)] =
-          Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h') @ &m : (res <> None)].
-      proof. byequiv=>//.
+      local equiv ideal_ideal'_equiv h':
+        SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
+        (={h, glob SP1, glob SP2} /\ h{2} = h') ==> ={res}.
+      proof.
       proc. inline *.
       sp. auto. call (:true).
       swap{1} [3..6] 3. auto.
@@ -555,38 +554,41 @@ local module FakeIdeal = {
       swap{1} 2 2. call (:true).
       swap{1} 3 -2. swap{2} 5 -4. wp.
       rnd (fun z => z ^^ e0{1}) (fun q => q ^^ c2{2}).
-      auto. progress.
-      - apply SigmaProtocols.dchallenge_fu.
+      auto. progress=>//.
       - by rewrite xorK.
       - apply SigmaProtocols.dchallenge_funi.
       - apply SigmaProtocols.dchallenge_fu.
       - by rewrite xorK.
-      - smt().
+      - apply : contra H10. progress. by rewrite xorK xorA.
       qed.
 
-
-  lemma or_shvzk h' w' &m:
-      (Sigma.SigmaProtocols.R h' w') =>
-      Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h', w') @ &m : (res <> None)] =
-      Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h') @ &m : (res <> None)].
+  equiv or_shvzk h' w' &m:
+      Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~
+      Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
+      (h{1} = h' /\ h{2} = h' /\ ={h, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
   proof.
-    move=> rel.
-    have <- := (real_real'_equiv h' w' &m).
-    have <- := (ideal_ideal'_equiv h' &m).
-  case (R1 (fst h') w')=> rel_true.
-  (* case: relation is true *)
-  byequiv=>//. proc.
+  bypr (res{1}) (res{2}).
+  progress. progress.
+    have <- : Pr[SHVZK'.real(h{1}, w{1}) @ &1 : res = a] =
+              Pr[SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h{1}, w{1}) @ &1 : res = a].
+      - byequiv (real_real'_equiv h{1} w{1})=>//.
+    have <- : Pr[SHVZK'.ideal(h{2}) @ &2 : res = a] =
+              Pr[SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h{2}) @ &2 : res = a].
+      - byequiv (ideal_ideal'_equiv h{2})=>//.
+  case (R1 (fst h{1}) w{1})=> rel_true.
+  byequiv=>//.
+  proc.
   auto. rcondt{1} 2. auto. sp.
   auto. inline SHVZK2.ideal.
   auto. do ? call (:true). auto.
-  call (shvzk1_equiv (fst h') w'). auto.
+  call (shvzk1_equiv (fst h{1}) w{1}). auto. progress; smt().
   (* case: relation is false *)
   byequiv=>//. proc.
   auto. rcondf{1} 2. auto. sp.
   auto. swap{1} 1 1.
-  call (shvzk2_equiv (snd h') w').
+  call (shvzk2_equiv (snd h{1}) w{1}).
   inline SHVZK1.ideal.
-  auto. do ? call (:true). auto. progress; smt().
+  auto. do ? call (:true). auto. progress; smt.
   qed.
 
   lemma or_special_soundness &m:
