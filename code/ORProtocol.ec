@@ -433,68 +433,68 @@ local module Completeness' = {
         }
       }.
 
-      local equiv real_real'_equiv h' w':
-        SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real :
-        (h{2} = h' /\ w{2} = w' /\ (R h' w') /\ ={h, w, glob SP1, glob SP2}) ==> ={res}.
-      proof.
-      proc. inline *. sp. case (R1 (fst h') w').
-      (* case: relation is true *)
-      rcondt{1} 1. progress.
-      rcondt{2} 1. progress.
-      rcondt{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
-      sp. auto. call (:true). swap{1} [8..10] -5.
-      swap{2} 11 2. swap{2} [13..14] -6.
-      auto.
-      call (:true). swap{2} [6..8] -3.
-      auto. call (:true).
-      auto. call (:true). swap{1} 4 -2. wp.
-      rnd (fun z => z ^^ e0{1}) (fun q => q ^^ ORProtocol.e2{2}).
-      rnd. call (:true).
-      auto. progress=>//.
-      - by rewrite xorK.
-      - apply S1.SigmaProtocols.dchallenge_funi.
-      - apply S1.SigmaProtocols.dchallenge_fu.
-      - by rewrite xorK.
-      - apply : contra H12. progress. by rewrite xorK xorA.
-     (* case: relation is false *)
-      rcondf{1} 1. progress.
-      rcondf{2} 1. progress.
-      rcondf{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
-      sp. auto. swap{2} 24 1. call (:true). swap{1} [8..10] -5.
-      swap{2} 11 2. swap{2} [13..14] -6.
-      auto.
-      call (:true). swap{2} [6..8] -3.
-      auto. call (:true).
-      auto. call (:true). swap{1} 4 -2. wp.
-      rnd (fun z => z ^^ e4{1}) (fun q => q ^^ ORProtocol.e1{2}).
-      rnd. call (:true).
-      auto. progress=>//.
-      - by rewrite xorK.
-      - apply S1.SigmaProtocols.dchallenge_funi.
-      - apply S1.SigmaProtocols.dchallenge_fu.
-      - by rewrite xorK.
-      - apply : contra H12. progress. by rewrite xorK xorA.
-      qed.
+  local equiv real_real'_equiv h' w':
+    SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real :
+    (h{2} = h' /\ w{2} = w' /\ (R h' w') /\ ={h, w, glob SP1, glob SP2}) ==> ={res}.
+  proof.
+  proc. inline *. sp. case (R1 (fst h') w').
+  (* case: relation is true *)
+  rcondt{1} 1. progress.
+  rcondt{2} 1. progress.
+  rcondt{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
+  sp. auto. call (:true). swap{1} [8..10] -5.
+  swap{2} 11 2. swap{2} [13..14] -6.
+  auto.
+  call (:true). swap{2} [6..8] -3.
+  auto. call (:true).
+  auto. call (:true). swap{1} 4 -2. wp.
+  rnd (fun z => z ^^ e0{1}) (fun q => q ^^ ORProtocol.e2{2}).
+  rnd. call (:true).
+  auto. progress=>//.
+  - by rewrite xorK.
+  - apply S1.SigmaProtocols.dchallenge_funi.
+  - apply S1.SigmaProtocols.dchallenge_fu.
+  - by rewrite xorK.
+  - apply : contra H12. progress. by rewrite xorK xorA.
+  (* case: relation is false *)
+  rcondf{1} 1. progress.
+  rcondf{2} 1. progress.
+  rcondf{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
+  sp. auto. swap{2} 24 1. call (:true). swap{1} [8..10] -5.
+  swap{2} 11 2. swap{2} [13..14] -6.
+  auto.
+  call (:true). swap{2} [6..8] -3.
+  auto. call (:true).
+  auto. call (:true). swap{1} 4 -2. wp.
+  rnd (fun z => z ^^ e4{1}) (fun q => q ^^ ORProtocol.e1{2}).
+  rnd. call (:true).
+  auto. progress=>//.
+  - by rewrite xorK.
+  - apply S1.SigmaProtocols.dchallenge_funi.
+  - apply S1.SigmaProtocols.dchallenge_fu.
+  - by rewrite xorK.
+  - apply : contra H12. progress. by rewrite xorK xorA.
+  qed.
 
-      local equiv ideal_ideal'_equiv h':
-        SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
-        (={h, glob SP1, glob SP2} /\ h{2} = h') ==> ={res}.
-      proof.
-      proc. inline *.
-      sp. auto. call (:true).
-      swap{1} [3..6] 3. auto.
-      call (:true). auto.
-      call (:true).
-      swap{1} 2 2. call (:true).
-      swap{1} 3 -2. swap{2} 5 -4. wp.
-      rnd (fun z => z ^^ e0{1}) (fun q => q ^^ c2{2}).
-      auto. progress=>//.
-      - by rewrite xorK.
-      - apply SigmaProtocols.dchallenge_funi.
-      - apply SigmaProtocols.dchallenge_fu.
-      - by rewrite xorK.
-      - apply : contra H10. progress. by rewrite xorK xorA.
-      qed.
+  local equiv ideal_ideal'_equiv h':
+    SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
+    (={h, glob SP1, glob SP2} /\ h{2} = h') ==> ={res}.
+  proof.
+  proc. inline *.
+  sp. auto. call (:true).
+  swap{1} [3..6] 3. auto.
+  call (:true). auto.
+  call (:true).
+  swap{1} 2 2. call (:true).
+  swap{1} 3 -2. swap{2} 5 -4. wp.
+  rnd (fun z => z ^^ e0{1}) (fun q => q ^^ c2{2}).
+  auto. progress=>//.
+  - by rewrite xorK.
+  - apply SigmaProtocols.dchallenge_funi.
+  - apply SigmaProtocols.dchallenge_fu.
+  - by rewrite xorK.
+  - apply : contra H10. progress. by rewrite xorK xorA.
+  qed.
 
   equiv or_shvzk h' w' &m:
       Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~
@@ -527,18 +527,15 @@ local module Completeness' = {
 
   print S1.SigmaProtocols.SProtocol.
 
-  axiom special_soundness_sp1 x msg e e' d d' :
-    phoare[S1.SigmaProtocols.SpecialSoundness(SP1).main : (h = x /\ m = msg /\ c = e /\ c' = e' /\ z = d /\ z' = d') ==> res] = 1%r.
+  axiom special_soundness_sp1 x msg ch ch' d d' &m :
+    phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
+    phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
+    Pr[S1.SigmaProtocols.SpecialSoundness(SP1).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
 
-  axiom special_soundness_sp2 x msg e e' d d' :
-    phoare[S2.SigmaProtocols.SpecialSoundness(SP2).main : (h = x /\ m = msg /\ c = e /\ c' = e' /\ z = d /\ z' = d') ==> res] = 1%r.
-
-  (* local lemma witness_extraction_sp1 x msg c c' d d' r &m: *)
-  (*   Pr[SP1.witness_extractor(x, msg, c, c', d, d') @ &m : (res = r /\ (R1 x r))] =  *)
-  (*   Pr[S1.SigmaProtocols.SpecialSoundness(SP1).main(x, msg, c, c', d, d') @ &m : (R1 x r)]. *)
-  (* proof. *)
-  (* byequiv=>//. proc *. inline *.  *)
-  (* sp. auto. call (:true).  *)
+  axiom special_soundness_sp2 x msg ch ch' d d' &m :
+    phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
+    phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
+    Pr[S2.SigmaProtocols.SpecialSoundness(SP2).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
 
   local module SpecialSoundness' = {
       var w : witness
@@ -586,24 +583,21 @@ local module Completeness' = {
     }.
 
   local lemma special_soundness_soundness'_equiv
-    x msg ch ch' d d' e1 e1' e2 e2' z1 z1' z2 z2' &m:
-      d = (e1, z1, e2, z2) =>
-      d' = (e1', z1', e2', z2') =>
-      Pr[SpecialSoundness'.main(x, msg, ch, ch', d, d') @ &m : res] =
-      Pr[Sigma.SigmaProtocols.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', d, d') @ &m : res].
+    x msg ch ch' e1 e1' e2 e2' z1 z1' z2 z2' &m:
+      Pr[SpecialSoundness'.main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] =
+      Pr[Sigma.SigmaProtocols.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res].
   proof.
-    move=> dtup dtup'.
     byequiv=>//. proc. inline *. sp.
     case (e1 <> e1').
-    rcondt{1} 1. progress. auto. progress. smt().
-    rcondt{2} 24. progress. do ? (auto; call (:true)). auto. progress. smt().
+    rcondt{1} 1. progress. auto.
+    rcondt{2} 24. progress. do ? (auto; call (:true)).
     swap{2} 11 1. swap{1} 2 8.
     swap{2} 1 1.
     do ? (wp; call (:true)).
-    auto. progress. smt.
+    auto. progress. smt().
     (* case : e2 <> e2' *)
-    rcondf{1} 1. progress. auto. progress. smt().
-    rcondf{2} 24. progress. do ? (auto; call (:true)). auto. progress. smt().
+    rcondf{1} 1. progress. auto.
+    rcondf{2} 24. progress. do ? (auto; call (:true)).
     swap{1} 2 8.
     do ? (wp; call (:true)).
     auto. progress. smt().
@@ -612,61 +606,65 @@ local module Completeness' = {
   (* lemma helper P Q : (P \/ Q) = P. *)
   (*   proof.  *)
 
-  local lemma special_soundness1'_equiv
-    x msg e e' z z' &m:
-      Pr[SpecialSoundness'.special_soundness1(x, msg, e, e', z, z') @ &m : res] =
-      Pr[S1.SigmaProtocols.SpecialSoundness(SP1).main((fst x), msg, e, e', z, z') @ &m : res].
-  proof. byequiv=>//. proc. do ? call (:true). auto. qed.
-
   local lemma special_soundness1'
-    x msg e e' r r' &m:
-      Pr[SpecialSoundness'.special_soundness1(x, msg, e, e', r, r') @ &m : res] = 1%r.
-  proof. have -> := (special_soundness1'_equiv x msg e e' r r' &m).
-    byphoare(: h = (fst x) /\ m = msg /\ c = e /\ c' = e' /\ z = r /\ z' = r' ==> _)=>//.
-    proc *. call (special_soundness_sp1 (fst x) msg e e' r r').
-    auto.
-  qed.
-
-  local lemma special_soundness2'_equiv
-    x msg e e' z z' &m:
-      Pr[SpecialSoundness'.special_soundness2(x, msg, e, e', z, z') @ &m : res] =
-      Pr[S2.SigmaProtocols.SpecialSoundness(SP2).main((snd x), msg, e, e', z, z') @ &m : res].
-  proof. byequiv=>//. proc. do ? call (:true). auto. qed.
+    x msg ch ch' r r':
+      phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
+      phoare[SpecialSoundness'.special_soundness1 :
+        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
+  proof.
+    move=> accept1 accept2.
+    bypr. progress.
+    have <- := (special_soundness_sp1 (fst h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    byequiv=>//. proc. do ? call(:true). auto. progress; smt(). qed.
 
   local lemma special_soundness2'
-    x msg e e' r r' &m:
-      Pr[SpecialSoundness'.special_soundness2(x, msg, e, e', r, r') @ &m : res] = 1%r.
-  proof. have -> := (special_soundness2'_equiv x msg e e' r r' &m).
-    byphoare(: h = (snd x) /\ m = msg /\ c = e /\ c' = e' /\ z = r /\ z' = r' ==> _)=>//.
-    proc *. call (special_soundness_sp2 (snd x) msg e e' r r').
-    auto.
-  qed.
+    x msg ch ch' r r':
+      phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
+      phoare[SpecialSoundness'.special_soundness2 :
+        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
+  proof.
+    move=> accept1 accept2.
+    bypr. progress.
+    have <- := (special_soundness_sp2 (snd h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    byequiv=>//. proc. do ? call(:true). auto. progress; smt(). qed.
 
   local lemma special_soundness'
-    x msg e e' e1 e1' z1 z1' e2 e2' z2 z2' &m:
-      Pr[SpecialSoundness'.main(x, msg, e, e', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
+    x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m:
+      ch <> ch' =>
+      ch = e1 ^^ e2 => (* We explicitly write out what it means for an OR conversation to be accepting *)
+      ch' = e1' ^^ e2' =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = e1 /\ z = z1) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = e1' /\ z = z1') ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2 /\ z = z2) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2' /\ z = z2') ==> res] = 1%r =>
+      Pr[SpecialSoundness'.main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
   proof.
-    byphoare=>//. proc. sp.
-    if. have H : phoare[SpecialSoundness'.special_soundness1 : (h = x /\ m = (fst msg) /\ e = e1 /\ e' = e1') ==> res] = 1%r.
-    - bypr. progress. by have := (special_soundness1' h{m0} m{m0} e{m0} e'{m0} z{m0} z'{m0} &m0).
-    call H.
+    move=> ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22.
+    have H1 := (special_soundness1' x (fst msg) e1 e1' z1 z1' accept11 accept12).
+    have H2 := (special_soundness2' x (snd msg) e2 e2' z2 z2' accept21 accept22).
+    byphoare(: h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = (e1, z1, e2, z2) /\ z' = (e1', z1', e2', z2') ==> _)=>//.
+    proc. sp. if.
+    - call H1. call accept22. call accept21. auto.
+    - call H2. call accept12. call accept11. auto.
+  qed.
 
-
-
-
-
-
-  lemma or_special_soundness x msg ch ch' d d' e1 e2 z1 z2 e1' e2' z1' z2' &m:
-      d = (e1, z1, e2, z2) =>
-      d' = (e1', z1', e2', z2') =>
-      Pr[Sigma.SigmaProtocols.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
-  proof. move=> dtup d'tup.
-    byphoare(: h = x /\ m = msg /\ c = ch /\ c' = ch' /\ z = d /\ z' = d' ==> _)=>//.
-    proc. inline *.
-    sp. case (e1 <> e1').
-    rcondt 24. do ? (auto; call (:true)). skip. progress. smt().
-    wp. call (:true).
-
+  (* TODO: Can this be written with just: *)
+  (* phoare[OR.verify ==> res]? *)
+  lemma or_special_soundness x msg ch ch' e1 e2 z1 z2 e1' e2' z1' z2' &m:
+      ch <> ch' =>
+      ch = e1 ^^ e2 => (* We explicitly write out what it means for an OR conversation to be accepting *)
+      ch' = e1' ^^ e2' =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = e1 /\ z = z1) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = e1' /\ z = z1') ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2 /\ z = z2) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2' /\ z = z2') ==> res] = 1%r =>
+      Pr[Sigma.SigmaProtocols.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
+  proof. move=> ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22.
+    have <- := (special_soundness_soundness'_equiv x msg ch ch' e1 e1' e2 e2' z1 z1' z2 z2' &m).
+    by have := (special_soundness' x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22).
+  qed.
 
 end section Security.
 end ORProtocol.
