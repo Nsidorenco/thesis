@@ -56,12 +56,7 @@ module Schnorr : SProtocol = {
   }
 
   proc verify(s : statement, m : message, e : challenge, r : response) : bool = {
-    var v,v';
-
-    v  = g ^ r;
-    v' = m * (s ^ e);
-
-    return (v = v');
+    return (g^r = m * (s ^e));
   }
 
   proc witness_extractor(s : statement, m : message, e e' : challenge, r r' : response) : witness= {
@@ -94,17 +89,25 @@ section Security.
   algebra. (* replaces:  by rewrite pow_pow mul_pow mulC. *)
   qed.
 
-  lemma schnorr_special_soundness (x : statement) msg e e' r r' &m:
-      e <> e' =>
-      g^r = msg * (x ^ e) =>
-      g^r' = msg * (x ^ e') =>
-      Pr[SpecialSoundness(Schnorr).main(x, msg, e, e', r, r') @ &m : res] = 1%r.
+  print Schnorr.
+  (* phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r. *)
+
+  lemma schnorr_special_soundness (x : statement) msg ch ch' d d' &m:
+      ch <> ch' =>
+      phoare[Schnorr.verify : (s = x /\ m = msg /\ e = ch /\ r = d) ==> (res /\ g^d = msg * (x ^ ch))] = 1%r =>
+      phoare[Schnorr.verify : (s = x /\ m = msg /\ e = ch' /\ r = d') ==> (res /\ g^d' = msg * (x ^ ch'))] = 1%r =>
+      Pr[SpecialSoundness(Schnorr).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
   proof. move => c_diff accept_1 accept_2.
-  byphoare (: h = x /\ m = msg /\ c = e /\ c' = e' /\ z = r /\ z' = r' ==> _)=> //=.
-  proc. inline *; auto; progress.
+  byphoare (: h = x /\ m = msg /\ c = ch /\ c' = ch' /\ z = d /\ z' = d' ==> _)=> //=.
+  proc.
+  swap [1..2] 1.
+  inline Schnorr.witness_extractor.
+  call accept_2.
+  call accept_1.
+  auto. progress.
   rewrite /R /R_DL.
   rewrite div_def -pow_pow sub_def -mul_pow pow_opp.
-  rewrite accept_1 accept_2 inv_def.
+  rewrite H2 H0 inv_def.
   algebra.
   qed.
 
