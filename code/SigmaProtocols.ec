@@ -40,11 +40,10 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
   }.
 
   module Completeness (S : SProtocol) = {
-    proc main(h : statement, w : witness) : bool = {
-      var m, r, e, z, v;
+    proc main(h : statement, w : witness, e : challenge) : bool = {
+      var m, r, z, v;
 
       (m, r) = S.init(h, w);
-      e      <$ dchallenge;
       z      = S.response(h, w, m, r, e);
       v      = S.verify(h, m, e, z);
 
@@ -67,10 +66,9 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
 
   module SHVZK (S : SProtocol) = {
-    proc real(h : statement, w : witness) : transcript option = {
-      var r, a, e, z, v, ret;
+    proc real(h : statement, w : witness, e : challenge) : transcript option = {
+      var r, a, z, v, ret;
       (a, r) = S.init(h, w);
-      e <$ dchallenge;
       z = S.response(h, w, a, r, e);
       v = S.verify(h, a, e, z);
       ret = None;
@@ -80,9 +78,8 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
       return ret;
     }
 
-    proc ideal(h : statement) : transcript option = {
-      var a, e, z, v, ret;
-      e <$ dchallenge;
+    proc ideal(h : statement, e : challenge) : transcript option = {
+      var a, z, v, ret;
       (a, z) = S.simulator(h, e);
       v = S.verify(h, a, e, z);
       ret = None;
@@ -93,9 +90,9 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
     }
   }.
 
-  lemma shvzk_real_never_fail (S <: SProtocol) h' w' &m:
-      Pr[SHVZK(S).real(h', w') @ &m : (res <> None)] =
-      Pr[Completeness(S).main(h', w') @ &m : res].
-  proof. byequiv=>//. proc. wp. do ? call (: true). rnd. by call (: true). qed.
+  lemma shvzk_real_never_fail (S <: SProtocol) h' w' e' &m:
+      Pr[SHVZK(S).real(h', w', e') @ &m : (res <> None)] =
+      Pr[Completeness(S).main(h', w', e') @ &m : res].
+  proof. byequiv=>//. proc. wp. by do ? call (: true). qed.
 
 end SigmaProtocols.

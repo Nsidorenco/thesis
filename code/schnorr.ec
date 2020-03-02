@@ -78,8 +78,8 @@ module Schnorr : SProtocol = {
 (* If we want to use our knowledge of our relation, *)
 (* then we need to rewrite before we start using the Hoare logic *)
 section Security.
-  lemma schnorr_completeness h' w' &m:
-      R h' w' => Pr[Completeness(Schnorr).main(h', w') @ &m : res] = 1%r.
+  lemma schnorr_completeness h' w' e' &m:
+      R h' w' => Pr[Completeness(Schnorr).main(h', w', e') @ &m : res] = 1%r.
   proof.
   rewrite /R /R_DL=> rel.
   byphoare (_: w = w' /\ h = h' ==> _)=> />. rewrite rel.
@@ -111,27 +111,24 @@ section Security.
   algebra.
   qed.
 
-  lemma schnorr_shvzk h' w':
+  lemma schnorr_shvzk h' w' e':
       (* NOTE: This implicitly implies that \exists w, (R h' w) in the real case *)
-      equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : (={h} /\ h{1} = h' /\ w{2} = w' /\ (R h' w')) ==> ={res}].
+      equiv[SHVZK(Schnorr).ideal ~ SHVZK(Schnorr).real : (={h, e} /\ e{1} = e' /\ h{1} = h' /\ w{2} = w' /\ (R h' w')) ==> ={res}].
   proof.
-  proc. inline *. sp.
-  swap{2} 4 -3.
-  seq 1 1 : (#pre /\ ={e}). auto=> //=.
-  wp. sp.
-  rnd (fun z => z - e{2} * w') (fun r => r + e{2} * w').
-  rewrite /R /R_DL.
-  auto; progress; subst; try algebra.
+  proc. sim. inline *. wp.
+  rnd (fun z => z - e{2} * w') (fun r => r + e{2} * w'). auto.
+  rewrite /R /R_DL. progress.
+  - algebra.
   - apply FDistr.dt_funi.
   - apply FDistr.dt_fu.
-  - apply: contra H4=> ?; algebra.
+  - algebra.
+  - algebra.
   qed.
 
-  lemma schnorr_shvzk_ideal_success h' &m:
-      Pr[SHVZK(Schnorr).ideal(h') @ &m : (res <> None)] = 1%r.
+  lemma schnorr_shvzk_ideal_success h' e' &m:
+      Pr[SHVZK(Schnorr).ideal(h', e') @ &m : (res <> None)] = 1%r.
   proof. byphoare(: h = h' ==> _)=>//. proc. inline *.
-  auto. progress. apply dchallenge_ll. apply FDistr.dt_ll.
-  algebra. qed.
+  auto. progress. apply dchallenge_ll. algebra. qed.
 
   (* lemma schnorr_secure: *)
   (*     schnorr_correctness /\ schnorr_special_soundness /\ schnorr_shvzk. *)
