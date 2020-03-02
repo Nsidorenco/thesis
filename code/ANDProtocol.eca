@@ -320,70 +320,81 @@ qed.
 
 
   local module SHVZK' = {
-      proc ideal(h) = {
-        var h1, h2, a1, a2, z1, z2, e1, e2, ret, t1, t2;
+      proc ideal(h, e) = {
+        var h1, h2, a1, a2, z1, z2, ret, t1, t2;
         (h1, h2) = h;
-        (* NOTE: need to change definition of ideal *)
-        (* to take as input the challenge.          *)
-        (* any problems with this formalisation?    *)
 
-        t2 = SHVZK2.ideal(h2);
+        t1 = SHVZK1.ideal(h1, e);
+        t2 = SHVZK2.ideal(h2, e);
         if (t1 = None \/ t2 = None) {
           ret = None;
         } else {
-          (a1, e1, z1) = oget(t1);
-          (a2, e2, z2) = oget(t2);
-          ret = Some ((a1, a2), e1, (z1, z2));
+          (a1, e, z1) = oget(t1);
+          (a2, e, z2) = oget(t2);
+          ret = Some ((a1, a2), e, (z1, z2));
+        }
+        return ret;
+      }
+      proc real(h, w, e) = {
+        var h1, h2, a1, a2, z1, z2, ret, t1, t2, w1, w2;
+        (h1, h2) = h;
+        (w1, w2) = w;
+
+        t1 = SHVZK1.real(h1, w1, e);
+        t2 = SHVZK2.real(h2, w2, e);
+        if (t1 = None \/ t2 = None) {
+          ret = None;
+        } else {
+          (a1, e, z1) = oget(t1);
+          (a2, e, z2) = oget(t2);
+          ret = Some ((a1, a2), e, (z1, z2));
         }
         return ret;
       }
     }.
 
-    local equiv ideal_ideal'_equiv h':
+    local equiv ideal_ideal'_equiv h' e':
       SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).ideal
-      : (={h, glob SP1, glob SP2} /\ h{1} = h' /\ h{2} = h') ==> ={res}.
+      : (={h, e, glob SP1, glob SP2} /\ h{1} = h' /\ e{1} = e') ==> ={res}.
     proof.
     proc. inline *.
-    sp. auto. call (:true).
-    swap{1} [3..6] 3. auto.
-    call (:true). auto.
-    call (:true).
-    swap{1} 2 2. call (:true). progress.
-    swap{1} 3 -2. wp.
-    rnd (fun z => z ^^ e0{1}) (fun q => q ^^ c2{2}).
-    auto. progress.
-    - apply SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - apply SigmaProtocols.dchallenge_funi.
-    - apply SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - smt().
+    swap{1} [9..11] -4.
+    do ? (wp; call (:true)). auto.
+    qed.
+
+    local equiv real_real'_equiv h' w' e':
+      SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).real
+      : (={h, w, e, glob SP1, glob SP2} /\ h{1} = h' /\ e{1} = e' /\ w{1} = w') ==> ={res}.
+    proof.
+    proc. inline *.
+    wp. call (:true).
+    swap{1} [8..11] 5.
+    swap{1} 7 4.
+    do ? (wp; call (:true)). auto.
     qed.
 
 
-equiv or_shvzk h' w':
-    Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~
-    Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal
-    : (={h, glob SP1, glob SP2} /\ (R h' w') /\ h{1} = h' /\ h{2} = h') ==> ={res}.
-proof.
-  move=> rel.
-  have <- := (real_real'_equiv h' w' &m).
-  have <- := (ideal_ideal'_equiv h' &m).
-case (R1 (fst h') w')=> rel_true.
-(* case: relation is true *)
-byequiv=>//. proc.
-auto. rcondt{1} 2. auto. sp.
-auto. inline SHVZK2.ideal.
-auto. do ? call (:true). auto.
-call (shvzk1_equiv (fst h') w'). auto.
-(* case: relation is false *)
-byequiv=>//. proc.
-auto. rcondf{1} 2. auto. sp.
-auto. swap{1} 1 1.
-call (shvzk2_equiv (snd h') w').
-inline SHVZK1.ideal.
-auto. do ? call (:true). auto. progress; smt().
-qed.
+  equiv and_shvzk h' w' e':
+      Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).real ~
+      Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).ideal
+      : (h{1} = h' /\ h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
+  proof.
+    transitivity SHVZK'.real
+      (h{2} = h' /\ e{2} = e' /\ ={h, w, e, glob SP1, glob SP2} /\ w{2} = w' /\ (R h' w') ==> ={res})
+      (h{2} = h' /\ e{2} = e' /\ w{1} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
+    - progress. smt(). progress. symmetry. proc *. call (real_real'_equiv h' w' e'). auto. progress; smt.
+    symmetry.
+    transitivity SHVZK'.ideal
+      (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res})
+      (h{2} = h' /\ e{2} = e' /\ w{2} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
+    - progress. smt(). progress. symmetry. proc*. call (ideal_ideal'_equiv h' e'). auto. progress; smt.
+
+    proc. sim. sp.
+    symmetry.
+    call (shvzk2_equiv (snd h') (snd w') e').
+    call (shvzk1_equiv (fst h') (fst w') e').
+    auto; smt().
+  qed.
 
 lemma or_special_soundness &m:
 
