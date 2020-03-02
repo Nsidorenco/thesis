@@ -155,20 +155,20 @@ local module C2 = S2.SigmaProtocols.Completeness(SP2).
 local module SHVZK1 = S1.SigmaProtocols.SHVZK(SP1).
 local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
 
-axiom completeness_protocol1 h w &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w) @ &m : res] = 1%r.
-axiom completeness_protocol2 h w &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w) @ &m : res] = 1%r.
+axiom completeness_protocol1 h w e &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w, e) @ &m : res] = 1%r.
+axiom completeness_protocol2 h w e &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w, e) @ &m : res] = 1%r.
 
-axiom shvzk1_equiv h' w':
-  equiv[S1.SigmaProtocols.SHVZK(SP1).real ~ S1.SigmaProtocols.SHVZK(SP1).ideal : (={h} /\ h{2} = h' /\ w{1} = w' /\ (R1 h' w')) ==> ={res}].
-axiom shvzk2_equiv h' w':
-  equiv[S2.SigmaProtocols.SHVZK(SP2).real ~ S2.SigmaProtocols.SHVZK(SP2).ideal : (={h} /\ h{2} = h' /\ w{1} = w' /\ (R2 h' w')) ==> ={res}].
+axiom shvzk1_equiv h' w' e':
+  equiv[S1.SigmaProtocols.SHVZK(SP1).real ~ S1.SigmaProtocols.SHVZK(SP1).ideal : (={h, e} /\ e{2} = e' /\ h{2} = h' /\ w{1} = w' /\ (R1 h' w')) ==> ={res}].
+axiom shvzk2_equiv h' w' e':
+  equiv[S2.SigmaProtocols.SHVZK(SP2).real ~ S2.SigmaProtocols.SHVZK(SP2).ideal : (={h, e} /\ e{2} = e' /\ h{2} = h' /\ w{1} = w' /\ (R2 h' w')) ==> ={res}].
 
-local lemma shvzk1_equiv_pr h' w' &m:
+local lemma shvzk1_equiv_pr h' w' e' &m:
     (R1 h' w') =>
-    Pr[S1.SigmaProtocols.SHVZK(SP1).real(h', w') @ &m : (res <> None)] =
-    Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)].
+    Pr[S1.SigmaProtocols.SHVZK(SP1).real(h', w', e') @ &m : (res <> None)] =
+    Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h', e') @ &m : (res <> None)].
 proof. move=>rel.
-by byequiv (shvzk1_equiv h' w'). qed.
+by byequiv (shvzk1_equiv h' w' e'). qed.
 
 (* local lemma shvzk1_ideal_never_fails_pr h' &m: *)
 (*     Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)] = 1%r. *)
@@ -188,251 +188,168 @@ by byequiv (shvzk1_equiv h' w'). qed.
 (* NOTE: proof idea... *)
 (* Pr[ideal] = (forall w, (R h w), Pr[real])*)
 
-axiom shvzk1_ideal_never_fails_pr h' &m:
-    Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h') @ &m : (res <> None)] = 1%r.
-axiom shvzk2_ideal_never_fails_pr h' &m:
-    Pr[S2.SigmaProtocols.SHVZK(SP2).ideal(h') @ &m : (res <> None)] = 1%r.
+axiom shvzk1_ideal_never_fails_pr h' e' &m:
+    Pr[S1.SigmaProtocols.SHVZK(SP1).ideal(h', e') @ &m : (res <> None)] = 1%r.
+axiom shvzk2_ideal_never_fails_pr h' e' &m:
+    Pr[S2.SigmaProtocols.SHVZK(SP2).ideal(h', e') @ &m : (res <> None)] = 1%r.
 
-local lemma shvzk1_ideal_never_fails h':
-      phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h') ==> (res <> None)] = 1%r.
-proof. have H := (shvzk1_ideal_never_fails_pr h'). bypr. progress. apply (H &m). qed.
+local lemma shvzk1_ideal_never_fails h' e':
+      phoare[S1.SigmaProtocols.SHVZK(SP1).ideal : (h = h' /\ e = e') ==> (res <> None)] = 1%r.
+proof. bypr=> &m ?. by have H := (shvzk1_ideal_never_fails_pr h{m} e{m} &m). qed.
 
-local lemma shvzk2_ideal_never_fails h':
-      phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h') ==> (res <> None)] = 1%r.
-proof. have H := (shvzk2_ideal_never_fails_pr h'). bypr. progress. apply (H &m). qed.
+local lemma shvzk2_ideal_never_fails h' e':
+      phoare[S2.SigmaProtocols.SHVZK(SP2).ideal : (h = h' /\ e = e') ==> (res <> None)] = 1%r.
+proof. bypr=> &m ?. by have H := (shvzk2_ideal_never_fails_pr h{m} e{m} &m). qed.
 
-local lemma shvzk1_real_never_fails h' w':
-      phoare[S1.SigmaProtocols.SHVZK(SP1).real : (h = h' /\ w = w' /\ (R1 h' w')) ==> (res <> None)] = 1%r.
+local lemma shvzk1_real_never_fails h' w' e':
+      phoare[S1.SigmaProtocols.SHVZK(SP1).real : (h = h' /\ w = w' /\ e = e' /\ (R1 h' w')) ==> (res <> None)] = 1%r.
 proof.
 bypr. progress.
-have -> := (S1.SigmaProtocols.shvzk_real_never_fail SP1 h{m} w{m} &m).
-by have := (completeness_protocol1 h{m} w{m} &m H).
+have -> := (S1.SigmaProtocols.shvzk_real_never_fail SP1 h{m} w{m} e{m} &m).
+by have := (completeness_protocol1 h{m} w{m} e{m} &m H).
 qed.
 
-local lemma shvzk2_real_never_fails h' w':
-      phoare[S2.SigmaProtocols.SHVZK(SP2).real : (h = h' /\ w = w' /\ (R2 h' w')) ==> (res <> None)] = 1%r.
+local lemma shvzk2_real_never_fails h' w' e':
+      phoare[S2.SigmaProtocols.SHVZK(SP2).real : (h = h' /\ w = w' /\ e = e' /\ (R2 h' w')) ==> (res <> None)] = 1%r.
 proof.
 bypr. progress.
-have -> := (S2.SigmaProtocols.shvzk_real_never_fail SP2 h{m} w{m} &m).
-by have := (completeness_protocol2 h{m} w{m} &m H).
+have -> := (S2.SigmaProtocols.shvzk_real_never_fail SP2 h{m} w{m} e{m} &m).
+by have := (completeness_protocol2 h{m} w{m} e{m} &m H).
 qed.
 
 (* Converting the ambient logic to the pHoare logic *)
-local lemma SP1_completeness_pr h' w' : phoare[C1.main : (h = h' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
-  proof. bypr. progress. by apply (completeness_protocol1 &m) in H. qed.
-local lemma SP2_completeness_pr h' w' : phoare[C2.main : (h = h' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
-  proof. bypr. progress. by apply (completeness_protocol2 &m) in H. qed.
+local lemma SP1_completeness_pr h' w' e' : phoare[C1.main : (h = h' /\ e = e' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
+  proof. bypr=> &m ?. have := (completeness_protocol1 h{m} w{m} e{m} &m). smt(). qed.
+local lemma SP2_completeness_pr h' w' e' : phoare[C2.main : (h = h' /\ e = e' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
+  proof. bypr=> &m ?. have := (completeness_protocol2 h{m} w{m} e{m} &m). smt(). qed.
 
 local module Completeness' = {
-    var e : challenge
-    var v1 : bool
-    var v2 : bool
-proc completeness1 (h1 : statement1, w : witness1) : bool = {
-    var a1, r, z1, v1;
-    (a1, r) = SP1.init(h1, w);
+  var v1 : bool
+  var v2 : bool
+  proc completeness1 (h1 : statement1, w : witness1, e : challenge) : bool = {
+      var a1, r, z1, v1;
 
+      (a1, r) = SP1.init(h1, w);
+      z1 = SP1.response(h1, w, a1, r, e);
+      v1 = SP1.verify(h1, a1, e, z1);
+      return v1;
+  }
 
-    z1 = SP1.response(h1, w, a1, r, e);
-    v1 = SP1.verify(h1, a1, e, z1);
-    return v1;
-}
+  proc completeness2 (h2 : statement2, w : witness2, e : challenge) : bool = {
+      var a2, r, z2, v2;
 
-proc completeness2 (h2 : statement2, w : witness2) : bool = {
-    var a2, r, z2, v2;
-    (a2, r) = SP2.init(h2, w);
+      (a2, r) = SP2.init(h2, w);
+      z2 = SP2.response(h2, w, a2, r, e);
+      v2 = SP2.verify(h2, a2, e, z2);
+      return v2;
+  }
 
-    z2 = SP2.response(h2, w, a2, r, e);
-    v2 = SP2.verify(h2, a2, e, z2);
-    return v2;
-}
-
-proc main(h : statement, w : witness) : bool = {
-  var h1, h2, w1, w2;
-  (h1, h2) = h;
-  (w1, w2) = w;
-  e <$ Sigma.SigmaProtocols.dchallenge;
-  v1 = completeness1(h1, w1);
-  v2 = completeness2(h2, w2);
-  return v1 /\ v2;
-}
+  proc main(h : statement, w : witness, e : challenge) : bool = {
+    var h1, h2, w1, w2;
+    (h1, h2) = h;
+    (w1, w2) = w;
+    v1 = completeness1(h1, w1, e);
+    v2 = completeness2(h2, w2, e);
+    return v1 /\ v2;
+  }
 }.
 
-local lemma completeness_sim_equiv h' w' &m:
+local lemma completeness_sim_equiv h' w' e' &m:
     (R h' w') =>
-    Pr[Sigma.SigmaProtocols.Completeness(ANDProtocol(SP1,SP2)).main(h', w') @ &m : res] =
-    Pr[Completeness'.main(h', w') @ &m : (Completeness'.v1 /\ Completeness'.v2)].
+    Pr[Sigma.SigmaProtocols.Completeness(ANDProtocol(SP1,SP2)).main(h', w', e') @ &m : res] =
+    Pr[Completeness'.main(h', w', e') @ &m : (Completeness'.v1 /\ Completeness'.v2)].
 proof.
   move=>rel.
-  byequiv (: ={h, w, glob SP1, glob SP2} ==> _)=>//. proc. inline *. wp.
-  swap{2} [8..9] 4. swap{1} 8 -5.
-  swap{2} [8..10] -2.
-  swap{2} 9 -1.
-  sim.
-  wp. call (:true).
-  wp. call (:true).
-  wp. call (:true).
-  wp. call (:true).
-  auto.
+  byequiv=>//.
+  proc. inline *.
+  swap{2} [8..9] 5; swap{2} 7 4.
+  do ? (wp; call (:true)); auto.
 qed.
 
-local lemma split1_true h' w' &m:
+local lemma split1_true h' w' e':
     (R1 (fst h') (fst w')) =>
-    Pr[Completeness'.main(h', w') @ &m : Completeness'.v1] = 1%r.
-proof. move=> rel. have <- := (completeness_protocol1 (fst h') (fst w') &m rel).
+    phoare[Completeness'.main : (h = h' /\ w = w' /\ e = e') ==> (Completeness'.v1)] = 1%r.
+proof.
+  move=> rel. bypr=> &m ?. have <- := (completeness_protocol1 (fst h') (fst w') e' &m rel).
   byequiv=>//.
-  proc. inline *.
-  swap{2} 2 -1.
-  wp. sp. swap{1} [4..7] 5.
-  sim.
-  kill{1} 5 ! 4.
-   - call (lossless_sp2_verify).
-     call (lossless_sp2_response).
-     call (lossless_sp2_init). auto.
-  auto. qed.
+  proc. inline *. wp.
+  swap{1} [6..9] 6.
+  do ? (wp; call (:true)). sp.
+  kill{1} 1 ! 3.
+   - by call (lossless_sp2_verify); call (lossless_sp2_response); call (lossless_sp2_init).
+  auto; smt(). qed.
 
-local lemma split2_true h' w' &m:
+local lemma split2_true h' w' e':
     (R2 (snd h') (snd w')) =>
-    Pr[Completeness'.main(h', w') @ &m : Completeness'.v2] = 1%r.
-proof. move=> rel. have <- := (completeness_protocol2 (snd h') (snd w') &m rel).
+    phoare[Completeness'.main : (h = h' /\ w = w' /\ e = e') ==> Completeness'.v2] = 1%r.
+proof.
+  move=> rel. bypr=> &m ?. have <- := (completeness_protocol2 (snd h') (snd w') e' &m rel).
   byequiv=>//.
   proc. inline *.
-  swap{2} 2 -1.
-  sim.
-  kill{1} 5 ! 4.
-   - call (lossless_sp1_verify).
-     call (lossless_sp1_response).
-     call (lossless_sp1_init). auto.
-  auto. qed.
+  do ? (wp; call (:true)). sp. wp.
+  kill{1} 1 ! 3.
+   - by call (lossless_sp1_verify); call (lossless_sp1_response); call (lossless_sp1_init).
+  auto; smt().
+qed.
 
-local lemma split2_true_phoare h' w':
-    phoare[Completeness'.main : (h = h' /\ w = w' /\ (R2 (snd h') (snd w'))) ==> Completeness'.v2] = 1%r.
-bypr. progress. by have := (split2_true h{m} w{m} &m H). qed.
-
-
-local lemma completeness'_true h' w':
-    phoare[Completeness'.main : (h = h' /\ w = w' /\ (R h' w')) ==> (Completeness'.v1 /\ Completeness'.v2)] = 1%r.
+local lemma completeness'_true h' w' e':
+    phoare[Completeness'.main : (h = h' /\ e = e' /\ w = w' /\ (R h' w')) ==> (Completeness'.v1 /\ Completeness'.v2)] = 1%r.
 proof.
   (* rewrite /R. move=>[rel1 rel2]. *)
   phoare split 1%r 1%r 1%r; rewrite /R.
   - progress.
-  - bypr. progress. by have := (split1_true h{m} w{m} &m H).
-  - bypr. progress. by have := (split2_true h{m} w{m} &m H0).
-  - bypr. progress. have <- := (split2_true h{m} w{m} &m H0).
+  - bypr. progress. by byphoare (split1_true h{m} w{m} e{m} H).
+  - bypr. progress. by byphoare (split2_true h{m} w{m} e{m} H0).
+  - bypr. progress.
+    have <- : Pr[Completeness'.main(h{m}, w{m}, e{m}) @ &m : Completeness'.v2] = 1%r.
+     - by byphoare (split2_true h{m} w{m} e{m} H0).
     byequiv=>//. proc *.
-    call{1} (split2_true_phoare h{m} w{m}).
-    call{2} (split2_true_phoare h{m} w{m}).
-    auto. progress. smt().
-    qed.
+    call{1} (split1_true h{m} w{m} e{m} H).
+    call{2} (split2_true h{m} w{m} e{m} H0).
+    auto; smt().
+  qed.
 
-lemma and_completeness h' w' &m:
+lemma and_completeness h' w' e' &m:
     (R h' w') =>
-    Pr[Sigma.SigmaProtocols.Completeness(ANDProtocol(SP1,SP2)).main(h', w') @ &m : res] = 1%r.
+    Pr[Sigma.SigmaProtocols.Completeness(ANDProtocol(SP1,SP2)).main(h', w', e') @ &m : res] = 1%r.
 proof.
-  move=> rel. have -> := (completeness_sim_equiv h' w' &m rel).
-  byphoare(: h = h' /\ w = w' /\ (R h' w') ==> _ )=>//.
-  proc *. call (completeness'_true h' w'). auto.
+  move=> rel. have -> := (completeness_sim_equiv h' w' e' &m rel).
+  byphoare(: h = h' /\ e = e' /\ w = w' /\ (R h' w') ==> _ )=>//.
+  proc *. by call (completeness'_true h' w' e').
 qed.
 
 
   local module SHVZK' = {
-      proc real(h, w) = {
-        var h1, h2, a1, a2, z1, z2, e1, e2, ret, t1, t2;
-        (h1, h2) = h;
-        if (R1 h1 w) {
-          t1 = SHVZK1.real(h1, w);
-          t2 = SHVZK2.ideal(h2);
-          if (t1 = None \/ t2 = None) {
-            ret = None;
-          } else {
-            (a1, e1, z1) = oget(t1);
-            (a2, e2, z2) = oget(t2);
-            ret = Some ((a1, e1, z1), (a2, e2, z2));
-          }
-        } else {
-          t2 = SHVZK2.real(h2, w);
-          t1 = SHVZK1.ideal(h1);
-          if (t1 = None \/ t2 = None) {
-            ret = None;
-          } else {
-            (a1, e1, z1) = oget(t1);
-            (a2, e2, z2) = oget(t2);
-            ret = Some ((a1, e1, z1), (a2, e2, z2));
-          }
-        }
-        return ret;
-      }
       proc ideal(h) = {
         var h1, h2, a1, a2, z1, z2, e1, e2, ret, t1, t2;
         (h1, h2) = h;
-        t1 = SHVZK1.ideal(h1);
+        (* NOTE: need to change definition of ideal *)
+        (* to take as input the challenge.          *)
+        (* any problems with this formalisation?    *)
+
         t2 = SHVZK2.ideal(h2);
         if (t1 = None \/ t2 = None) {
           ret = None;
         } else {
           (a1, e1, z1) = oget(t1);
           (a2, e2, z2) = oget(t2);
-          ret = Some ((a1, e1, z1), (a2, e2, z2));
+          ret = Some ((a1, a2), e1, (z1, z2));
         }
         return ret;
       }
     }.
 
-    local lemma real_real'_equiv h' w' &m :
-        Pr[SHVZK'.real(h', w') @ &m : (res <> None)] =
-        Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h', w') @ &m : (res <> None)].
-    proof. byequiv=>//.
-    proc. inline *. sp. case (R1 (fst h') w').
-    (* case: relation is true *)
-    rcondt{1} 1. progress.
-    rcondt{2} 1. progress.
-    rcondt{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
-    sp. auto. call (:true). swap{1} [8..10] -5.
-    swap{2} 11 2. swap{2} [13..14] -6.
-    auto.
-    call (:true). swap{2} [6..8] -3.
-    auto. call (:true).
-    auto. call (:true). swap{1} 4 -2. wp.
-    rnd (fun z => z ^^ e0{1}) (fun q => q ^^ ORProtocol.e2{2}).
-    rnd. call (:true).
-    auto. progress.
-    - apply S1.SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - apply S1.SigmaProtocols.dchallenge_funi.
-    - apply S1.SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - smt(xorA xorK).
-    (* case: relation is false *)
-    rcondf{1} 1. progress.
-    rcondf{2} 1. progress.
-    rcondf{2} 14. progress. auto. call (:true). rnd. call(:true). progress.
-    sp. auto. swap{2} 24 1. call (:true). swap{1} [8..10] -5.
-    swap{2} 11 2. swap{2} [13..14] -6.
-    auto.
-    call (:true). swap{2} [6..8] -3.
-    auto. call (:true).
-    auto. call (:true). swap{1} 4 -2. wp.
-    rnd (fun z => z ^^ e4{1}) (fun q => q ^^ ORProtocol.e1{2}).
-    rnd. call (:true).
-    auto. progress.
-    - apply S1.SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - apply S1.SigmaProtocols.dchallenge_funi.
-    - apply S1.SigmaProtocols.dchallenge_fu.
-    - by rewrite xorK.
-    - smt(xorA xorK).
-    qed.
-
-    local lemma ideal_ideal'_equiv h' &m:
-        Pr[SHVZK'.ideal(h') @ &m : (res <> None)] =
-        Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h') @ &m : (res <> None)].
-    proof. byequiv=>//.
+    local equiv ideal_ideal'_equiv h':
+      SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).ideal
+      : (={h, glob SP1, glob SP2} /\ h{1} = h' /\ h{2} = h') ==> ={res}.
+    proof.
     proc. inline *.
     sp. auto. call (:true).
     swap{1} [3..6] 3. auto.
     call (:true). auto.
     call (:true).
-    swap{1} 2 2. call (:true).
-    swap{1} 3 -2. swap{2} 5 -4. wp.
+    swap{1} 2 2. call (:true). progress.
+    swap{1} 3 -2. wp.
     rnd (fun z => z ^^ e0{1}) (fun q => q ^^ c2{2}).
     auto. progress.
     - apply SigmaProtocols.dchallenge_fu.
@@ -444,10 +361,10 @@ qed.
     qed.
 
 
-lemma or_shvzk h' w' &m:
-    (Sigma.SigmaProtocols.R h' w') =>
-    Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real(h', w') @ &m : (res <> None)] =
-    Pr[Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal(h') @ &m : (res <> None)].
+equiv or_shvzk h' w':
+    Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~
+    Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal
+    : (={h, glob SP1, glob SP2} /\ (R h' w') /\ h{1} = h' /\ h{2} = h') ==> ={res}.
 proof.
   move=> rel.
   have <- := (real_real'_equiv h' w' &m).
