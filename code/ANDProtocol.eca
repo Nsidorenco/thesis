@@ -122,9 +122,14 @@ module ANDProtocol (P1 : S1.SigmaProtocols.SProtocol, P2 : S2.SigmaProtocols.SPr
   proc witness_extractor(h : statement, m : message,
                           e : challenge, e' : challenge,
                           z : response, z' : response) = {
-    var h', w;
-    (h', w) = gen();
-    return w;
+    var h1, h2, m1, m2, z1, z2, z1', z2', w1, w2;
+    (h1, h2) = h;
+    (m1, m2) = m;
+    (z1, z2) = z;
+    (z1', z2') = z';
+    w1 = P1.witness_extractor(h1, m1, e, e', z1, z1');
+    w2 = P2.witness_extractor(h2, m2, e, e', z2, z2');
+    return (w1, w2);
   }
 
   proc simulator(h : statement, c : challenge) : message * response = {
@@ -396,8 +401,117 @@ qed.
     auto; smt().
   qed.
 
-lemma or_special_soundness &m:
+  axiom special_soundness_sp1 x msg ch ch' d d' &m :
+    phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
+    phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
+    Pr[S1.SigmaProtocols.SpecialSoundness(SP1).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
 
+  axiom special_soundness_sp2 x msg ch ch' d d' &m :
+    phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
+    phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
+    Pr[S2.SigmaProtocols.SpecialSoundness(SP2).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+
+  local module SpecialSoundness' = {
+      var w1 : witness1
+      var w2 : witness2
+      var v1 : bool
+      var v1' : bool
+      var v2 : bool
+      var v2' : bool
+      proc special_soundness1(h1 : statement1, m, e, e', z, z') = {
+        v1  = SP1.verify(h1, m, e, z);
+        v1' = SP1.verify(h1, m, e', z');
+
+        w1 = SP1.witness_extractor(h1, m, e, e', z, z');
+
+        return (e <> e' /\ (R1 h1 w1) /\ v1 /\ v1');
+      }
+      proc special_soundness2(h2 : statement2, m, e, e', z, z') = {
+        v2  = SP2.verify(h2, m, e, z);
+        v2' = SP2.verify(h2, m, e', z');
+
+        w2 = SP2.witness_extractor(h2, m, e, e', z, z');
+
+        return (e <> e' /\ (R2 h2 w2) /\ v2 /\ v2');
+      }
+      proc main(h, m, e e' : challenge, z, z') = {
+        var z1,z1',z2,z2',h1,h2,m1,m2;
+        (m1, m2) = m;
+        (h1, h2) = h;
+        (z1, z2) = z;
+        (z1', z2') = z';
+        special_soundness1(h1, m1, e, e', z1, z1');
+        special_soundness2(h2, m2, e, e', z2, z2');
+        return (e <> e' /\ (R h (w1, w2)) /\ v1 /\ v1' /\ v2 /\ v2');
+      }
+    }.
+
+  local lemma special_soundness_soundness'_equiv
+    x msg ch ch' z1 z1' z2 z2' &m:
+      ch <> ch' =>
+      Pr[SpecialSoundness'.main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res] =
+      Pr[Sigma.SigmaProtocols.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res].
+  proof.
+    move=> ch_diff.
+    byequiv=>//. proc. inline *. sp.
+    swap{1} 3 8; swap{1} 2 7.
+    do ? (wp; call (:true)).
+    skip; smt().
+  qed.
+
+  local lemma special_soundness1'
+    x msg ch ch' r r':
+      phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
+      phoare[SpecialSoundness'.special_soundness1 :
+        (h1 = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.v1 /\ SpecialSoundness'.v1' /\ R1 x SpecialSoundness'.w1)] = 1%r.
+  proof.
+    move=> accept1 accept2.
+    bypr. progress.
+    have <- := (special_soundness_sp1 h1{m} m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    byequiv=>//. proc. by do ? call(:true). qed.
+
+  local lemma special_soundness2'
+    x msg ch ch' r r':
+      phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
+      phoare[SpecialSoundness'.special_soundness2 :
+        (h2 = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.v2 /\ SpecialSoundness'.v2' /\ R2 x SpecialSoundness'.w2)] = 1%r.
+  proof.
+    move=> accept1 accept2.
+    bypr. progress.
+    have <- := (special_soundness_sp2 h2{m} m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    byequiv=>//. proc. by do ? call(:true). qed.
+
+  local lemma special_soundness'
+    x msg ch ch' z1 z1' z2 z2' &m:
+      ch <> ch' =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = ch /\ z = z1) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = ch' /\ z = z1') ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch /\ z = z2) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch' /\ z = z2') ==> res] = 1%r =>
+      Pr[SpecialSoundness'.main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res] = 1%r.
+  proof.
+    move=> ch_diff accept11 accept12 accept21 accept22.
+    have H1 := (special_soundness1' (fst x) (fst msg) ch ch' z1 z1' accept11 accept12).
+    have H2 := (special_soundness2' (snd x) (snd msg) ch ch' z2 z2' accept21 accept22).
+    byphoare(: h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = (z1, z2) /\ z' = (z1', z2') ==> _)=>//.
+    proc. sp.
+    by (call H2; call H1).
+  qed.
+
+  (* TODO: Can this be written with just: *)
+  (* phoare[OR.verify ==> res]? *)
+  lemma or_special_soundness x msg ch ch' z1 z2 z1' z2' &m:
+      ch <> ch' =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = ch /\ z = z1) ==> res] = 1%r =>
+      phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = ch' /\ z = z1') ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch /\ z = z2) ==> res] = 1%r =>
+      phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch' /\ z = z2') ==> res] = 1%r =>
+      Pr[Sigma.SigmaProtocols.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res] = 1%r.
+  proof. move=> ch_diff accept11 accept12 accept21 accept22.
+    have <- := (special_soundness_soundness'_equiv x msg ch ch' z1 z1' z2 z2' &m ch_diff).
+    by have := (special_soundness' x msg ch ch' z1 z1' z2 z2' &m ch_diff accept11 accept12 accept21 accept22).
+  qed.
 
 end section Security.
-end ORProtocol.
