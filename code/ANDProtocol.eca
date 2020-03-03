@@ -360,7 +360,7 @@ qed.
 
     local equiv ideal_ideal'_equiv h' e':
       SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).ideal
-      : (={h, e, glob SP1, glob SP2} /\ h{1} = h' /\ e{1} = e') ==> ={res}.
+      : (={h, e, glob SP1, glob SP2} /\ h{2} = h' /\ e{2} = e') ==> ={res}.
     proof.
     proc. inline *.
     swap{1} [9..11] -4.
@@ -368,34 +368,32 @@ qed.
     qed.
 
     local equiv real_real'_equiv h' w' e':
-      SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).real
+      Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).real ~ SHVZK'.real
       : (={h, w, e, glob SP1, glob SP2} /\ h{1} = h' /\ e{1} = e' /\ w{1} = w') ==> ={res}.
     proof.
-    proc. inline *.
-    wp. call (:true).
-    swap{1} [8..11] 5.
-    swap{1} 7 4.
-    do ? (wp; call (:true)). auto.
+      proc. inline *.
+      wp. call (:true).
+      swap{2} [8..11] 5; swap{2} 7 4.
+      do ? (wp; call (:true)); auto.
     qed.
 
 
   equiv and_shvzk h' w' e':
       Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).real ~
       Sigma.SigmaProtocols.SHVZK(ANDProtocol(SP1, SP2)).ideal
-      : (h{1} = h' /\ h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
+      : (h{1} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
   proof.
+    have ? := (real_real'_equiv h' w' e').
+    have ? := (ideal_ideal'_equiv h' e').
     transitivity SHVZK'.real
-      (h{2} = h' /\ e{2} = e' /\ ={h, w, e, glob SP1, glob SP2} /\ w{2} = w' /\ (R h' w') ==> ={res})
-      (h{2} = h' /\ e{2} = e' /\ w{1} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
-    - progress. smt(). progress. symmetry. proc *. call (real_real'_equiv h' w' e'). auto. progress; smt.
-    symmetry.
+      (={h, w, e, glob SP1, glob SP2} /\ h{1} = h' /\ e{1} = e' /\ w{1} = w' ==> ={res})
+      (h{1} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w') ==> ={res})=>//;
+    first smt().
     transitivity SHVZK'.ideal
-      (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res})
-      (h{2} = h' /\ e{2} = e' /\ w{2} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
-    - progress. smt(). progress. symmetry. proc*. call (ideal_ideal'_equiv h' e'). auto. progress; smt.
-
+      (h{2} = h' /\ e{2} = e' /\  ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w') ==> ={res})
+      (={h, e, glob SP1, glob SP2} /\ h{2} = h' /\ e{2} = e' ==> ={res})=>//;
+    first smt().
     proc. sim. sp.
-    symmetry.
     call (shvzk2_equiv (snd h') (snd w') e').
     call (shvzk1_equiv (fst h') (fst w') e').
     auto; smt().
