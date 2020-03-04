@@ -337,7 +337,7 @@ local module Completeness' = {
     bypr=> &m [hrel [erel [wrel rel]]].
     have <- := (completeness_protocol1 h' w' e1' &m rel).
     byequiv=> //. proc.
-    do ? call (: true). auto.
+    by do ? call (: true).
   qed.
 
   local lemma real2_success h' w' e2':
@@ -346,7 +346,7 @@ local module Completeness' = {
     bypr=> &m [hrel [erel [wrel rel]]].
     have <- := (completeness_protocol2 h' w' e2' &m rel).
     byequiv=> //. proc.
-    do ? call (: true). auto.
+    by do ? call (: true).
   qed.
 
   local lemma completeness'_true h' w' e' &m:
@@ -355,21 +355,20 @@ local module Completeness' = {
   proof.
     move=> rel.
     byphoare (: h = h' /\ e = e' /\ w = w' ==> _)=>//. proc. sp.
-    (* exists* e1. elim*. progress. *)
     if.
-    seq 1 : (#pre /\ e2 = e2). rnd. auto. auto. progress. apply Sigma.SigmaProtocols.dchallenge_ll.
-    exists* e2. elim*. progress.
-    call (real1_success (fst h') w' (e' ^^ e2)). wp.
-    call (ideal2_success (snd h') e2). auto. progress.
-    by rewrite xorK.
-    hoare. progress. auto. progress.
-    seq 1 : (#pre /\ e1 = e1). rnd. auto. auto. progress. apply Sigma.SigmaProtocols.dchallenge_ll.
-    exists* e1. elim*. progress.
-    call (real2_success (snd h') w' (e' ^^ e1)). wp.
-    call (ideal1_success (fst h') e1). auto. progress.
-    smt().
-    by rewrite xorA xorK.
-    hoare. progress. auto. progress.
+    - seq 1 : (#pre /\ e2 = e2). auto. auto. progress. apply Sigma.SigmaProtocols.dchallenge_ll.
+      exists* e2. elim*=> e2.
+      call (real1_success (fst h') w' (e' ^^ e2)). wp.
+      call (ideal2_success (snd h') e2). auto. progress.
+      by rewrite xorK.
+      hoare. auto. progress.
+    - seq 1 : (#pre /\ e1 = e1). auto. auto. progress. apply Sigma.SigmaProtocols.dchallenge_ll.
+      exists* e1. elim*=> e1.
+      call (real2_success (snd h') w' (e' ^^ e1)). wp.
+      call (ideal1_success (fst h') e1). auto. progress.
+      smt().
+      by rewrite xorA xorK.
+      hoare. auto. progress.
   qed.
 
   lemma or_completeness h' w' e' &m:
@@ -431,84 +430,68 @@ local module Completeness' = {
     }.
 
   local equiv real_real'_equiv h' w' e':
-    SHVZK'.real ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real :
+    Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~ SHVZK'.real :
     (h{2} = h' /\ w{2} = w' /\ e{2} = e' /\ (R h' w') /\ ={h, w, e, glob SP1, glob SP2}) ==> ={res}.
   proof.
   proc. inline *. sp. case (R1 (fst h') w').
   (* case: relation is true *)
   rcondt{1} 1. progress.
   rcondt{2} 1. progress.
-  rcondt{2} 13. progress. auto. call (:true). rnd. call(:true). progress.
-  swap{1} [9..11] 5.
-  sp. auto. call (:true).
-  swap{2} 2 -1.
-  swap{2} [3..5] 2.
-  swap{1} [9..11] -2.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). auto. progress.
-  - apply : contra H3. by rewrite xorK.
+  rcondt{1} 13. auto. call (:true). rnd. call(:true). progress.
+  sp.
+  swap{2} [9..11] 5; swap{1} 2 -1; swap{1} [3..5] 2; swap{2} [9..11] -2.
+  do ? (wp; call (: true)).
+  auto. progress.
+  - by rewrite xorK.
   (* case: relation is false *)
   rcondf{1} 1. progress.
   rcondf{2} 1. progress.
-  rcondf{2} 13. progress. auto. call (:true). rnd. call(:true). progress.
-  swap{1} [9..11] 5.
-  sp. auto.
-  swap{1} 8 4.
-  swap{1} [8..10] -1.
-  swap{2} 2 -1.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). auto. progress.
-  - apply : contra H3. by rewrite xorA xorK.
+  rcondf{1} 13. auto. call (:true). rnd. call(:true). progress.
+  sp.
+  swap{2} [9..11] 5; swap{2} 8 4; swap{2} [8..10] -1; swap{1} 2 -1.
+  do ? (wp; call (:true)).
+  auto. progress.
+  - by rewrite xorA xorK.
   qed.
 
   local equiv ideal_ideal'_equiv h' e':
     SHVZK'.ideal ~ Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
-    (={h, e, glob SP1, glob SP2} /\ e{2} = e' /\ h{2} = h') ==> ={res}.
+    (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2}) ==> ={res}.
   proof.
-  proc. inline *.
-  sp. auto. call (:true).
-  swap{1} [10..12] -4. auto.
-  call (:true). wp.
-  call (:true). wp.
-  call (:true). wp.
+  proc. inline *. sp.
+  swap{1} [10..12] -4.
+  do ? (wp; call (:true)).
   auto. progress.
-  - apply : contra H2. by rewrite xorK.
+  apply : contra H2. by rewrite xorK.
   qed.
 
   equiv or_shvzk h' w' e' &m:
       Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).real ~
       Sigma.SigmaProtocols.SHVZK(ORProtocol(SP1, SP2)).ideal :
-      (h{1} = h' /\ h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
+      (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ w{1} = w' /\ (R h' w')) ==> ={res}.
   proof.
+    have ? := (real_real'_equiv h' w' e').
+    have ? := (ideal_ideal'_equiv h' e').
     transitivity SHVZK'.real
-      (h{2} = h' /\ e{2} = e' /\ ={h, w, e, glob SP1, glob SP2} /\ w{2} = w' /\ (R h' w') ==> ={res})
-      (h{2} = h' /\ e{2} = e' /\ w{1} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
-    - progress. smt(). progress. symmetry. proc *. call (real_real'_equiv h' w' e'). auto. progress; smt.
-    symmetry.
+      (h{2} = h' /\ w{2} = w' /\ e{2} = e' /\ (R h' w') /\ ={h, w, e, glob SP1, glob SP2} ==> ={res})
+      (h{2} = h' /\ e{2} = e' /\ w{1} = w' /\ (R h' w') /\ ={h, e, glob SP1, glob SP2} ==> ={res})=>//.
+    - smt().
     transitivity SHVZK'.ideal
-      (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res})
-      (h{2} = h' /\ e{2} = e' /\ w{2} = w' /\ ={h, e, glob SP1, glob SP2} /\ (R h' w') ==> ={res}).
-    - progress. smt(). progress. symmetry. proc*. call (ideal_ideal'_equiv h' e'). auto. progress; smt.
+      (h{2} = h' /\ e{2} = e' /\ w{1} = w' /\ (R h' w') /\ ={h, e, glob SP1, glob SP2} ==> ={res})
+      (h{2} = h' /\ e{2} = e' /\ ={h, e, glob SP1, glob SP2} ==> ={res})=>//.
+    - smt().
 
     case (R1 (fst h') w')=> rel_true.
     proc.
-    auto. rcondt{2} 2. auto. sp.
-    auto. inline SHVZK2.ideal.
-    wp. call (:true).
-        call (:true).
-    wp. seq 1 1 : (#pre /\ e2{1} = e2{2}). auto.
+    rcondt{1} 2. auto.
+    inline SHVZK2.ideal. sim. sp.
+    seq 1 1 : (#pre /\ e2{1} = e2{2}). auto.
     exists* e2{2}. elim*. progress.
-    sp. symmetry.
     call (shvzk1_equiv (fst h') w' (e' ^^ e2_R)); auto.
 
     proc.
-    auto. rcondf{2} 2. auto. sp.
-    auto. swap{1} 3 1. inline SHVZK1.ideal.
+    auto. rcondf{1} 2. auto. sp.
+    auto. swap{2} 3 1. inline SHVZK1.ideal.
     wp. call (:true).
         call (:true).
     wp. seq 2 2 : (#pre /\ ={e1, e2}).
@@ -520,8 +503,7 @@ local module Completeness' = {
       - by rewrite xorK.
       - by rewrite xorA.
       - by rewrite xorA.
-    exists* e2{2}. elim*. progress.
-    sp. symmetry.
+    exists* e2{2}. elim*. progress. sp.
     call (shvzk2_equiv (snd h') w' e2_R); auto; progress; smt().
   qed.
 
@@ -587,22 +569,19 @@ local module Completeness' = {
   proof.
     byequiv=>//. proc. inline *. sp.
     case (e1 <> e1').
-    rcondt{1} 1. progress. auto.
-    rcondt{2} 24. progress. do ? (auto; call (:true)).
-    swap{2} 11 1. swap{1} 2 8.
-    swap{2} 1 1.
+    rcondt{1} 1. auto.
+    rcondt{2} 24. move=> ?. do ? (wp; call (:true)). auto.
+    (* Put statements in similar order between the two programs *)
+    swap{2} 11 1; swap{1} 2 8; swap{2} 1 1.
     do ? (wp; call (:true)).
-    auto. progress. smt().
+    auto. smt().
     (* case : e2 <> e2' *)
-    rcondf{1} 1. progress. auto.
-    rcondf{2} 24. progress. do ? (auto; call (:true)).
+    rcondf{1} 1. auto.
+    rcondf{2} 24. move=> ?. do ? (wp; call (:true)). auto.
     swap{1} 2 8.
     do ? (wp; call (:true)).
-    auto. progress. smt().
+    auto. smt().
   qed.
-
-  (* lemma helper P Q : (P \/ Q) = P. *)
-  (*   proof.  *)
 
   local lemma special_soundness1'
     x msg ch ch' r r':
@@ -614,7 +593,7 @@ local module Completeness' = {
     move=> accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp1 (fst h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
-    byequiv=>//. proc. do ? call(:true). auto. progress; smt(). qed.
+    byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
 
   local lemma special_soundness2'
     x msg ch ch' r r':
@@ -626,7 +605,7 @@ local module Completeness' = {
     move=> accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp2 (snd h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
-    byequiv=>//. proc. do ? call(:true). auto. progress; smt(). qed.
+    byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
 
   local lemma special_soundness'
     x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m:
