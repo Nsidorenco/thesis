@@ -508,11 +508,13 @@ local module Completeness' = {
   qed.
 
   axiom special_soundness_sp1 x msg ch ch' d d' &m :
+    ch <> ch' =>
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
     Pr[S1.SigmaProtocols.SpecialSoundness(SP1).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
 
   axiom special_soundness_sp2 x msg ch ch' d d' &m :
+    ch <> ch' =>
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
     Pr[S2.SigmaProtocols.SpecialSoundness(SP2).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
@@ -585,26 +587,28 @@ local module Completeness' = {
 
   local lemma special_soundness1'
     x msg ch ch' r r':
+      ch <> ch' =>
       phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
       phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
       phoare[SpecialSoundness'.special_soundness1 :
         (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
   proof.
-    move=> accept1 accept2.
+    move=> ch_diff accept1 accept2.
     bypr. progress.
-    have <- := (special_soundness_sp1 (fst h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    have <- := (special_soundness_sp1 (fst h{m}) m{m} e{m} e'{m} z{m} z'{m} &m ch_diff accept1 accept2).
     byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
 
   local lemma special_soundness2'
     x msg ch ch' r r':
+      ch <> ch' =>
       phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
       phoare[SpecialSoundness'.special_soundness2 :
         (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
   proof.
-    move=> accept1 accept2.
+    move=> ch_diff accept1 accept2.
     bypr. progress.
-    have <- := (special_soundness_sp2 (snd h{m}) m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
+    have <- := (special_soundness_sp2 (snd h{m}) m{m} e{m} e'{m} z{m} z'{m} &m ch_diff accept1 accept2).
     byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
 
   local lemma special_soundness'
@@ -619,17 +623,23 @@ local module Completeness' = {
       Pr[SpecialSoundness'.main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
   proof.
     move=> ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22.
-    have H1 := (special_soundness1' x (fst msg) e1 e1' z1 z1' accept11 accept12).
-    have H2 := (special_soundness2' x (snd msg) e2 e2' z2 z2' accept21 accept22).
+
+    case (e1 <> e1')=> e1_diff.
     byphoare(: h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = (e1, z1, e2, z2) /\ z' = (e1', z1', e2', z2') ==> _)=>//.
-    proc. sp. if.
-    - call H1. call accept22. call accept21. auto.
-    - call H2. call accept12. call accept11. auto.
+    proc. sp. rcondt 1. auto.
+    - have H1 := (special_soundness1' x (fst msg) e1 e1' z1 z1' e1_diff accept11 accept12).
+      call H1. call accept22. call accept21. auto.
+
+    have e2_diff : (e2 <> e2') by smt().
+    byphoare(: h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = (e1, z1, e2, z2) /\ z' = (e1', z1', e2', z2') ==> _)=>//.
+    proc. sp. rcondf 1. auto.
+    - have H2 := (special_soundness2' x (snd msg) e2 e2' z2 z2' e2_diff accept21 accept22).
+      call H2. call accept12. call accept11. auto.
   qed.
 
   (* TODO: Can this be written with just: *)
   (* phoare[OR.verify ==> res]? *)
-  lemma or_special_soundness x msg ch ch' e1 e2 z1 z2 e1' e2' z1' z2' &m:
+  lemma or_special_soundness x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m:
       ch <> ch' =>
       ch = e1 ^^ e2 => (* We explicitly write out what it means for an OR conversation to be accepting *)
       ch' = e1' ^^ e2' =>

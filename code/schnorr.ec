@@ -205,6 +205,7 @@ lemma or_schnorr_schnorr_special_soundness x msg ch ch' e1 e1' z1 z1' e2 e2' z2 
     byequiv=>//. proc. inline *. auto.
     move=> transcript_valid.
     apply (Hss transcript_valid).
+  qed.
 
 
 lemma or_schnorr_schnorr_completenes h' w' e' &m:
