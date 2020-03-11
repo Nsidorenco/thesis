@@ -40,16 +40,54 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
   }.
 
   module Completeness (S : SProtocol) = {
-    proc main(h : statement, w : witness, e : challenge) : bool = {
-      var m, r, z, v;
+    proc special(h : statement, w : witness, e : challenge) : bool = {
+      var a, r, z, v;
 
-      (m, r) = S.init(h, w);
-      z      = S.response(h, w, m, r, e);
-      v      = S.verify(h, m, e, z);
+      (a, r) = S.init(h, w);
+      z = S.response(h, w, a, r, e);
+      v = S.verify(h, a, e, z);
+
+      return v;
+    }
+
+    proc normal(h : statement, w : witness) : bool = {
+      var a, r, e, z, v;
+
+      (a, r) = S.init(h, w);
+      e <$ dchallenge;
+      z = S.response(h, w, a, r, e);
+      v = S.verify(h, a, e, z);
+
+      return v;
+    }
+
+    proc main(h : statement, w : witness) : bool = {
+      var e, v;
+
+      e <$ dchallenge;
+      v = special(h, w, e);
 
       return v;
     }
   }.
+
+  equiv normal_main (S <: SProtocol):
+    Completeness(S).normal ~ Completeness(S).main : ={h, w, glob S} ==> ={res}.
+  proof. proc. inline *. swap{1} 2 -1. sim. qed.
+
+  lemma special_implies_main (S <: SProtocol) h' w':
+    (forall h' w' e', phoare[Completeness(S).special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
+    phoare[Completeness(S).main : (h = h' /\ w = w') ==> res] = 1%r.
+  proof.
+      move=> ph_special. proc.
+      seq 1 : (#pre /\ exists e', e = e'). auto. auto. progress.
+      apply dchallenge_ll. by exists v0.
+      elim*. progress.
+      call (ph_special h' w' e'). auto.
+      hoare. auto. progress.
+        - by exists e0.
+        - progress.
+  qed.
 
   module SpecialSoundness(S : SProtocol) = {
     proc main(h : statement, m : message, c c' : challenge, z z' : response) : bool = {
@@ -67,7 +105,7 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
   module SHVZK (S : SProtocol) = {
     proc real(h : statement, w : witness, e : challenge) : transcript option = {
-      var r, a, z, v, ret;
+      var a, r, z, v, ret;
       (a, r) = S.init(h, w);
       z = S.response(h, w, a, r, e);
       v = S.verify(h, a, e, z);
@@ -92,7 +130,62 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
   lemma shvzk_real_never_fail (S <: SProtocol) h' w' e' &m:
       Pr[SHVZK(S).real(h', w', e') @ &m : (res <> None)] =
-      Pr[Completeness(S).main(h', w', e') @ &m : res].
+      Pr[Completeness(S).special(h', w', e') @ &m : res].
   proof. byequiv=>//. proc. wp. by do ? call (: true). qed.
+
+section FiatShamir.
+  require import SmtMap.
+  (* Oracle idea from: Stoughton and Varia *)
+  module Oracle = {
+    var h : (message, challenge) fmap
+    proc init() = {
+      h = empty;
+    }
+    proc sample (m : message) : challenge = {
+      if (m \notin h) {
+        h.[m] <$ dchallenge;
+
+      }
+      return oget h.[m];
+    }
+  }.
+
+  module FiatShamir(S : SProtocol) = {
+    proc pok(h : statement, w : witness) : transcript = {
+      var a, r, z, e;
+      Oracle.init();
+      (a, r) = S.init(h, w);
+      e = Oracle.sample(a);
+      z = S.response(h, w, a, r, e);
+
+      return (a, e, z);
+    }
+  }.
+
+  module FiatShamirCompleteness (S : SProtocol) = {
+    module FS = FiatShamir(S)
+    proc main(h : statement, w : witness) : bool = {
+      var a, e, z, v;
+
+      (a, e, z) = FS.pok(h, w);
+      v         = S.verify(h, a, e, z);
+
+      return v;
+    }
+  }.
+
+  (* Proof of equivalence, if the underlying protocol is not allowed *)
+  (* to alter the state of the Oracle. *)
+  equiv fiat_shamir_completeness (S <: SProtocol{Oracle}):
+      FiatShamirCompleteness(S).main ~ Completeness(S).main : ={h, w, glob S} ==> ={res}.
+  proof.
+    proc. inline *.
+    sim. wp. swap{2} 1 2. swap{2} 5 -2. sp.
+    seq 1 1 : (#pre /\ (a0{1} = a{2}) /\ ={r}). call (:true). auto. sp.
+    rcondt{1} 1. progress. auto. progress. apply mem_empty.
+    auto. progress. by rewrite get_setE.
+  qed.
+
+end section FiatShamir.
 
 end SigmaProtocols.

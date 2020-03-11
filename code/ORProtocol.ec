@@ -182,8 +182,8 @@ local module C2 = S2.SigmaProtocols.Completeness(SP2).
 local module SHVZK1 = S1.SigmaProtocols.SHVZK(SP1).
 local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
 
-  axiom completeness_protocol1 h w e &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).main(h, w, e) @ &m : res] = 1%r.
-  axiom completeness_protocol2 h w e &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).main(h, w, e) @ &m : res] = 1%r.
+  axiom completeness_protocol1 h w e &m : (R1 h w) => Pr[S1.SigmaProtocols.Completeness(SP1).special(h, w, e) @ &m : res] = 1%r.
+  axiom completeness_protocol2 h w e &m : (R2 h w) => Pr[S2.SigmaProtocols.Completeness(SP2).special(h, w, e) @ &m : res] = 1%r.
 
   axiom shvzk1_equiv h' w' e':
     equiv[S1.SigmaProtocols.SHVZK(SP1).real ~ S1.SigmaProtocols.SHVZK(SP1).ideal : (={h, e} /\ e{1} = e' /\ h{2} = h' /\ w{1} = w' /\ (R1 h' w')) ==> ={res}].
@@ -227,9 +227,9 @@ local module SHVZK2 = S2.SigmaProtocols.SHVZK(SP2).
   qed.
 
   (* Converting the ambient logic to the pHoare logic *)
-local lemma SP1_completeness_pr h' w' e' : phoare[C1.main : (h = h' /\ e = e' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
+local lemma SP1_completeness_pr h' w' e' : phoare[C1.special : (h = h' /\ e = e' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
     proof. bypr. progress. by have := (completeness_protocol1 h{m} w{m} e{m} &m H). qed.
-local lemma SP2_completeness_pr h' w' e' : phoare[C2.main : (h = h' /\ e = e' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
+local lemma SP2_completeness_pr h' w' e' : phoare[C2.special : (h = h' /\ e = e' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
     proof. bypr. progress. by have := (completeness_protocol2 h{m} w{m} e{m} &m H). qed.
 
 local module Completeness' = {
@@ -305,7 +305,7 @@ local module Completeness' = {
   qed.
 
   local lemma completeness_sim_equiv h' w' e' &m:
-      Pr[Sigma.SigmaProtocols.Completeness(ORProtocol(SP1,SP2)).main(h', w', e') @ &m : res] =
+      Pr[Sigma.SigmaProtocols.Completeness(ORProtocol(SP1,SP2)).special(h', w', e') @ &m : res] =
       Pr[Completeness'.main(h', w', e') @ &m : res].
   proof.
     byequiv=>//. proc. inline *. sp. wp.
@@ -373,7 +373,7 @@ local module Completeness' = {
 
   lemma or_completeness h' w' e' &m:
       (Sigma.SigmaProtocols.R h' w') =>
-      Pr[Sigma.SigmaProtocols.Completeness(ORProtocol(SP1,SP2)).main(h', w', e') @ &m : res] = 1%r.
+      Pr[Sigma.SigmaProtocols.Completeness(ORProtocol(SP1,SP2)).special(h', w', e') @ &m : res] = 1%r.
   proof.
     move=> rel.
     have -> := (completeness_sim_equiv h' w' e' &m).
