@@ -131,3 +131,44 @@ generate two new sub-goals:
 - Programs are well-typed instances of pWhile
 - Modules are the modules native to Coq. They work the same as in EasyCrypt
 - Proofs of programs, starts by requiring some relation between memory and program.
+
+* Rewriting with statement in Hoare logic
+- rewrite does not work within the different Hoare logics
+- in rPHL, if two programs end with a call to two different procedures M.f and
+  N.g, and we have a proof of (H : equiv[M.f ~ N.g]) then we can use ``call H''
+  to remove procedures call, and changing to post condition to be running to
+  same procedure on both sides.
+- in PHL, if we have a program ending in a procedure call M.f, and we have a
+  proof of phoare[M.f : pre ==> res]. we can remove the procedure call, and
+  change the post condition to include res, if pre is satisfied in the context
+  of the proof.
+* Formalisations problems
+** Special Soundness
+Ideally the proof would be something like this?
+- phoare[verify] implies the conversation is valid/accepting
+- Need to extract conversation structure from phoare statement
+  - Should be general enough to allow for higher-order proofs of special soundness
+
+#+BEGIN_SRC easycrypt
+  lemma schnorr_special_soundness (x : statement) msg ch ch' d d' &m:
+      ch <> ch' =>
+      phoare[Schnorr.verify : (s = x /\ m = msg /\ e = ch /\ r = d) ==> res] = 1%r =>
+      phoare[Schnorr.verify : (s = x /\ m = msg /\ e = ch' /\ r = d') ==> res] = 1%r =>
+      (* g^r = msg * (x ^ e) => *)
+      (* g^r' = msg * (x ^ e') => *)
+      Pr[SpecialSoundness(Schnorr).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+#+END_SRC
+
+Protocols where not all statements are in the relations. This should break the
+ideal_success axiom.
+
+Related work at the end. Pick an audience in the introduction.
+Pick some people as the audience.
+
+Write about all the special things in EC (like rewriting with equiv statements)
+
+Measure Monad. Used to express probability distributions on elements
+
+if h2 \not\in Domain(R), is it possible to create a fake transcript based on h2?
+if not; it should not be possible to have completeness for the relation
+suggested by Ivan.

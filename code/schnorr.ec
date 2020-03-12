@@ -181,30 +181,25 @@ lemma or_schnorr_schnorr_special_soundness x msg ch ch' e1 e1' z1 z1' e2 e2' z2 
       phoare[Schnorr.verify : ( h = (snd x) /\ m = (snd msg) /\ e=  e2'/\ z = z2') ==> res] = 1%r =>
       Pr[SigmaProtocols.SpecialSoundness(ORProtocol(Schnorr, Schnorr)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
   proof.
-  move=> ch_diff ch_rel ch'_rel.
+  move=> ch_diff ch_rel ch'_rel transcript_valid.
     have Hss := (or_special_soundness Schnorr Schnorr _ _ _ _ _ _ _ _ x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m ch_diff ch_rel ch'_rel).
-    admit.
-    admit.
-    admit.
-    admit.
-    admit.
-    admit.
-    progress.
-    have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r.
-    byphoare H0=>//.
-    have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r.
-    byphoare H1=>//.
-    have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
-    byequiv=>//. proc. inline *. auto.
-    progress.
-    have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r.
-    byphoare H0=>//.
-    have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r.
-    byphoare H1=>//.
-    have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
-    byequiv=>//. proc. inline *. auto.
-    move=> transcript_valid.
-    apply (Hss transcript_valid).
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - progress.
+      have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//.
+      have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//.
+      have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
+      byequiv=>//. proc. inline *. auto.
+    - progress.
+      have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//.
+      have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//.
+      have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
+      byequiv=>//. proc. inline *. auto.
+    - apply (Hss transcript_valid).
   qed.
 
 

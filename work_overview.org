@@ -1,22 +1,10 @@
 #+TITLE: work overview
 
-* Formalise bit-strings (maybe?`)
-* Sigma Protocols
-** Formalise protocol description
-** Formalise OR-construction
-** Concrete instantiations
-*** Schnorr
-*** Okamoto
-*** Chaum-Pedersen
-* Commitment Schemes
-** Formalise protocol description
-** Perfect or Computational hiding?
-** Concrete instantiations
-*** Pedersen Commitments
-*** Rivest
-* Relation between Sigma Protocols and Commitment Schemes
+* Report structure
+
 * Extension
 
+* Meeting notes
 CertiCrypt being ported to EasyCrypt
 
 Papers for ZKCrypt (find them).
@@ -32,6 +20,18 @@ Tutorial for SSReflect (Template for EasyCrypt).
 
 Abstract theories (Explain in final report)? Not explained within the tutorial.
 
-move * vs move=> *
+* Next meeting
+Is the witness always just a bit string?
+- Needed for OR-Construction.
 
-coupling?
+Export EasyCrypt to another implementation
+
+Difference between locales, modules, abstract modules and the one in CertiCrypt (next time)
+
+local lemmas? Axioms in section not discharged.
+
+Declared a specific instance of Protocol one and two. How do I provide a
+specific instance, such that the axioms can be discharged? Is this even
+possible, or should the proofs just be kept general.
+
+What is an abstract theory? Used in PRF.eca

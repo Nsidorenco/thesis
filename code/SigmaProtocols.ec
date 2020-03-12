@@ -135,8 +135,13 @@ lemma dchallenge_fu : is_full dchallenge by apply/funi_ll_full; [exact/dchalleng
 
 section FiatShamir.
   require import SmtMap.
+
+  module type Oracle = {
+    proc * init() : unit
+    proc sample (m : message) : challenge
+  }.
   (* Oracle idea from: Stoughton and Varia *)
-  module Oracle = {
+  module RealOracle : Oracle = {
     var h : (message, challenge) fmap
     proc init() = {
       h = empty;
@@ -150,12 +155,12 @@ section FiatShamir.
     }
   }.
 
-  module FiatShamir(S : SProtocol) = {
+  module FiatShamir(S : SProtocol, O : Oracle) = {
     proc pok(h : statement, w : witness) : transcript = {
       var a, r, z, e;
-      Oracle.init();
+      O.init();
       (a, r) = S.init(h, w);
-      e = Oracle.sample(a);
+      e = O.sample(a);
       z = S.response(h, w, a, r, e);
 
       return (a, e, z);
@@ -163,7 +168,7 @@ section FiatShamir.
   }.
 
   module FiatShamirCompleteness (S : SProtocol) = {
-    module FS = FiatShamir(S)
+    module FS = FiatShamir(S, RealOracle)
     proc main(h : statement, w : witness) : bool = {
       var a, e, z, v;
 
@@ -174,9 +179,51 @@ section FiatShamir.
     }
   }.
 
+  module IdealOracle : Oracle = {
+    var e : challenge
+    proc init() = {}
+    proc sample(m : message) = {
+      return e;
+    }
+  }.
+
+  module FiatShamirSHVZK (S : SProtocol) = {
+    module FS = FiatShamir(S, IdealOracle)
+    proc real(h : statement, w : witness, e : challenge) : transcript option = {
+      var a, z, v, ret;
+      IdealOracle.e = e;
+      (a, e, z) = FS.pok(h, w);
+      v = S.verify(h, a, e, z);
+      ret = None;
+      if (v) {
+        ret = Some (a, e, z);
+      }
+      return ret;
+    }
+
+    proc ideal(h : statement, e : challenge) : transcript option = {
+      var a, z, v, ret;
+      (a, z) = S.simulator(h, e);
+      v = S.verify(h, a, e, z);
+      ret = None;
+      if (v) {
+        ret = Some (a, e, z);
+      }
+      return ret;
+    }
+  }.
+
+  equiv fiat_shamir_shvzk_real_equiv (S <: SProtocol{IdealOracle}):
+      FiatShamirSHVZK(S).real ~ SHVZK(S).real : ={h, w, e, glob S} ==> ={res}.
+  proof. proc. inline *. sim. qed.
+
+  equiv fiat_shamir_shvzk_ideal_equiv (S <: SProtocol{IdealOracle}):
+      FiatShamirSHVZK(S).ideal ~ SHVZK(S).ideal : ={h, e, glob S} ==> ={res}.
+  proof. proc. inline *. sim. qed.
+
   (* Proof of equivalence, if the underlying protocol is not allowed *)
   (* to alter the state of the Oracle. *)
-  equiv fiat_shamir_completeness (S <: SProtocol{Oracle}):
+  equiv fiat_shamir_completeness (S <: SProtocol{RealOracle}):
       FiatShamirCompleteness(S).main ~ Completeness(S).main : ={h, w, glob S} ==> ={res}.
   proof.
     proc. inline *.
