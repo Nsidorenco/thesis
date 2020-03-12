@@ -1,7 +1,7 @@
 \chapter{EasyCrypt}
 \label{ch:EasyCrypt}
 
-It this chapter we introduce the \easycrypt proof assistant...
+It this chapter we introduce the \easycrypt proof assistant \dots
 
 \easycrypt provides us with three important logics: a relational probabilistic
 Hoare logic (\textbf{rPHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
@@ -9,7 +9,9 @@ Hoare logic.
 Furthermore, \easycrypt also has an Higher-order ambient logic, in which the three
 previous logics are encoded within. This Higher-order logic allows us to reason
 about mathematical constructs, which in turn lets us reason about them within
-the different Hoare logics.
+the different Hoare logics. The ambient logic also allows us to relate
+judgement the three different types of Hoare logics, since they all have an
+equivalent representation in the ambient logic.
 
 \section{Modules}
 \label{sec:ec_modules}
@@ -61,6 +63,175 @@ define adversaries and then proving that no matter what choice the adversary
 makes during execution, he will not be able to break the security of the procedure.
 
 \todo{Example of abstract modules}
+
+\section{Theories and sections}
+\label{sec:theories}
+To model parametric protocols, i.e. protocols that can work on many different
+types we use \easycrypt's ``theory'' functionality. A theory allows us to model
+protocols and proof over generic types. This can be seen as the ``theory''
+construct providing an context for all proofs and protocols within theory.
+
+Sections provide much of the same functionality, but instead of quantifying over
+types sections allows us to quantify everything within the section over modules
+axiomatised by the user.
+
+An example of this, is having a section for cryptographic security of a
+protocols, where we quantify over all instances of adversaries, that are
+guaranteed to terminate.
+
+\section{Probabilistic Hoare Logic}
+\label{sec:pHL}
+To formally prove security of a cryptographic protocol we commonly do we in the
+way of so-called game-based proofs, we define a game against a malicious
+adversary, and say that the protocol is secure, if the adversary cannot win said
+game. An common example of this is IND-CPA security, where an probabilistic
+polynomial time adversary is given access to an PKE-oracle and is allowed to
+send two messages to the oracle, namely $m_{0}, m_{1}$. The oracle then chooses
+a random bit, $b$, and sends the encryption of $m_{b}$ back to the adversary.
+Then, if the adversary can guess which of the two messages where encrypted we
+wins.
+To reason about such within \easycrypt we first describe the game within a
+module:
+
+\begin{lstlisting}[float,label=lst:IND_CPA,caption=nextHopInfo: IND-CPA Game]
+  module IND-CPA(A : Adversary) = {
+    proc main() : bool = {
+      var m0, m1, b, b', sk, pk;
+
+      (sk, pk) = key_gen();
+
+      (m0, m1) = A.choose(pk);
+
+      b <\$ dbool;
+
+      b' = A.guess(enc(sk, m_b));
+
+      return b == b'
+    }
+  }
+\end{lstlisting}
+
+\todo{Problems with game: A should know what PKE schemes is used. A bit too
+  psuedo-code-ish}
+
+Now, to prove security we would like to show that the adversary cannot win this
+game with probability better than randomly guessing values of $b'$, i.e. $\frac{1}{2}$.
+
+This formulated in one of two ways:
+
+\begin{equation}
+forall (Adv <: Adversaries) \&m, Pr[IND-CPA(Adv).main() @ \&m : res] = 1\%r/2\%r
+\end{equation}
+
+\begin{equation}
+forall (Adv <: Adversaries), phoare[IND-CPA(Adv).main : true ==> res] = 1\%r/2\%r
+\end{equation}
+
+Both are equivalent representations, but the former is in the ambient logic of
+\easycrypt, whilst the latter is in the pHL logic.
+
+To prove this, we step though the game using the logic rules of the pHL logic.
+But, how can we guarantee that there does not exists any possible implementation
+of the adversary, such that we he is able to succeed? To prove this we either
+have to somehow prove, that such an adversary cannot exists within the current
+game, or we can relate this game to another one, where adversary can only
+perform random guesses. To do this we need to utilise the pRHL logic.
+
+\section{Probabilistic Relational Hoare Logic}
+\label{sec:pRHL}
+the pRHL logic allows us to reason about the join outcome distribution of two
+programs. This allows us to reason about equality of games.
+
+To bing it back to the game of IND-CPA, we could define an alternative game,
+where the Oracle always sends back a random element from the ciphertext space.
+This is often referred to as the ideal case, where as the oracle previously
+introduced is referred to as the real one.
+
+We can then formulate equality between the two games as:
+
+\begin{equation}
+forall (Adv <: Adversary) \&m, Pr[IND-CPA(Adv).main() @ \&m : res] =
+Pr[IND-CPA(Adv).real() @ \&m :res]
+\end{equation}
+\begin{equation}
+forall (Adv <: Adversary) , equiv[IND-CPA(Adv).main ~ IND-CPA(Adv).real : true
+==> =\{res\}]
+\end{equation}
+
+where $=\{res\}$ is notation for the outcome distributions begin equal.
+
+
+\section{Game Hopping}
+\label{sec:game_hopping_ec}
+
+\section{Proving procedures incrementally}
+This sections aim to give the reader an introduction on how to
+apply \easycrypt's (r)pHL logic to prove statement judgements \todo{explain what is a statement judgement}.
+This section, however, will not cover every possible of manipulating Hoare
+judgements, but rather aim to familiarise the reader with the general techniques
+observed and applied though-out this master thesis. For a more comprehensive
+overview of the tactics supplied by \easycrypt the reader is encouraged to read
+the reference manual \cite{ec-ref-man}.
+
+When working with statement judgements, there are five general categories, for
+which all procedural statements can be categorised into, which corresponds
+exactly to the five different cases of valid instructions within the BNF
+representation of pWhile. For the work of master thesis reasoning about
+procedures containing loops has not been necessary and they are, therefore,
+also excluded from this section.
+
+
+\paragraph{statements depending only on local/global variables}
+This type of statement is seen, when assigning variables in \easycrypt.
+
+\begin{lstlisting}[float,label=lst:ec_assignment,caption=Example: assigning
+  values in \easycrypt]
+  module Assignment = {
+    var a : int
+    proc main() = {
+      var x;
+      a = 5;
+      x = a;
+      (* statements... *)
+      x = 7;
+    }
+  }
+\end{lstlisting}
+
+To deal with the assignment in Example \ref{lst:ec_assignment}, we have two
+fundamental tactics, which relate to the logical rules in formal Hoare logic.
+
+The first tactic is \textbf{sp}, which given a Hoare triple $\{\text{pre}\} \text{prog} \{\text{post}\}$  consumes the longest prefix of
+assignment statements in prog, and then replaces the precondition of the Hoare triple
+with the strongest postcondition, R, for which it holds: $\{\text{pre}\} \text{prefix} \{\text{R}\}$.
+
+The second tactic is \textbf{wp}, which given a Hoare triple $\{\text{pre}\}
+\text{prog}() \{\text{post}\}$  consumes the longest suffix of assignment
+statements in prog, and then replaces the postcondition of the Hoare triple with
+the weakest precondition, R, for which it holds: $\{\text{R}\} \text{suffix} \{\text{post}\}$.
+
+\paragraph{statements depending on (concrete) procedure calls}
+When dealing with concrete procedure calls it is possible to inline the
+procedure, such that solving statement of this kind effectively reduces to
+proving a program only consisting of statements of the other three kinds.
+
+\paragraph{statements depending on (abstract) procedure calls}
+call tactic
+
+\paragraph{statements depending on distributions}
+
+
+
+\section{Higher order procedure proofs}
+rewrite and apply is used on ambient logic.
+If we want to use knowledge about procedures, we have to use call in most cases.
+
+conseq, byphoare and byequiv can also take proof terms as arguments.
+
+
+\section{Example : OTP}
+\label{sec:ec_opt}
+
 
 
 %%% Local Variables:
