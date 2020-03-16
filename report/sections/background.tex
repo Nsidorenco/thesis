@@ -1,7 +1,21 @@
-\chapter{Sigma Protocols}
-\label{ch:sigma_protocols}
+\chapter{Background}
+\label{ch:background}
 
-\section{Definition}
+
+\section{Sigma Protocols}
+\label{sec:sigma_protocols}
+Originally introduced by Cramer, $\Sigma$-protocols are protocols on a
+three-move-form, based on a, computationally hard, relation $R$, such that $(h, w) \in R$
+if $h$ is an instance of a computationally hard problem, and $w$ is
+the solution to $h$. $\Sigma$-protocols then allows a prover, P, who knows the
+solution $w$, to convince a verify, V, of the existence of $w$, without
+explicitly showing $w$ to him.
+
+The following section aims to introduce the definition of $\Sigma$-protocols,
+along with its notions of security. The following section is based on the
+presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
+
+\subsection{Definition}
 \label{sec:sigma_definition}
 \begin{itemize}
   \item 3-move form
@@ -23,6 +37,12 @@
         between honest parties.
     \end{itemize}
 \end{itemize}
+
+\section{Commitment Schemes}
+\label{sec:commitment}
+
+\subsection{Definition}
+\label{sec:commitment:definition}
 
 
 

@@ -16,6 +16,80 @@ a relevant alternative to \easycrypt. See ZKCrypt paper.
 \section{Encoding a protocol within Isabelle}
 \label{sec:protocol_in_certicrypt}
 
+\chapter{An Introduction to EasyCrypt}
+\label{sec:ec_introcution}
+
+\section{Game Hopping}
+\label{sec:game_hopping_ec}
+
+\section{Proving procedures incrementally}
+This sections aim to give the reader an introduction on how to
+apply \easycrypt's (r)pHL logic to prove statement judgements \todo{explain what is a statement judgement}.
+This section, however, will not cover every possible of manipulating Hoare
+judgements, but rather aim to familiarise the reader with the general techniques
+observed and applied though-out this master thesis. For a more comprehensive
+overview of the tactics supplied by \easycrypt the reader is encouraged to read
+the reference manual \cite{ec-ref-man}.
+
+When working with statement judgements, there are five general categories, for
+which all procedural statements can be categorised into, which corresponds
+exactly to the five different cases of valid instructions within the BNF
+representation of pWhile. For the work of master thesis reasoning about
+procedures containing loops has not been necessary and they are, therefore,
+also excluded from this section.
+
+
+\paragraph{statements depending only on local/global variables}
+This type of statement is seen, when assigning variables in \easycrypt.
+
+\begin{lstlisting}[float,label=lst:ec_assignment,caption=Example: assigning
+  values in \easycrypt]
+  module Assignment = {
+    var a : int
+    proc main() = {
+      var x;
+      a = 5;
+      x = a;
+      (* statements... *)
+      x = 7;
+    }
+  }
+\end{lstlisting}
+
+To deal with the assignment in Example \ref{lst:ec_assignment}, we have two
+fundamental tactics, which relate to the logical rules in formal Hoare logic.
+
+The first tactic is \textbf{sp}, which given a Hoare triple $\{\text{pre}\} \text{prog} \{\text{post}\}$  consumes the longest prefix of
+assignment statements in prog, and then replaces the precondition of the Hoare triple
+with the strongest postcondition, R, for which it holds: $\{\text{pre}\} \text{prefix} \{\text{R}\}$.
+
+The second tactic is \textbf{wp}, which given a Hoare triple $\{\text{pre}\}
+\text{prog}() \{\text{post}\}$  consumes the longest suffix of assignment
+statements in prog, and then replaces the postcondition of the Hoare triple with
+the weakest precondition, R, for which it holds: $\{\text{R}\} \text{suffix} \{\text{post}\}$.
+
+\paragraph{statements depending on (concrete) procedure calls}
+When dealing with concrete procedure calls it is possible to inline the
+procedure, such that solving statement of this kind effectively reduces to
+proving a program only consisting of statements of the other three kinds.
+
+\paragraph{statements depending on (abstract) procedure calls}
+call tactic
+
+\paragraph{statements depending on distributions}
+
+
+
+\section{Higher order procedure proofs}
+rewrite and apply is used on ambient logic.
+If we want to use knowledge about procedures, we have to use call in most cases.
+
+conseq, byphoare and byequiv can also take proof terms as arguments.
+
+
+\section{Example : OTP}
+\label{sec:ec_opt}
+
 
 %%% Local Variables:
 %%% mode: latex

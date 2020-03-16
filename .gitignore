@@ -3,7 +3,7 @@
 *.log
 tmp/
 
-report/*.pdf
+# report/*.pdf
 report/*.toc
 report/*.fdb_latexmk
 report/*.aux

@@ -1,21 +1,23 @@
 \documentclass[twoside,11pt,openright]{report}
 
 \usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage[american]{babel}
 \usepackage{a4}
 \usepackage{latexsym}
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{epsfig}
-\usepackage[T1]{fontenc}
 \usepackage{mathptmx}
 \usepackage{color}
 \usepackage{epstopdf}
 \usepackage{microtype}
 \usepackage{hyperref}
+\usepackage[square,numbers,sort&compress]{natbib}
 \usepackage[useregional]{datetime2}
 \DTMlangsetup[en-US]{showdayofmonth=false}
 \usepackage{lipsum}
+\usepackage{listings}
 
 \renewcommand*\sfdefault{lmss}
 \renewcommand*\ttdefault{txtt}
@@ -76,11 +78,9 @@
 
 \input{sections/easycrypt.tex}
 
+\input{sections/background.tex}
+
 \input{sections/related_work.tex}
-
-\input{sections/sigma_protocols.tex}
-
-\input{sections/commitment.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -93,7 +93,7 @@
 
 \cleardoublepage
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyle{plain} 
+\bibliographystyle{plainnat}
 \bibliography{refs}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

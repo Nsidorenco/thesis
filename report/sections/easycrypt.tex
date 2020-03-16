@@ -13,7 +13,52 @@ the different Hoare logics. The ambient logic also allows us to relate
 judgement the three different types of Hoare logics, since they all have an
 equivalent representation in the ambient logic.
 
-\section{Modules}
+\section{Types and Operators}
+\label{sec:ec_types_and_operators}
+
+\section{Theories, Abstract theories and Sections}
+\label{sec:ec_theories}
+To structure proofs and code \easycrypt uses a language construction called
+theories. By grouping definitions and proofs into a theory they become available
+in other files by ``requiring'' them. For example, to make use of \easycrypt's
+existing formalisation of integers, it can be made available in any giving file
+by writing:
+
+\begin{lstlisting}[float,label=lst:theory_require,caption=\easycrypt theories: importing definitions]
+require Int.
+
+const two : int = Int.(+) Int.One Int.One.
+\end{lstlisting}
+
+To avoid the theory name prefix of all definitions ``require import'' can be
+used in-place of ``require'', which will add all definitions and proof of the
+theory to the current scope without the prefix.
+
+Any \easycrypt file with the ``.ec'' file type is automatically declared as a
+theory.
+
+\paragraph{Abstract Theories}
+To model parametric protocols, i.e. protocols that can work on many different
+types we use \easycrypt's abstract theory functionality. A abstract theory allows us to model
+protocols and proof over generic types.
+There is currently two ways of declaring an abstract theory. First, by using the
+``theory'' keyword within any file allows the user to define abstract types,
+which can be used though-out the scope of the abstract theory, i.e. everything
+in-between the ``theory'' and ``end theory'' keywords. Second, an abstract
+theory file can be declared by using the ``.eca'' file type. This works much
+like using the ``.ec'' file type to declare theories.
+
+\paragraph{Sections}
+Sections provide much of the same functionality, but instead of quantifying over
+types sections allows us to quantify everything within the section over modules
+axiomatised by the user.
+
+An example of this, is having a section for cryptographic security of a
+protocols, where we quantify over all instances of adversaries, that are
+guaranteed to terminate.
+
+
+\section{Modules and procedures}
 \label{sec:ec_modules}
 To model algorithms within \easycrypt the module construct is provided.
 A module is a set of procedures and a record of global variables, where all
@@ -37,9 +82,9 @@ in object-oriented programming languages.
 
 \todo{Example of modules}
 
-\section{Abstract modules}
-\label{sec:ec_abs_modules}
-Abstract modules is another features of \easycrypt modelling system, which
+\paragraph{Modules Types}
+\label{sec:ec_module_types}
+Modules types is another features of \easycrypt modelling system, which
 enables us to define general structures of modules, without having to implement
 the procedures. A procedure without an implementation is called abstract, while
 a implemented one (The ones provided by modules) are called concrete.
@@ -64,20 +109,6 @@ makes during execution, he will not be able to break the security of the procedu
 
 \todo{Example of abstract modules}
 
-\section{Theories and sections}
-\label{sec:theories}
-To model parametric protocols, i.e. protocols that can work on many different
-types we use \easycrypt's ``theory'' functionality. A theory allows us to model
-protocols and proof over generic types. This can be seen as the ``theory''
-construct providing an context for all proofs and protocols within theory.
-
-Sections provide much of the same functionality, but instead of quantifying over
-types sections allows us to quantify everything within the section over modules
-axiomatised by the user.
-
-An example of this, is having a section for cryptographic security of a
-protocols, where we quantify over all instances of adversaries, that are
-guaranteed to terminate.
 
 \section{Probabilistic Hoare Logic}
 \label{sec:pHL}
@@ -159,78 +190,6 @@ forall (Adv <: Adversary) , equiv[IND-CPA(Adv).main ~ IND-CPA(Adv).real : true
 \end{equation}
 
 where $=\{res\}$ is notation for the outcome distributions begin equal.
-
-
-\section{Game Hopping}
-\label{sec:game_hopping_ec}
-
-\section{Proving procedures incrementally}
-This sections aim to give the reader an introduction on how to
-apply \easycrypt's (r)pHL logic to prove statement judgements \todo{explain what is a statement judgement}.
-This section, however, will not cover every possible of manipulating Hoare
-judgements, but rather aim to familiarise the reader with the general techniques
-observed and applied though-out this master thesis. For a more comprehensive
-overview of the tactics supplied by \easycrypt the reader is encouraged to read
-the reference manual \cite{ec-ref-man}.
-
-When working with statement judgements, there are five general categories, for
-which all procedural statements can be categorised into, which corresponds
-exactly to the five different cases of valid instructions within the BNF
-representation of pWhile. For the work of master thesis reasoning about
-procedures containing loops has not been necessary and they are, therefore,
-also excluded from this section.
-
-
-\paragraph{statements depending only on local/global variables}
-This type of statement is seen, when assigning variables in \easycrypt.
-
-\begin{lstlisting}[float,label=lst:ec_assignment,caption=Example: assigning
-  values in \easycrypt]
-  module Assignment = {
-    var a : int
-    proc main() = {
-      var x;
-      a = 5;
-      x = a;
-      (* statements... *)
-      x = 7;
-    }
-  }
-\end{lstlisting}
-
-To deal with the assignment in Example \ref{lst:ec_assignment}, we have two
-fundamental tactics, which relate to the logical rules in formal Hoare logic.
-
-The first tactic is \textbf{sp}, which given a Hoare triple $\{\text{pre}\} \text{prog} \{\text{post}\}$  consumes the longest prefix of
-assignment statements in prog, and then replaces the precondition of the Hoare triple
-with the strongest postcondition, R, for which it holds: $\{\text{pre}\} \text{prefix} \{\text{R}\}$.
-
-The second tactic is \textbf{wp}, which given a Hoare triple $\{\text{pre}\}
-\text{prog}() \{\text{post}\}$  consumes the longest suffix of assignment
-statements in prog, and then replaces the postcondition of the Hoare triple with
-the weakest precondition, R, for which it holds: $\{\text{R}\} \text{suffix} \{\text{post}\}$.
-
-\paragraph{statements depending on (concrete) procedure calls}
-When dealing with concrete procedure calls it is possible to inline the
-procedure, such that solving statement of this kind effectively reduces to
-proving a program only consisting of statements of the other three kinds.
-
-\paragraph{statements depending on (abstract) procedure calls}
-call tactic
-
-\paragraph{statements depending on distributions}
-
-
-
-\section{Higher order procedure proofs}
-rewrite and apply is used on ambient logic.
-If we want to use knowledge about procedures, we have to use call in most cases.
-
-conseq, byphoare and byequiv can also take proof terms as arguments.
-
-
-\section{Example : OTP}
-\label{sec:ec_opt}
 
 
 
