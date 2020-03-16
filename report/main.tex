@@ -18,11 +18,20 @@
 \DTMlangsetup[en-US]{showdayofmonth=false}
 \usepackage{lipsum}
 \usepackage{listings}
+\usepackage{tikz}
+
 
 \renewcommand*\sfdefault{lmss}
 \renewcommand*\ttdefault{txtt}
 \newcommand{\easycrypt}{\texttt{EasyCrypt}}
 \newenvironment{draft}{\color{red}}{\ignorespacesafterend}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{conjecture}[theorem]{Conjecture}
 
 \newcommand{\todo}[1]{{\color[rgb]{.5,0,0}\textbf{$\blacktriangleright$#1$\blacktriangleleft$}}}
 

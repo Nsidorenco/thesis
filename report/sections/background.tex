@@ -1,19 +1,41 @@
 \chapter{Background}
 \label{ch:background}
+This section aims to introduce some of the fundamental definitions and concepts
+used throughout this thesis. This section will foremost give a rudimentary and
+informal introduction, while the later chapters will provide more rigours
+formalisations and proofs of security.
+First, we start by describing $\Sigma$-protocols, along with its security
+definitions and extensions.
 
 
 \section{Sigma Protocols}
 \label{sec:sigma_protocols}
-Originally introduced by Cramer, $\Sigma$-protocols are protocols on a
+Originally introduced by Cramer, $\Sigma$-protocols are two-party protocols with a
 three-move-form, based on a, computationally hard, relation $R$, such that $(h, w) \in R$
 if $h$ is an instance of a computationally hard problem, and $w$ is
 the solution to $h$. $\Sigma$-protocols then allows a prover, P, who knows the
 solution $w$, to convince a verify, V, of the existence of $w$, without
 explicitly showing $w$ to him.
 
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+      % \draw (-3,0) -- (-3,-3) (3,0) -- (3,-3);
+      \node at (-3,.3) {Prover};
+      \node at (3,.3) {Verifier};
+      \draw[->] (-3,-1) -- node[midway,above] {a} (3,-1);
+      \draw[<-] (-3,-2) -- node[midway,above] {e} (3,-2);
+      \draw[->] (-3,-3) -- node[midway,above] {z} (3,-3);
+  \end{tikzpicture}
+  \caption{\label{fig:proto_sigma} $\Sigma$-Protocol}
+\end{figure}
+
+
 The following section aims to introduce the definition of $\Sigma$-protocols,
 along with its notions of security. The following section is based on the
 presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
+
+\todo{explain the flow of the protocol. what is a \dots}
 
 To prove security of a $\Sigma$-protocols, we require three properties, namely,
 \textbf{Completeness}, \textbf{Special Soundness}, and \textbf{Special Honest Verifier Zero Knowledge (SHVZK)}.
@@ -38,6 +60,8 @@ Can also be generalised to $s$-Special Soundness, which requires that the
 witness can be constructed, given $s$ accepting conversations.
 
 \paragraph{SHVZK}
+Zero knowledge is proven by giving a simulator. Not possible to define for
+corrupted verifier, since the challenge can become exponentially long.
 \begin{itemize}
   \item Exists an polynomial-time simulator M.
   \item Given statement, x, and challenge, e, output an accepting
@@ -46,12 +70,59 @@ witness can be constructed, given $s$ accepting conversations.
     between honest parties.
 \end{itemize}
 
+\todo{Compound protocols}
+
+\todo{Relation in literature not always correct}
+
+\todo{non-interactive by Fiat-Shamir}
+
 \section{Commitment Schemes}
 \label{sec:commitment}
+Commitment schemes is another fundamental building block in cryptography, and
+has a strong connection to $\Sigma$-Protocols \todo{reference}. Commitment
+schemes facilitates an interaction between two parties, P1 and P2, where P1 can
+generate a commitment of a message, which he can send to P2, without revealing
+what his original message where. At a later point P1 can then send the message
+to P2, who is then able to verify that P1 has not altered his message since
+creating the commitment. More formally a commitment schemes is defined as:
 
-\subsection{Definition}
-\label{sec:commitment:definition}
+\begin{definition}[Commitment Schemes]
+A commitment schemes is a tuple of algorithms (KeyG, Com, Ver), where:
+\begin{itemize}
+  \item $(ck, vk) \leftarrow KeyG()$, provides key generation.
+  \item $(c, d) \leftarrow Com(ck, m)$ generates a commitment $c$ of the message
+    $m$ along with a opening key $d$, which can be revealed at a later time.
+  \item $\{true, false\} \leftarrow Ver(vk, c, m, d)$ checked whether the
+    commitment $c$ was generated from $m$ and opening key $d$.
+\end{itemize}
+\end{definition}
 
+For a commitment schemes to be secure it is required to satisfy three
+properties: \textbf{Correctness}, \textbf{Binding}, and \textbf{Hiding}.
+
+\paragraph{Correctness}
+A commitment scheme is said to be correct, if a commitment $(c, d)$ made by a
+honest party will always be accepted by the verification procedure of another
+party, i.e:
+$$
+Pr[Ver(vk, c, m, d) | (c, d) = Com(ck, m) \land (ck, vk) \leftarrow KeyG()] = 1.
+$$
+
+\paragraph{Binding}
+The binding property states that a party committing to a message will not be
+able to successfully convince another party, that he has committed to another
+message, i.e. $(c, d) \leftarrow Com(ck, m)$, will not be able to find an alternative opening key $d'$
+and message $m'$ such that $(c, d') \leftarrow Com(ck, m')$.
+
+\todo{write binding game}
+
+\todo{Stat, perfect, comp variants}
+
+\todo{All games parametrised by security param. Not used in formal definition}
+
+\paragraph{Hiding}
+The Hiding property states that a party given a commitment $c$, will not be able
+to extract the message $m$, which the commitment was based on.
 
 
 %%% Local Variables:
