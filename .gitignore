@@ -7,5 +7,10 @@ tmp/
 report/*.toc
 report/*.fdb_latexmk
 report/*.aux
+report/main.bbl
+report/main.blg
+report/main.bcf
+report/main.run.xml
+report/logo-eps-converted-to.pdf
 /project_description.pdf
 /report/*.fls
