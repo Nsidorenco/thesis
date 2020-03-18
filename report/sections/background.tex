@@ -9,7 +9,7 @@ definitions and extensions.
 
 
 \section{Sigma Protocols}
-\label{sec:sigma_protocols}
+\label{sec:background:sigma_protocols}
 Originally introduced by Cramer, $\Sigma$-protocols are two-party protocols with a
 three-move-form, based on a, computationally hard, relation $R$, such that $(h, w) \in R$
 if $h$ is an instance of a computationally hard problem, and $w$ is
@@ -77,7 +77,7 @@ corrupted verifier, since the challenge can become exponentially long.
 \todo{non-interactive by Fiat-Shamir}
 
 \section{Commitment Schemes}
-\label{sec:commitment}
+\label{sec:background:commitment}
 Commitment schemes is another fundamental building block in cryptography, and
 has a strong connection to $\Sigma$-Protocols \todo{reference}. Commitment
 schemes facilitates an interaction between two parties, P1 and P2, where P1 can
@@ -123,6 +123,10 @@ and message $m'$ such that $(c, d') \leftarrow Com(ck, m')$.
 \paragraph{Hiding}
 The Hiding property states that a party given a commitment $c$, will not be able
 to extract the message $m$, which the commitment was based on.
+
+\section{Multi-Part Computation}
+\label{sec:background:mpc}
+
 
 
 %%% Local Variables:
