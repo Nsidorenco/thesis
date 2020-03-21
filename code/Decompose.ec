@@ -28,7 +28,7 @@ type state = int list.
 op plus_gate (x y : int) = x + y.
 op mult_gate (x y : int) = x * y.
 
-op eval_gate (h : input, g : gate, s : state) : output =
+op eval_gate (g : gate, s : state) : output =
 with g = MULT inputs => let (i, j) = inputs in
                         let x = (nth 0 s i) in
                         let y = (nth 0 s j) in x * y
@@ -51,15 +51,15 @@ with g = MULTC inputs => let (i, f) = inputs in
 const circuit_ex = [ADDC (0, fun x => 2 + x); MULT(0,1)].
 const s' : state = [10].
 
-op eval_circuit(x : input, c : circuit, s : state) : output =
+op eval_circuit(c : circuit, s : state) : output =
     with c = [] => last 0 s
-    with c = g :: gs => let r = eval_gate x g s in eval_circuit x gs (rcons s r).
+    with c = g :: gs => let r = eval_gate g s in eval_circuit gs (rcons s r).
 
-lemma circuit_ex_test : (eval_circuit 10 circuit_ex s') = 120 by trivial.
+lemma circuit_ex_test : (eval_circuit circuit_ex [10]) = 120 by trivial.
 
 module Tester = {
   proc main(x : input, c : circuit, s : state) = {
-    return eval_circuit x c s;
+    return eval_circuit c [x];
   }
 }.
 
@@ -138,6 +138,23 @@ lemma decomp_test &m:
     Pr[Phi.main(10, circuit_ex) @ &m : res = 120] = 1%r.
 proof.
     byphoare(: x = 10 /\ c = circuit_ex ==> _)=>//.
+    proc. auto.
+    seq 3 : (x = x1 + x2 + x3 /\ #pre). auto. auto. progress. apply dinput_ll. algebra.
+    sp. rewrite /circuit_ex.
+    rcondt 1. auto.
+    sp. elim*. progress.
+    rcondt 1. auto.
+    sp. elim*. progress.
+    rcondf 1. auto.
+    auto. progress.
+    smt().
+    hoare. auto. progress. algebra. progress.
+qed.
+
+lemma decompo_circuit_equiv &m x':
+    Pr[Phi.main(x', circuit_ex) @ &m : res = eval_circuit circuit_ex [x'] ] = 1%r.
+proof.
+    byphoare(: x = x' /\ c = circuit_ex ==> _)=>//.
     proc. auto.
     seq 3 : (x = x1 + x2 + x3 /\ #pre). auto. auto. progress. apply dinput_ll. algebra.
     sp. rewrite /circuit_ex.
