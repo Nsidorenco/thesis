@@ -48,7 +48,7 @@ with g = MULTC inputs => let (i, c) = inputs in
 (* | / *)
 (* * *)
 
-const circuit_ex = rev [ADDC (0, 2); MULT(0,1)].
+const circuit_ex = [ADDC (0, 2); MULT(0,1)].
 const s' : state = [10].
 
 (* op eval_circuit(c : circuit, s : state) : output = *)
@@ -58,8 +58,8 @@ const s' : state = [10].
 op eval_circuit_aux(c : circuit, s : state) : state =
     with c = [] => s
     with c = g :: gs =>
-     let s' = eval_circuit_aux gs s in
-     let r = eval_gate g s' in (rcons s' r).
+     let r = eval_gate g s in
+     eval_circuit_aux gs (rcons s r).
 
 op eval_circuit (c : circuit, s : state) : output =
     last 0 (eval_circuit_aux c s).
@@ -74,7 +74,7 @@ lemma circuit_ex_test : (eval_circuit circuit_ex [10]) = 120.
 (** Phi protocol **)
 
 (* define decomposed circuit function *)
-op phi_decomp (g : gate, p : int, w : state list) : output =
+op phi_decomp (g : gate, p : int, w : view list) : output =
 with g = ADDC inputs =>
     let (i, c) = inputs in
     let state = (nth s' w (p - 1)) in
@@ -100,17 +100,22 @@ with g = MULT inputs =>
     let yp' = (nth 0 statep' j) in
     xp * yp + xp' * yp + xp * yp' + 1 - 1.
 
-op phi_circuit_aux (c : circuit, w1 w2 w3 : view) : (view * view * view) =
-    with c = [] => (w1, w2, w3)
+op phi_circuit_aux (c : circuit, w : view list) : view list =
+    with c = [] => w
     with c = g::gs =>
-    let (w1, w2, w3) = phi_circuit_aux gs w1 w2 w3 in
-    let r1 = phi_decomp g 1 [w1;w2;w3] in
-    let r2 = phi_decomp g 2 [w1;w2;w3] in
-    let r3 = phi_decomp g 3 [w1;w2;w3] in
-    (rcons w1 r1, rcons w2 r2, rcons w3 r3).
+    let w1 = nth [] w 0 in
+    let w2 = nth [] w 1 in
+    let w3 = nth [] w 2 in
+    let r1 = phi_decomp g 1 w in
+    let r2 = phi_decomp g 2 w in
+    let r3 = phi_decomp g 3 w in
+    phi_circuit_aux gs [(rcons w1 r1);(rcons w2 r2);(rcons w3 r3)].
 
 op phi_circuit (c : circuit, w1, w2, w3 : view) : output =
-    let (w1, w2, w3) = phi_circuit_aux c w1 w2 w3 in
+    let w = phi_circuit_aux c [w1;w2;w3] in
+    let w1 = nth [] w 0 in
+    let w2 = nth [] w 1 in
+    let w3 = nth [] w 2 in
     last 0 w1 + last 0 w2 + last 0 w3.
 
 
@@ -177,30 +182,38 @@ proof.
     rewrite /eval_circuit /phi_circuit /rev. simplify. algebra.
 qed.
 
-lemma decomp_equiv_ind g gs (x x1 x2 x3 : input) (w1 w2 w3 : view) r1 r2 r3:
-    r1 = phi_decomp g 1 [w1;w2;w3] /\
-    r2 = phi_decomp g 2 [w1;w2;w3] /\
-    r3 = phi_decomp g 3 [w1;w2;w3] =>
-    ((rcons w1 r1), (rcons w2 r2), (rcons w3 r3)) = phi_circuit_aux (g::gs) [x1] [x2] [x3]
-    <=> (w1, w2, w3) = phi_circuit_aux gs [x1] [x2] [x3].
-proof.
-  progress.
-  - smt.
-  - elim g; progress; rewrite - H.
-    + elim x0; progress. smt().
-    + elim x0; progress. smt().
-qed.
+(* lemma decomp_equiv_ind g gs (x x1 x2 x3 : input) (w1 w2 w3 : view) r1 r2 r3: *)
+(*     r1 = phi_decomp g 1 [w1;w2;w3] /\ *)
+(*     r2 = phi_decomp g 2 [w1;w2;w3] /\ *)
+(*     r3 = phi_decomp g 3 [w1;w2;w3] => *)
+(*     ((rcons x1 r1), (rcons w2 r2), (rcons w3 r3)) = phi_circuit_aux (g::gs) [x1] [x2] [x3] *)
+(*     <=> (w1, w2, w3) = phi_circuit_aux gs [x1] [x2] [x3]. *)
+(* proof. *)
+(*   progress. *)
+(*   - smt. *)
+(*   - elim g; progress; rewrite - H. *)
+(*     + elim x0; progress. smt(). *)
+(*     + elim x0; progress. smt(). *)
+(* qed. *)
 
-lemma circuit_equiv_ind g gs (x : input) s r:
-    r = eval_gate g s =>
-    (rcons s r) = eval_circuit_aux (g::gs) [x]
-    <=> s = eval_circuit_aux gs [x].
-proof.
-  progress. smt.
-qed.
+(* lemma circuit_equiv_ind g gs (x : input) s r: *)
+(*     r = eval_gate g s => *)
+(*     (rcons s r) = eval_circuit_aux (g::gs) [x] *)
+(*     <=> s = eval_circuit_aux gs [x]. *)
+(* proof. *)
+(*   progress. smt. *)
+(* qed. *)
+
+lemma circuit_concat gs gs' :
+    (forall s, eval_circuit_aux (gs++gs') s = eval_circuit_aux gs' (eval_circuit_aux gs s)).
+proof. elim gs; progress. by rewrite H. qed.
+
+lemma phi_concat gs gs' :
+    (forall w, phi_circuit_aux (gs++gs') w = phi_circuit_aux gs' (phi_circuit_aux gs w)).
+proof. elim gs; progress. by rewrite H. qed.
 
 lemma decomp_equiv g (x x1 x2 x3 : input) (w1 w2 w3 : view) s:
-    (x = x1 + x2 + x3 /\ (w1, w2, w3) = phi_circuit_aux [g] [x1] [x2] [x3] /\
+    (x = x1 + x2 + x3 /\ [w1;w2;w3] = phi_circuit_aux [g] [[x1];[x2];[x3]] /\
     s = eval_circuit_aux [g] [x]) =>
     (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)).
 proof.
@@ -215,109 +228,152 @@ proof.
     progress. case (x01 = 0); case (x02 = 0); progress. algebra.
 qed.
 
-lemma decomp_equiv_ind gs (x x1 x2 x3 : input) (w1 w2 w3 : view) s:
-    (x = x1 + x2 + x3 /\ (w1, w2, w3) = phi_circuit_aux gs [x1] [x2] [x3] /\
-    s = eval_circuit_aux gs [x]) =>
-    (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)).
+lemma phi_gate_equiv' g :
+    (forall w1 w2 w3 w1' w2' w3' s' s,
+      size s = size w1 /\
+      size s = size w2 /\
+      size s = size w3
+      /\ (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i))
+      /\ [w1';w2';w3'] = phi_circuit_aux [g] [w1;w2;w3]
+      /\ s' = eval_circuit_aux [g] s =>
+      (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s' i))).
 proof.
-   elim gs; progress. smt().
-   have : (w1, w2, w3) = phi_circuit_aux (x0::l) [x1] [x2] [x3].
-   smt.
-   clear H0.
-   have -> : (rcons (eval_circuit_aux l [x1 + x2 + x3]) (eval_gate x0 (eval_circuit_aux l [x1 + x2 + x3]))) = eval_circuit_aux (x0::l) [x1+x2+x3].
-   smt.
-   move=> H1.
-   progress.
-   smt.
+   elim g; progress;
+   elim x=> x1 x2;
+   rewrite !nth_rcons;
+   case (i < size w1);
+   case (i < size w2);
+   case (i < size w3);
+   case (i < size s); progress; smt().
+qed.
+
+lemma phi_equiv_ind gs:
+    (forall w1 w2 w3 w1' w2' w3' s' s,
+      size s = size w1 /\
+      size s = size w2 /\
+      size s = size w3
+      /\ (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i))
+      /\ [w1';w2';w3'] = phi_circuit_aux gs [w1;w2;w3]
+      /\ s' = eval_circuit_aux gs s =>
+      (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s' i))).
+proof.
+  elim gs. progress. move=> x l H w1 w2 w3 w1' w2' w3' s' s.
+  move=> [Hs1 [Hs2 [Hs3 [Hrel [Hphi Hcircuit]]]]].
+  have : [w1'; w2'; w3'] = phi_circuit_aux l (phi_circuit_aux [x] [w1;w2;w3]) by smt().
+  move=> Hphi'.
+  have : s' = eval_circuit_aux l (eval_circuit_aux [x] s) by smt().
+  move=> Hcircuit'.
+  apply (H (rcons w1 (phi_decomp x 1 [w1;w2;w3]))
+           (rcons w2 (phi_decomp x 2 [w1;w2;w3]))
+           (rcons w3 (phi_decomp x 3 [w1;w2;w3])) (eval_circuit_aux [x] s)).
+  do split=>//.
+  smt. smt. smt.
+  have :
+      (forall (i : int),
+        (nth 0 (rcons w1 (phi_decomp x 1 [w1; w2; w3])) i +
+        nth 0 (rcons w2 (phi_decomp x 2 [w1; w2; w3])) i +
+        nth 0 (rcons w3 (phi_decomp x 3 [w1; w2; w3])) i =
+        nth 0 (eval_circuit_aux [x] s) i) =
+        (if (i < size w1) then
+            nth 0 w1 i +
+            nth 0 w2 i +
+            nth 0 w3 i =
+            nth 0 s i
+         else if (i = size w1) then
+            nth 0 (rcons w1 (phi_decomp x 1 [w1; w2; w3])) i +
+            nth 0 (rcons w2 (phi_decomp x 2 [w1; w2; w3])) i +
+            nth 0 (rcons w3 (phi_decomp x 3 [w1; w2; w3])) i =
+            nth 0 (eval_circuit_aux [x] s) i
+         else 0 = 0)).
+    progress.  clear H.
+    rewrite !nth_rcons. subst.
+    have <- : (size w1 = size w2) by smt().
+    have <- : (size w1 = size w3) by smt().
+    case (i < size w1); progress.
+    case (i = size w1); progress.
+    smt().
+    smt().
+    smt().
+    progress.
+    rewrite H0.
+    case (i < size w1); progress. apply Hrel.
+    have Hgate := (phi_gate_equiv' x).
+    apply (Hgate w1 w2 w3 s).
+    progress.
+qed.
+
+lemma w_eq_length gs:
+    (forall w1 w2 w3 w1' w2' w3',
+      size w1 = size w2 /\ size w2 = size w3 /\
+      [w1';w2';w3'] = phi_circuit_aux gs [w1;w2;w3] =>
+      size w1' = size w2' /\ size w2' = size w3').
+proof.
+  elim gs; progress; smt.
+  (* have Hnew := (H (rcons w1 (phi_decomp x 1 [w1;w2;w3])) *)
+  (*                 (rcons w2 (phi_decomp x 2 [w1;w2;w3])) *)
+  (*                 (rcons w3 (phi_decomp x 3 [w1;w2;w3])) *)
+  (*                 w1' w2' w3'). *)
+qed.
+
+lemma w_s_eq_length gs:
+    (forall w1 w2 w3 w1' w2' w3' s s',
+      size w1 = size s /\
+      [w1';w2';w3'] = phi_circuit_aux gs [w1;w2;w3] /\
+      s'  = eval_circuit_aux gs s =>
+      size w1' = size s').
+proof.
+  elim gs; progress.
+  smt.
+qed.
 
 
-lemma decompo_circuit_ex_equiv &m x' c':
+lemma always_three_views gs:
+    (forall w1 w2 w3, exists w1' w2' w3',
+      [w1';w2';w3'] = phi_circuit_aux gs [w1;w2;w3]).
+proof.
+  elim gs.
+  progress. smt.
+  progress. apply H.
+qed.
+
+
+lemma phi_circuit_equiv &m x' c':
     Pr[Phi.main(x', c') @ &m : res = eval_circuit c' [x'] ] = 1%r.
 proof.
-    elim c'.
-    byphoare(: h = x' /\ c = [] ==> _)=>//.
-    proc.  auto.
-    rewrite /circuit_ex /rev. progress.
-    apply dinput_ll.
-    rewrite /eval_circuit /phi_circuit /rev. simplify.
-    algebra.
-    progress.
-    byphoare(: h = x' /\ c = (x::l) ==> _)=>//.
+    byphoare(: h = x' /\ c = c' ==> _)=>//.
     proc. auto.
     rewrite /circuit_ex /rev. progress.
     apply dinput_ll.
-qed.
-
-
-lemma decomp_gate_equiv g w1' w2' w3' s':
-    (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s' i)) =>
-    phoare[Phi.compute : (c = [g] /\ w1 = w1' /\ w2 = w2' /\ w3 = w3' )
-            ==> let (w1, w2, w3) = res in last 0 w1 + last 0 w2 + last 0 w3 = eval_circuit [g] s'] = 1%r.
-proof.
-  move=> invariant.
-  proc. inline *. wp.
-  rcondt 1. auto.
-  sp. elim*. auto.
-  rcondf 1. auto.
-  elim g; rewrite /rev; progress.
-  elim g; rewrite /rev; auto; progress.
-  - case x. progress.
-    rewrite /rcons /last /eval_circuit. simplify.
-    rewrite !last_rcons.
-    rewrite - invariant.
-    algebra.
-  - case x. progress.
-    rewrite /rcons /last /eval_circuit. simplify.
-    rewrite !last_rcons.
-    rewrite - invariant.
-    algebra.
-  - case x. progress.
-    rewrite /rcons /last /eval_circuit. simplify.
-    rewrite !last_rcons.
-    rewrite - invariant.
-    smt().
-  - case x. progress.
-    rewrite /rcons /last /eval_circuit. simplify.
-    rewrite !last_rcons.
-    rewrite - invariant.
-    smt().
-qed.
-
-lemma decomp_gate_equiv &m c' (x1 x2 x3 : input):
-    (* (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s' i)) => *)
-    phoare[Phi.compute : (c = c' /\ w1 = [x1] /\ w2 = [x2] /\ w3 = [x3] )
-      ==> let (w1, w2, w3) = res in
-          let s = eval_circuit_aux c' [x1 + x2 + x3] in
-            (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i))] = 1%r.
-proof.
-    elim c'.
-    proc.  rcondf 1. auto. auto. progress. smt().
+    rewrite /eval_circuit /phi_circuit /rev.
+    have : exists w, (w = (phi_circuit_aux c{hr} [[v]; [v0]; [h{hr} - v - v0]])) by smt().
+    have := always_three_views c{hr} [v] [v0] [h{hr} - v - v0].
+    have : exists w, w = (phi_circuit_aux c{hr} [[v]; [v0]; [h{hr} - v - v0]]) by smt.
     progress.
-
-lemma compute_circuit_equiv &m x' g c':
-    phoare[Phi.compute : (x = x' /\ c = c') ==>
-      let (w1, w2, w3) = res in last 0 w1 + last 0 w2 + last 0 w3 = eval_circuit c' [x']] = 1%r =>
-    phoare[Phi.compute : (x = x' /\ c = (g::c')) ==>
-      let (w1, w2, w3) = res in last 0 w1 + last 0 w2 + last 0 w3 = eval_circuit (g::c') [x']] = 1%r.
-proof. move=> H.
-   proc. unroll 1.
-   rcondt 1. auto.
-   sp. elim*. progress.
-   conseq H.
-
-
-lemma decompo_circuit_equiv &m x' c':
-    phoare[Phi.main : (x = x' /\ c = c') ==> res = eval_circuit c' [x']] = 1%r.
-proof.
-  proc. auto.
-  seq 3 : (x = x1 + x2 + x3 /\ #pre). auto. auto. progress. apply dinput_ll. algebra.
-  exists* x1. exists* x2. exists* x3. elim*=> x1 x2 x3.
-  call (: w1 = [x1] /\ w2 = [x2] /\ w3 =  [x3] /\ x' = x1 + x2 + x3 /\ c = c' ==> let (w1, w2, w3) = res in last 0 w1 + last 0 w2 + last 0 w3 = eval_circuit c' [x']).
-  proc. elim c'.
-  (* call (: Phi.w1 = x1 + x2 + x3). elim c'. *)
-  * rcondf 1; auto.
-  * progress. rcondt 1. auto.
-    sp. elim*. auto. admit.
-  * hoare. auto. progress. algebra.
-  * progress.
+    have -> : (nth [] (phi_circuit_aux c{hr} [[v]; [v0]; [h{hr} - v - v0]]) 0) = w1' by smt().
+    have -> : (nth [] (phi_circuit_aux c{hr} [[v]; [v0]; [h{hr} - v - v0]]) 1) = w2' by smt().
+    have -> : (nth [] (phi_circuit_aux c{hr} [[v]; [v0]; [h{hr} - v - v0]]) 2) = w3' by smt().
+    progress.
+    have :
+      (forall i,
+        (nth 0 w1') i +
+        (nth 0 w2') i +
+        (nth 0 w3') i =
+        (nth 0 (eval_circuit_aux c{hr} [h{hr}]) i)) =>
+      (last 0 w1' +
+       last 0 w2' +
+       last 0 w3' =
+       last 0 (eval_circuit_aux c{hr} [h{hr}])).
+    progress.
+    have Hlast := (last_nth 0 0).
+    rewrite !Hlast.
+    have Heq_len := (w_eq_length c{hr} [v] [v0] [h{hr} - v - v0] w1' w2' w3').
+    have <- : size w1' = size w2' by smt().
+    have <- : size w1' = size w3' by smt().
+    have <- : size w1' = size (eval_circuit_aux c{hr} [h{hr}]).
+    have Hws_len := w_s_eq_length c{hr} [v] [v0] [h{hr} - v - v0] w1' w2' w3' [h{hr}] (eval_circuit_aux c{hr} [h{hr}]).
+    apply Hws_len. smt().
+    smt().
+    progress. apply H6. clear H6.
+    have Hrel := (phi_equiv_ind c{hr} [v] [v0] [h{hr} - v - v0] w1' w2' w3' (eval_circuit_aux c{hr} [h{hr}]) [h{hr}]).
+    apply Hrel. smt().
 qed.
