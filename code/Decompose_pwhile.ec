@@ -105,10 +105,11 @@ with g = MULT inputs =>
 
 op simulator_eval (g : gate, p : int, w : view list, R : random_tape) =
 with g = MULT inputs =>
-   if (p = 1) then (nth 0 R p) else phi_decomp g p w R
+   if (p = 2) then (nth 0 R (p - 1)) else phi_decomp g p w R
 with g = ADDC inputs => phi_decomp g p w R
 with g = MULTC inputs => phi_decomp g p w R
 with g = ADD inputs => phi_decomp g p w R.
+
 
 
 (* secret sharing distribution *)
@@ -170,6 +171,60 @@ module Phi = {
     return y;
   }
 }.
+
+module Simulator = {
+  proc compute(c : circuit, e : int, w1 w2 : view) = {
+    var g, k1, k2, r1, r2, e';
+    while (c <> []) {
+      g = head (ADDC(0,0)) c;
+      k1 <$ dinput;
+      k2 <$ dinput;
+      r1 = simulator_eval g e [w1;w2] [k1;k2];
+      e' = if e = 3 then 1 else e + 1;
+      r2 = simulator_eval g e' [w1;w2] [k1;k2];
+      w1 = (rcons w1 r1);
+      w2 = (rcons w2 r2);
+      c = behead c;
+    }
+
+    return (w1, w2);
+  }
+}.
+
+module Privacy = {
+  proc real(h : input, c : circuit, e : int) = {
+    var x1, x2, x3, w1, w2, w3, y1, y2, y3, ret;
+    (x1, x2, x3) = Phi.share(h);
+    (w1, w2, w3) = Phi.compute(c, [x1], [x2], [x3]);
+    y1 = Phi.output(w1);
+    y2 = Phi.output(w2);
+    y3 = Phi.output(w3);
+    if (e = 1) {
+      ret = ((w1, w2), y3);
+    } else {
+      if (e = 2) {
+        ret = ((w2, w3), y1);
+      } else {
+        ret = ((w3, w1), y2);
+      }
+    }
+
+    return ret;
+  }
+
+  proc ideal(y : output, c : circuit, e : int) = {
+    var x1, x2, w1, w2, y1, y2, y3;
+    x1 <$ dinput;
+    x2 <$ dinput;
+    (w1, w2) = Simulator.compute(c, [x1], [x2]);
+    y1 = Phi.output(w1);
+    y2 = Phi.output(w2);
+    y3 = y - (y1 + y2);
+
+    return ((w1, w2), y3);
+  }
+}.
+
 
 lemma compute_gate_correct g:
     (forall w1' w2' w3' s s',
@@ -352,45 +407,149 @@ proof.
     trivial.
 qed.
 
+lemma phi_sim_equiv g:
+    (* (forall w1' w2' w3' phi_w1 phi_w2 phi_w3, *)
+    (*   phoare[Phi.compute : (c = [g] /\ w1 = w1' /\ w2 = w2' /\ w3 = w3') *)
+    (*     ==> res = (phi_w1, phi_w2, phi_w3)] = 1%r => *)
+    (*   phoare[Simulator.compute : (c = [g] /\ w1 = w1' /\ w2 = w2') *)
+    (*     ==> exists w', let (sim_w1', sim_w2') = res in (phi_w1, phi_w2, phi_w3) = (sim_w1', sim_w2', w')] = 1%r). *)
+    (forall w1' w2' w3' s s',
+      size s = size w1' /\
+      size s = size w2' /\
+      size s = size w3' /\
+      s' = eval_circuit_aux [g] s =>
+      equiv[Phi.compute ~ Simulator.compute :
+            (={c, w1, w2} /\ c{1} = [g] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\
+             (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
+            ==>
+            (let (phi_w1, phi_w2, phi_w3) = res{1} in
+              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
+            (exists w',
+              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
+proof.
+   progress. proc. 
+   rcondt{1} 1. progress. auto.
+   rcondt{2} 1. progress. auto.
+   rcondf{1} 12. progress. auto.
+   rcondf{2} 9. progress. auto.
+   wp. rnd{1}.
+   rnd.
+    (* (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + *)
+    (*  nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2L - k30) *)
+   rnd.
+   auto. progress; first apply dinput_ll.
+   have intr_forall : 
+      (forall i,
+        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
+        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
+        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i =
+        nth 0 (rcons s (eval_gate g s)) i) =>
+      nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
+      nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
+      nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i =
+      nth 0 (rcons s (eval_gate g s)) i.
+    smt(). apply intr_forall. clear intr_forall.
+    have Hgoal :
+      (forall (i0 : int),
+        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i0 +
+        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i0 +
+        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i0 =
+        nth 0 (rcons s (eval_gate g s)) i0) =
+        (if (i < size w1{2}) then
+            nth 0 w1{2} i +
+            nth 0 w2{2} i +
+            nth 0 w3{1} i =
+            nth 0 s i
+        else if (i = size w1{2}) then
+        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i +
+        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i +
+        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
+          i =
+        nth 0 (rcons s (eval_gate g s)) i
+        else 0 = 0). admit.
+  rewrite Hgoal. clear Hgoal.
+  case (i < size w1{2}); progress.
+  apply H2.
+  rewrite !nth_rcons. 
+  have : size w1{2} = size w2{2} by smt().
+  have : size w1{2} = size w3{1} by smt().
+  progress. rewrite H11. simplify.
+  rewrite - H10. rewrite H11 H0. simplify.
+  elim g; progress; elim x=> x1 x2; smt().
+  exists (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])).
+  do ? split=>//.
+  elim g; progress.
+  elim g; progress.
+  - elim x=> x1 x2.
+    simplify. admit.
+qed.
 
-(* module Privacy = { *)
-(*   proc real(h : input, c : circuit, e : int) = { *)
-(*     var x1, x2, x3, k1, k2, k3, w1, w2, w3, y1, y2, y3, ret; *)
-(*     (x1, x2, x3) = Phi.share(h); *)
-(*     k1 = Oracle.init((size c)); *)
-(*     k2 = Oracle.init((size c)); *)
-(*     k3 = Oracle.init((size c)); *)
-(*     (w1, w2, w3) = phi_circuit_aux c [[x1];[x2];[x3]] [k1;k2;k3]; *)
-(*     y1 = Phi.output(w1); *)
-(*     y2 = Phi.output(w1); *)
-(*     y3 = Phi.output(w1); *)
-(*     if (e = 1) { *)
-(*       ret = ((k1, w1), (k2, w2), y3); *)
-(*     } else { *)
-(*       if (e = 2) { *)
-(*         ret = ((k2, w2), (k3, w3), y1); *)
-(*       } else { *)
-(*         ret = ((k3, w3), (k1, w1), y2); *)
-(*       } *)
-(*     } *)
+lemma phi_sim__circuit_equiv c':
+    (forall w1' w2' w3' s s',
+      size s = size w1' /\
+      size s = size w2' /\
+      size s = size w3' /\
+      s' = eval_circuit_aux c' s =>
+      equiv[Phi.compute ~ Simulator.compute :
+            (={c, w1, w2} /\ c{1} = c' /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\
+             (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
+            ==>
+            (let (phi_w1, phi_w2, phi_w3) = res{1} in
+              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
+            (exists w',
+              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
+admitted.
 
-(*     return ret; *)
-(*   } *)
+lemma privacy c' x' y':
+    y' = eval_circuit c' [x'] =>
+      equiv[Privacy.real ~ Privacy.ideal : (={c, e} /\ c{1} = c' /\ h{1} = x' /\ y{2} = y')
+            ==> ={res}].
+proof.
+  progress.
+  proc. inline Phi.output Phi.share.
+  auto.
+  seq 5 2 : (#pre /\ x' = x1{1} + x2{1} + x3{1} /\ x1{1} = x1{2} /\ x2{1} = x2{2}).
+  auto. progress. algebra.
+  exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
+  have Heq := phi_sim__circuit_equiv c' [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux c' [x']) _.
+  smt().
+  call Heq. clear Heq. auto; progress.
+  smt().
+  admit.
+  smt().
+  rewrite /eval_circuit. smt.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
 
-(*   proc ideal(y : output, c : circuit, e : int) = { *)
-(*     var x1, x2, k1, k2, w1, w2, y1, y2, y3; *)
-(*     x1 <$ dinput; *)
-(*     x2 <$ dinput; *)
-(*     k1 = Oracle.init((size c)); *)
-(*     k2 = Oracle.init((size c)); *)
-(*     (w1, w2) = simulator c [[x1];[x2]] [k1;k2]; *)
-(*     y1 = Phi.output(w1); *)
-(*     y2 = Phi.output(w1); *)
-(*     y3 = y - (y1 + y2); *)
+  elim c'; progress.
+  - proc. inline Phi.output Phi.share.
+    auto. 
+    have Hgate := compute_circuit_correct [] [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux [] [x']) _.
+    trivial. 
+    call{1} Hgate.
+    inline *.
+    sp. rcondf{2} 1. progress. auto.
+    progress. smt().
+    have :
+      nth 0 result.`1 0 + nth 0 result.`2 0 + nth 0 result.`3 0 = x1{2} + x2{2} + x3{1}
+        => result = ([x1{2}], [x2{2}], [x3{1}]).
+    progress. 
+    case ()
 
-(*     return ((k1, w1), (k2, w2), y3); *)
-(*   } *)
-(* }. *)
+    case (e{1} = 1). progress.
+    auto. progress. 
+    progress. apply dinput_ll.
+    elim
 
 
 lemma phi_circuit_equiv &m x' c':
