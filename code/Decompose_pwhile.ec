@@ -105,7 +105,7 @@ with g = MULT inputs =>
 
 op simulator_eval (g : gate, p : int, w : view list, R : random_tape) =
 with g = MULT inputs =>
-   if (p = 2) then (nth 0 R (p - 1)) else phi_decomp g p w R
+   if (p = 2) then (nth 0 R p) else phi_decomp g p w R
 with g = ADDC inputs => phi_decomp g p w R
 with g = MULTC inputs => phi_decomp g p w R
 with g = ADD inputs => phi_decomp g p w R.
@@ -173,21 +173,28 @@ module Phi = {
 }.
 
 module Simulator = {
-  proc compute(c : circuit, e : int, w1 w2 : view) = {
-    var g, k1, k2, r1, r2, e';
+  proc compute(c : circuit, w1 w2 : view) = {
+    var g, k1, k2, k3, r1, r2;
     while (c <> []) {
       g = head (ADDC(0,0)) c;
       k1 <$ dinput;
       k2 <$ dinput;
-      r1 = simulator_eval g e [w1;w2] [k1;k2];
-      e' = if e = 3 then 1 else e + 1;
-      r2 = simulator_eval g e' [w1;w2] [k1;k2];
+      k3 <$ dinput;
+      r1 = simulator_eval g 1 [w1;w2] [k1;k2;k3];
+      r2 = simulator_eval g 2 [w1;w2] [k1;k2;k3];
       w1 = (rcons w1 r1);
       w2 = (rcons w2 r2);
       c = behead c;
     }
 
     return (w1, w2);
+  }
+  proc compute_stepped(c : circuit, w1 w2 : view) = {
+    (w1, w2) = compute([head (ADDC(0,0)) c], w1, w2);
+    c = behead c;
+    (w1, w2) = compute(c, w1, w2);
+    return (w1, w2);
+
   }
 }.
 
@@ -407,12 +414,54 @@ proof.
     trivial.
 qed.
 
+
+lemma phi_sim_equiv_mult x1 x2:
+    (forall w1' w2' w3' s s',
+      size s = size w1' /\
+      size s = size w2' /\
+      size s = size w3' /\
+      s' = eval_circuit_aux [(MULT(x1, x2))] s =>
+      equiv[Phi.compute ~ Simulator.compute :
+            (={c, w1, w2} /\ c{1} = [(MULT(x1, x2))] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\
+             (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
+            ==>
+            (let (phi_w1, phi_w2, phi_w3) = res{1} in
+              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
+            (exists w',
+                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
+proof.
+    progress.
+    proc.
+    rcondt{1} 1. auto.
+    rcondt{2} 1. auto.
+    rcondf{1} 12. auto.
+    rcondf{2} 10. auto.
+    sp. wp.
+    seq 2 2 : (#pre /\ ={k1, k2}). auto.
+    rnd (fun z => (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2{2} - z)).
+    (* if k = then cancel out, else nothing? *)
+    skip. progress.
+    algebra.
+    apply dinput_funi. smt().
+    algebra.
+    (* apply dinput_fu. smt(). *)
+    rewrite !nth_rcons.
+    have <- : size w1{2} = size w2{2} by smt().
+    have <- : size w1{2} = size w3{1} by smt().
+    rewrite H.
+    case (i < size w1{2}); progress.
+    apply H2.
+    case (i = size w1{2}); progress.
+    smt().
+
+    exists (rcons w3{1}
+      (nth 0 w3{1} x1 * nth 0 w3{1} x2 + nth 0 w1{2} x1 * nth 0 w3{1} x2 +
+      nth 0 w3{1} x1 * nth 0 w1{2} x2 + k3L - k1{2})).
+    do ? split.
+qed.
+
+
 lemma phi_sim_equiv g:
-    (* (forall w1' w2' w3' phi_w1 phi_w2 phi_w3, *)
-    (*   phoare[Phi.compute : (c = [g] /\ w1 = w1' /\ w2 = w2' /\ w3 = w3') *)
-    (*     ==> res = (phi_w1, phi_w2, phi_w3)] = 1%r => *)
-    (*   phoare[Simulator.compute : (c = [g] /\ w1 = w1' /\ w2 = w2') *)
-    (*     ==> exists w', let (sim_w1', sim_w2') = res in (phi_w1, phi_w2, phi_w3) = (sim_w1', sim_w2', w')] = 1%r). *)
     (forall w1' w2' w3' s s',
       size s = size w1' /\
       size s = size w2' /\
@@ -423,71 +472,41 @@ lemma phi_sim_equiv g:
              (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
             ==>
             (let (phi_w1, phi_w2, phi_w3) = res{1} in
-              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
+              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i)) /\
+              (exists R, phi_w1 = (rcons w1' (phi_decomp g 1 [w1';w2';w3'] R)) /\
+                         phi_w2 = (rcons w2' (phi_decomp g 2 [w1';w2';w3'] R)) /\
+                         phi_w3 = (rcons w3' (phi_decomp g 3 [w1';w2';w3'] R)))) /\
             (exists w',
-              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
+                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
 proof.
-   progress. proc. 
-   rcondt{1} 1. progress. auto.
-   rcondt{2} 1. progress. auto.
-   rcondf{1} 12. progress. auto.
-   rcondf{2} 9. progress. auto.
-   wp. rnd{1}.
-   rnd.
-    (* (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + *)
-    (*  nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2L - k30) *)
-   rnd.
-   auto. progress; first apply dinput_ll.
-   have intr_forall : 
-      (forall i,
-        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
-        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
-        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i =
-        nth 0 (rcons s (eval_gate g s)) i) =>
-      nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
-      nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i +
-      nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])) i =
-      nth 0 (rcons s (eval_gate g s)) i.
-    smt(). apply intr_forall. clear intr_forall.
-    have Hgoal :
-      (forall (i0 : int),
-        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i0 +
-        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i0 +
-        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i0 =
-        nth 0 (rcons s (eval_gate g s)) i0) =
-        (if (i < size w1{2}) then
-            nth 0 w1{2} i +
-            nth 0 w2{2} i +
-            nth 0 w3{1} i =
-            nth 0 s i
-        else if (i = size w1{2}) then
-        nth 0 (rcons w1{2} (phi_decomp g 1 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i +
-        nth 0 (rcons w2{2} (phi_decomp g 2 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i +
-        nth 0 (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30]))
-          i =
-        nth 0 (rcons s (eval_gate g s)) i
-        else 0 = 0). admit.
-  rewrite Hgoal. clear Hgoal.
-  case (i < size w1{2}); progress.
-  apply H2.
-  rewrite !nth_rcons. 
-  have : size w1{2} = size w2{2} by smt().
-  have : size w1{2} = size w3{1} by smt().
-  progress. rewrite H11. simplify.
-  rewrite - H10. rewrite H11 H0. simplify.
-  elim g; progress; elim x=> x1 x2; smt().
-  exists (rcons w3{1} (phi_decomp g 3 [w1{2}; w2{2}; w3{1}] [k1L; k2L; k30])).
-  do ? split=>//.
-  elim g; progress.
-  elim g; progress.
-  - elim x=> x1 x2.
-    simplify. admit.
+    progress.
+    proc.
+    have Hs1 : size w1' = size w2' by smt().
+    have Hs2 : size w1' = size w3' by smt().
+    rcondt{1} 1. auto.
+    rcondt{2} 1. auto.
+    rcondf{1} 12. auto.
+    rcondf{2} 10. auto.
+    sp. wp.
+    seq 2 2 : (#pre /\ ={k1, k2}). auto.
+    elim g; progress; last first.
+    (* Discharge trivial case: ADDC MULTC ADD *)
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    - (* MULT *)
+      elim x=> x1 x2.
+      rnd (fun z => (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2{2} - z)).
+      skip. progress.
+      algebra.
+      apply dinput_funi. smt().
+      algebra.
+      smt(nth_rcons).
+      exists [k1{2};k2{2};k3L].
+      smt().
+      smt().
 qed.
+
 
 lemma phi_sim__circuit_equiv c':
     (forall w1' w2' w3' s s',
@@ -500,10 +519,144 @@ lemma phi_sim__circuit_equiv c':
              (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
             ==>
             (let (phi_w1, phi_w2, phi_w3) = res{1} in
-              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
-            (exists w',
-              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
-admitted.
+              size s' = size phi_w1 /\ size phi_w1 = size phi_w2 /\ size phi_w2 = size phi_w3 /\
+              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i)) /\
+              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w1, phi_w2))]).
+proof.
+  elim c'.
+  - (* empty circuit *)
+    progress.
+    proc.
+    rcondf{1} 1. progress.
+    rcondf{2} 1. progress.
+    skip; progress. smt(). smt().
+  - (* Inductive case *)
+    move=> x l IH.
+    move=> w1' w2' w3' s s'.
+    move=> [Hs1 [Hs2 [Hs3 Hs']]].
+    transitivity
+      Phi.compute_stepped
+      (={c, w1, w2, w3} /\
+      c{1} = (x::l) /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3'
+      ==> ={res})
+      (={c, w1, w2} /\
+        c{1} = (x::l) /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3' /\
+      forall (i : int),
+        nth 0 w1' i + nth 0 w2' i + nth 0 w3' i = nth 0 s i ==>
+      let (phi_w1, phi_w2, phi_w3) = res{1} in
+        size s' = size phi_w1 /\ size phi_w1 = size phi_w2 /\ size phi_w2 = size phi_w3 /\
+        (forall (i : int),
+            nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+            nth 0 s' i) /\
+        let (sim_w1, sim_w2) = res{2} in
+      sim_w1 = phi_w1 /\ sim_w2 = phi_w2).
+    + progress; smt().
+    + progress; smt().
+    + (* proof Phi.compute ~ Phi.compute_stepped *)
+      clear IH. proc. inline *. sp.
+      unroll{1} 1; unroll{2} 1.
+      if; progress.
+      sp. seq 3 3 : (#pre /\ ={k1, k2, k3}); auto.
+      rcondf{2} 8. auto.
+      sp. elim *; progress.
+      while (c1{2} = c{1} /\ w11{2} = w1{1} /\ w21{2} = w2{1} /\ w31{2} = w3{1}); auto.
+      rcondf{1} 1. progress.
+      rcondf{2} 1. progress.
+      rcondf{2} 7. auto.
+      auto.
+  symmetry.
+  transitivity
+    Simulator.compute_stepped
+    (={c, w1, w2} /\
+      c{1} = (x::l) /\ w1{1} = w1' /\ w2{1} = w2'
+     ==>
+     ={res})
+    (={c, w1, w2} /\
+    c{1} = (x::l) /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{2} = w3' /\
+    forall (i : int),
+      nth 0 w1' i + nth 0 w2' i + nth 0 w3' i = nth 0 s i ==>
+    (let (phi_w1, phi_w2, phi_w3) = res{2} in
+      size s' = size phi_w1 /\ size phi_w1 = size phi_w2 /\ size phi_w2 = size phi_w3 /\
+      (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i)) /\
+      let (sim_w1, sim_w2) = res{1} in (sim_w1, sim_w2) = (phi_w1, phi_w2))).
+  + progress; smt.
+  + progress; smt.
+  + (* proof Simulator.compute ~ Simulator.compute_stepped *)
+    clear IH. proc. inline *. sp.
+    unroll{1} 1; unroll{2} 1.
+    if; progress.
+    sp. seq 3 3 : (#pre /\ ={k1, k2, k3}); auto.
+    rcondf{2} 6. auto.
+    sp. elim *; progress.
+    while (c1{2} = c{1} /\ w11{2} = w1{1} /\ w21{2} = w2{1}); auto.
+    rcondf{1} 1. progress.
+    rcondf{2} 1. progress.
+    sp. elim*. progress.
+    rcondf{2} 1. progress.
+    auto.
+  (* main proof *)
+  proc.
+  symmetry.
+  seq 1 1 : (
+      (exists R,  w1{1} = rcons w1' (phi_decomp x 1 [w1'; w2'; w3'] R) /\
+                  w2{1} = rcons w2' (phi_decomp x 2 [w1'; w2'; w3'] R) /\
+                  w3{1} = rcons w3' (phi_decomp x 3 [w1'; w2'; w3'] R)) /\
+      forall (i : int),
+        nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i =
+        nth 0 (eval_circuit_aux [x] s) i /\ c{1} = x :: l /\ ={c, w1, w2}).
+   + have Hgate := phi_sim_equiv x w1' w2' w3' s (eval_circuit_aux [x] s) _. smt().
+     call Hgate. clear Hgate. clear IH.
+     skip; progress.
+     have Hgoal:
+        (let (phi_w1, phi_w2, phi_w3) = result_L in
+        (forall (i : int),
+          nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+          nth 0 (rcons s (eval_gate x s)) i) /\
+        exists (R : random_tape),
+          phi_w1 = rcons w1{1} (phi_decomp x 1 [w1{1}; w2{1}; w3{1}] R) /\
+          phi_w2 = rcons w2{1} (phi_decomp x 2 [w1{1}; w2{1}; w3{1}] R) /\
+          phi_w3 = rcons w3{1} (phi_decomp x 3 [w1{1}; w2{1}; w3{1}] R)) =>
+        (exists (R : random_tape),
+          result_L.`1 = rcons w1{1} (phi_decomp x 1 [w1{1}; w2{1}; w3{1}] R) /\
+          result_L.`2 = rcons w2{1} (phi_decomp x 2 [w1{1}; w2{1}; w3{1}] R) /\
+          result_L.`3 = rcons w3{1} (phi_decomp x 3 [w1{1}; w2{1}; w3{1}] R)) by smt().
+    apply Hgoal. clear Hgoal. assumption.
+    have Hgoal :
+        (let (phi_w1, phi_w2, phi_w3) = result_L in
+        (forall (i : int),
+          nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+          nth 0 (rcons s (eval_gate x s)) i) /\
+        exists (R : random_tape),
+          phi_w1 = rcons w1{1} (phi_decomp x 1 [w1{1}; w2{1}; w3{1}] R) /\
+          phi_w2 = rcons w2{1} (phi_decomp x 2 [w1{1}; w2{1}; w3{1}] R) /\
+          phi_w3 = rcons w3{1} (phi_decomp x 3 [w1{1}; w2{1}; w3{1}] R)) =>
+        nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+        nth 0 (rcons s (eval_gate x s)) i by smt().
+    apply Hgoal; clear Hgoal. assumption.
+    rewrite pairS in H2. smt().
+    rewrite pairS in H2. smt().
+  elim*. progress.
+  have IH' := (IH (rcons w1' (phi_decomp x 1 [w1'; w2'; w3'] R))
+                  (rcons w2' (phi_decomp x 2 [w1'; w2'; w3'] R))
+                  (rcons w3' (phi_decomp x 3 [w1'; w2'; w3'] R)) (eval_circuit_aux [x] s) s' _).
+  smt(eval_circuit_aux_size size_rcons).
+  call IH'. clear IH IH'.
+  auto; progress.
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt(). smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt(). smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt(). smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt(). smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
+  rewrite pairS in H2. smt().
+  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
+  rewrite pairS in H2. smt().
+qed.
+
 
 lemma privacy c' x' y':
     y' = eval_circuit c' [x'] =>
@@ -513,16 +666,100 @@ proof.
   progress.
   proc. inline Phi.output Phi.share.
   auto.
-  seq 5 2 : (#pre /\ x' = x1{1} + x2{1} + x3{1} /\ x1{1} = x1{2} /\ x2{1} = x2{2}).
+  seq 5 2 : (#pre /\ ={x1, x2} /\ x' = x1{1} + x2{1} + x3{1}).
   auto. progress. algebra.
   exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
   have Heq := phi_sim__circuit_equiv c' [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux c' [x']) _.
   smt().
-  call Heq. clear Heq. auto; progress.
+  call Heq. clear Heq. skip; progress.
   smt().
-  admit.
+  have :
+    (let (phi_w1, phi_w2, phi_w3) = result_L in
+    (forall (i : int),
+       nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2)
+    =>
+    ((forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    result_R.`1 = result_L.`1 /\ result_R.`2 = result_L.`2).
+  smt. progress.
+  have : (forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    result_R.`1 = result_L.`1 /\ result_R.`2 = result_L.`2.
   smt().
-  rewrite /eval_circuit. smt.
+  smt().
+  have :
+    (let (phi_w1, phi_w2, phi_w3) = result_L in
+    (forall (i : int),
+       nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2)
+    =>
+    ((forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    result_R.`1 = result_L.`1 /\ result_R.`2 = result_L.`2).
+  smt. progress.
+  have : (forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    result_R.`1 = result_L.`1 /\ result_R.`2 = result_L.`2.
+  smt().
+  smt().
+  have :
+    (let (phi_w1, phi_w2, phi_w3) = result_L in
+    (forall (i : int),
+       nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2)
+    =>
+    (forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i).
+  smt. progress.
+  have : (forall (i : int),
+       nth 0 result_L.`1 i + nth 0 result_L.`2 i + nth 0 result_L.`3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i).
+  smt(). clear H1.
+  progress.
+  have:
+    last 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) =
+    last 0 result_L.`1 + last 0 result_L.`2 + last 0 result_L.`3.
+  have Hlast := last_nth 0.
+  rewrite !Hlast.
+  simplify.
+  have :
+    let (phi_w1, phi_w2, phi_w3) = result_L in
+    size (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) = size phi_w1 /\
+    size phi_w1 = size phi_w2 /\
+    size phi_w2 = size phi_w3 =>
+    (size (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}])) = (size result_L.`1) /\
+    (size result_L.`2) = (size result_L.`1) /\
+    (size result_L.`3) = (size result_L.`1).
+  smt().
+  have :
+    let (phi_w1, phi_w2, phi_w3) = result_L in
+    size (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) = size phi_w1 /\
+    size phi_w1 = size phi_w2 /\
+    size phi_w2 = size phi_w3 /\
+    (forall (i : int),
+       nth 0 phi_w1 i + nth 0 phi_w2 i + nth 0 phi_w3 i =
+       nth 0 (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) i) /\
+    let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2 =>
+    let (phi_w1, phi_w2, phi_w3) = result_L in
+    size (eval_circuit_aux c{2} [x1{2} + x2{2} + x3{1}]) = size phi_w1 /\
+    size phi_w1 = size phi_w2 /\
+    size phi_w2 = size phi_w3.
+  smt().
+  smt().
+  progress.
+  rewrite /eval_circuit.
+  rewrite H2. smt().
+
+  rewrite nth_cat.
   admit.
   admit.
   admit.
