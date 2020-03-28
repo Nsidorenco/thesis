@@ -103,13 +103,20 @@ with g = MULT inputs =>
     let rp' = (nth 0 R p) in
     xp * yp + xp' * yp + xp * yp' + rp - rp'.
 
-op simulator_eval (g : gate, p : int, w : view list, R : random_tape) =
+op simulator_eval (g : gate, p : int, e : int, w : view list, R : random_tape) =
 with g = MULT inputs =>
-   if (p = 2) then (nth 0 R p) else phi_decomp g p w R
-with g = ADDC inputs => phi_decomp g p w R
+  if (e = 1) then (if (p = 2) then (nth 0 R 2) else phi_decomp g 1 w R)
+  else if (e = 2) then (if (p = 2) then (nth 0 R 0) else phi_decomp g 2 ([[]] ++ w) R)
+  else (if (p = 2) then (nth 0 R 1) else phi_decomp g 3 ([(last [] w)]++[[]]++[(head [] w)]) R)
+with g = ADDC inputs =>
+    if (e = 1) then phi_decomp g p w R else
+    if (e = 2) then phi_decomp g (p+1) ([[]] ++ w) R else
+    if (p = 1) then phi_decomp g 3 ([(last [] w)]++[[]]++[(head [] w)]) R else
+    phi_decomp g 1 ([(last [] w)]++[[]]++[(head [] w)]) R
 with g = MULTC inputs => phi_decomp g p w R
 with g = ADD inputs => phi_decomp g p w R.
 
+(* e = 2 => *)
 
 
 (* secret sharing distribution *)
@@ -173,15 +180,15 @@ module Phi = {
 }.
 
 module Simulator = {
-  proc compute(c : circuit, w1 w2 : view) = {
+  proc compute(c : circuit, e : int, w1 w2 : view) = {
     var g, k1, k2, k3, r1, r2;
     while (c <> []) {
       g = head (ADDC(0,0)) c;
       k1 <$ dinput;
       k2 <$ dinput;
       k3 <$ dinput;
-      r1 = simulator_eval g 1 [w1;w2] [k1;k2;k3];
-      r2 = simulator_eval g 2 [w1;w2] [k1;k2;k3];
+      r1 = simulator_eval g 1 e [w1;w2] [k1;k2;k3];
+      r2 = simulator_eval g 2 e [w1;w2] [k1;k2;k3];
       w1 = (rcons w1 r1);
       w2 = (rcons w2 r2);
       c = behead c;
@@ -189,10 +196,10 @@ module Simulator = {
 
     return (w1, w2);
   }
-  proc compute_stepped(c : circuit, w1 w2 : view) = {
-    (w1, w2) = compute([head (ADDC(0,0)) c], w1, w2);
+  proc compute_stepped(c : circuit, e : int, w1 w2 : view) = {
+    (w1, w2) = compute([head (ADDC(0,0)) c], e, w1, w2);
     c = behead c;
-    (w1, w2) = compute(c, w1, w2);
+    (w1, w2) = compute(c, e, w1, w2);
     return (w1, w2);
 
   }
@@ -223,7 +230,7 @@ module Privacy = {
     var x1, x2, w1, w2, y1, y2, y3;
     x1 <$ dinput;
     x2 <$ dinput;
-    (w1, w2) = Simulator.compute(c, [x1], [x2]);
+    (w1, w2) = Simulator.compute(c, e, [x1], [x2]);
     y1 = Phi.output(w1);
     y2 = Phi.output(w2);
     y3 = y - (y1 + y2);
@@ -415,69 +422,78 @@ proof.
 qed.
 
 
-lemma phi_sim_equiv_mult x1 x2:
-    (forall w1' w2' w3' s s',
-      size s = size w1' /\
-      size s = size w2' /\
-      size s = size w3' /\
-      s' = eval_circuit_aux [(MULT(x1, x2))] s =>
-      equiv[Phi.compute ~ Simulator.compute :
-            (={c, w1, w2} /\ c{1} = [(MULT(x1, x2))] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\
-             (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
-            ==>
-            (let (phi_w1, phi_w2, phi_w3) = res{1} in
-              (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\
-            (exists w',
-                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
-proof.
-    progress.
-    proc.
-    rcondt{1} 1. auto.
-    rcondt{2} 1. auto.
-    rcondf{1} 12. auto.
-    rcondf{2} 10. auto.
-    sp. wp.
-    seq 2 2 : (#pre /\ ={k1, k2}). auto.
-    rnd (fun z => (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2{2} - z)).
-    (* if k = then cancel out, else nothing? *)
-    skip. progress.
-    algebra.
-    apply dinput_funi. smt().
-    algebra.
-    (* apply dinput_fu. smt(). *)
-    rewrite !nth_rcons.
-    have <- : size w1{2} = size w2{2} by smt().
-    have <- : size w1{2} = size w3{1} by smt().
-    rewrite H.
-    case (i < size w1{2}); progress.
-    apply H2.
-    case (i = size w1{2}); progress.
-    smt().
+(* lemma phi_sim_equiv_mult x1 x2: *)
+(*     (forall w1' w2' w3' s s', *)
+(*       size s = size w1' /\ *)
+(*       size s = size w2' /\ *)
+(*       size s = size w3' /\ *)
+(*       s' = eval_circuit_aux [(MULT(x1, x2))] s => *)
+(*       equiv[Phi.compute ~ Simulator.compute : *)
+(*             (={c, w1, w2} /\ c{1} = [(MULT(x1, x2))] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\ *)
+(*              (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i)) *)
+(*             ==> *)
+(*             (let (phi_w1, phi_w2, phi_w3) = res{1} in *)
+(*               (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i))) /\ *)
+(*             (exists w', *)
+(*                 let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]). *)
+(* proof. *)
+(*     progress. *)
+(*     proc. *)
+(*     rcondt{1} 1. auto. *)
+(*     rcondt{2} 1. auto. *)
+(*     rcondf{1} 12. auto. *)
+(*     rcondf{2} 10. auto. *)
+(*     sp. wp. *)
+(*     seq 2 2 : (#pre /\ ={k1, k2}). auto. *)
+(*     rnd (fun z => (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + nth 0 w2{2} x1 * nth 0 w3{1} x2 + k2{2} - z)). *)
+(*     (* if k = then cancel out, else nothing? *) *)
+(*     skip. progress. *)
+(*     algebra. *)
+(*     apply dinput_funi. smt(). *)
+(*     algebra. *)
+(*     (* apply dinput_fu. smt(). *) *)
+(*     rewrite !nth_rcons. *)
+(*     have <- : size w1{2} = size w2{2} by smt(). *)
+(*     have <- : size w1{2} = size w3{1} by smt(). *)
+(*     rewrite H. *)
+(*     case (i < size w1{2}); progress. *)
+(*     apply H2. *)
+(*     case (i = size w1{2}); progress. *)
+(*     smt(). *)
 
-    exists (rcons w3{1}
-      (nth 0 w3{1} x1 * nth 0 w3{1} x2 + nth 0 w1{2} x1 * nth 0 w3{1} x2 +
-      nth 0 w3{1} x1 * nth 0 w1{2} x2 + k3L - k1{2})).
-    do ? split.
-qed.
+(*     exists (rcons w3{1} *)
+(*       (nth 0 w3{1} x1 * nth 0 w3{1} x2 + nth 0 w1{2} x1 * nth 0 w3{1} x2 + *)
+(*       nth 0 w3{1} x1 * nth 0 w1{2} x2 + k3L - k1{2})). *)
+(*     do ? split. *)
+(* qed. *)
 
 
-lemma phi_sim_equiv g:
+lemma phi_sim_equiv g e':
     (forall w1' w2' w3' s s',
       size s = size w1' /\
       size s = size w2' /\
       size s = size w3' /\
       s' = eval_circuit_aux [g] s =>
       equiv[Phi.compute ~ Simulator.compute :
-            (={c, w1, w2} /\ c{1} = [g] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\
+            (if (e' = 1) then ={w1, w2}
+              else
+              (if (e' = 2) then w2{1} = w1{2} /\ w3{1} = w2{2}
+                else w3{1} = w1{2} /\ w1{1} = w2{2})) /\
+             ={c} /\ e{2} = e' /\ c{1} = [g] /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3' /\
              (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i))
             ==>
             (let (phi_w1, phi_w2, phi_w3) = res{1} in
               (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i)) /\
               (exists R, phi_w1 = (rcons w1' (phi_decomp g 1 [w1';w2';w3'] R)) /\
                          phi_w2 = (rcons w2' (phi_decomp g 2 [w1';w2';w3'] R)) /\
-                         phi_w3 = (rcons w3' (phi_decomp g 3 [w1';w2';w3'] R)))) /\
-            (exists w',
-                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2, w') = res{1})]).
+                         phi_w3 = (rcons w3' (phi_decomp g 3 [w1';w2';w3'] R))) /\
+            (if e' = 1 then
+              let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w1, phi_w2)
+            else
+              (if e' = 2 then
+                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w2, phi_w3)
+              else
+                let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w3, phi_w1))))]).
 proof.
     progress.
     proc.
@@ -488,7 +504,8 @@ proof.
     rcondf{1} 12. auto.
     rcondf{2} 10. auto.
     sp. wp.
-    seq 2 2 : (#pre /\ ={k1, k2}). auto.
+    case (e' = 1); progress.
+    seq 2 2 : (#pre /\ ={k1, k2}). auto; smt().
     elim g; progress; last first.
     (* Discharge trivial case: ADDC MULTC ADD *)
     rnd; skip; progress; smt(nth_rcons size_rcons).
@@ -503,6 +520,51 @@ proof.
       algebra.
       smt(nth_rcons).
       exists [k1{2};k2{2};k3L].
+      smt().
+      smt().
+      smt().
+    case (e' = 2); progress.
+    (* rnd. rnd. rnd. auto. *)
+    swap 1 2.
+    seq 2 2 : (#pre /\ ={k2, k3}). auto; smt().
+    elim g; progress; last first.
+    (* Discharge trivial case: ADDC MULTC ADD *)
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    - (* MULT *)
+      elim x=> x1 x2.
+      rnd (fun z => (nth 0 w3{1} x1 * nth 0 w3{1} x2 + nth 0 w1{1} x1 * nth 0 w3{1} x2 + nth 0 w3{1} x1 * nth 0 w1{1} x2 + k3{2} - z)).
+      skip. progress.
+      algebra.
+      apply dinput_funi. smt().
+      algebra.
+      smt(nth_rcons).
+      exists [k1L;k2{2};k3{2}].
+      smt().
+      smt().
+      smt().
+    swap 2 1.
+    seq 2 2 : (#pre /\ ={k1, k3}). auto; smt().
+    elim g; progress; last first.
+    (* Discharge trivial case: ADDC MULTC ADD *)
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress; smt(nth_rcons size_rcons).
+    - (* MULT *)
+      elim x=> x1 x2.
+      rnd (fun z => (nth 0 w1{1} x1 * nth 0 w1{1} x2 + nth 0 w2{1} x1 * nth 0 w1{1} x2 + nth 0 w1{1} x1 * nth 0 w2{1} x2 + k1{2} - z)).
+      skip. progress.
+      algebra.
+      apply dinput_funi. smt().
+      algebra.
+      smt(nth_rcons).
+      exists [k1{2};k2L;k3{2}].
+      smt().
+      smt().
+      smt().
+      smt().
+      smt().
       smt().
       smt().
 qed.
