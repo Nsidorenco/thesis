@@ -3,16 +3,9 @@ require import AllCore Distr SmtMap List.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
-type phi = (int -> int).
-
 type input = int.
 type output = int.
 type view = int list.
-
-type input_wires = [
-    UNARY of int
-  | BINARY of (int * int)
-].
 
 type gate = [
   | ADDC of (int * int)
@@ -23,10 +16,6 @@ type gate = [
 
 type circuit = gate list.
 type state = int list.
-(* type input_map = (int, input_wires) fmap. *)
-
-op plus_gate (x y : int) = x + y.
-op mult_gate (x y : int) = x * y.
 
 op eval_gate (g : gate, s : state) : output =
 with g = MULT inputs => let (i, j) = inputs in
@@ -51,10 +40,6 @@ with g = MULTC inputs => let (i, c) = inputs in
 const circuit_ex = [ADDC (0, 2); MULT(0,1)].
 const s' : state = [10].
 
-(* op eval_circuit(c : circuit, s : state) : output = *)
-(*     with c = [] => last 0 s *)
-(*     with c = g :: gs => let r = eval_gate g s in eval_circuit gs (rcons s r). *)
-
 op eval_circuit_aux(c : circuit, s : state) : state =
     with c = [] => s
     with c = g :: gs =>
@@ -64,10 +49,6 @@ op eval_circuit_aux(c : circuit, s : state) : state =
 op eval_circuit (c : circuit, s : state) : output =
     last 0 (eval_circuit_aux c s).
 
-(* lemma eval_circuit_step g gs s: *)
-(*     eval_circuit (g :: gs) s = eval_circuit gs (rcons s (eval_gate g s)). *)
-(* proof. trivial. qed. *)
-
 lemma circuit_ex_test : (eval_circuit circuit_ex [10]) = 120.
     proof. by rewrite /eval_circuit /circuit_ex /rev /catrev; simplify. qed.
 
@@ -75,6 +56,7 @@ lemma circuit_ex_test : (eval_circuit circuit_ex [10]) = 120.
 
 (* define decomposed circuit function *)
 type random_tape = int list.
+
 op phi_decomp (g : gate, p : int, w : view list, R : random_tape) : output =
 with g = ADDC inputs =>
     let (i, c) = inputs in
@@ -115,8 +97,6 @@ with g = ADDC inputs =>
     phi_decomp g 1 ([(last [] w)]++[[]]++[(head [] w)]) R
 with g = MULTC inputs => phi_decomp g p w R
 with g = ADD inputs => phi_decomp g p w R.
-
-(* e = 2 => *)
 
 
 (* secret sharing distribution *)
@@ -259,12 +239,12 @@ proof.
   sp. rcondf 11. auto. auto. progress.
   apply dinput_ll.
   rewrite !nth_rcons.
-  have Hs1 : (size w1{hr} = size w2{hr}) by smt().
-  have Hs2 : (size w1{hr} = size w3{hr}) by smt().
-  rewrite - Hs1 Hs2. rewrite H1.
-  case (i < size w3{hr}); progress.
+  have <- : (size w1{hr} = size w2{hr}) by smt().
+  have <- : (size w1{hr} = size w3{hr}) by smt().
+  rewrite H.
+  case (i < size w1{hr}); progress.
   apply H2.
-  case (i = size w3{hr}); progress.
+  case (i = size w1{hr}); progress.
   elim g; progress; smt().
   by exists [v;v0;v1].
 qed.
@@ -323,62 +303,18 @@ proof.
         forall (i : int),
           nth 0 w1 i + nth 0 w2 i + nth 0 w3 i =
           nth 0 (eval_circuit_aux [x] s) i /\ c = x :: l).
-    auto. call Hgate.
-    auto. progress.
-    have H' :
-      (let (w1res, w2res, w3res) = result in
-        (forall (i : int),
-          nth 0 w1res i + nth 0 w2res i + nth 0 w3res i =
-          nth 0 (rcons s (eval_gate x s)) i) /\
-        exists (R : random_tape),
-          w1res = rcons w1{m} (phi_decomp x 1 [w1{m}; w2{m}; w3{m}] R) /\
-          w2res = rcons w2{m} (phi_decomp x 2 [w1{m}; w2{m}; w3{m}] R) /\
-          w3res = rcons w3{m} (phi_decomp x 3 [w1{m}; w2{m}; w3{m}] R)) =>
-      exists (R : random_tape),
-        result.`1 = rcons w1{m} (phi_decomp x 1 [w1{m}; w2{m}; w3{m}] R) /\
-        result.`2 = rcons w2{m} (phi_decomp x 2 [w1{m}; w2{m}; w3{m}] R) /\
-        result.`3 = rcons w3{m} (phi_decomp x 3 [w1{m}; w2{m}; w3{m}] R) by smt().
-    apply H'. clear H'. assumption.
-    have H' :
-      (let (w1res, w2res, w3res) = result in
-        (forall (i : int),
-          nth 0 w1res i + nth 0 w2res i + nth 0 w3res i =
-          nth 0 (rcons s (eval_gate x s)) i) /\
-        exists (R : random_tape),
-          w1res = rcons w1{m} (phi_decomp x 1 [w1{m}; w2{m}; w3{m}] R) /\
-          w2res = rcons w2{m} (phi_decomp x 2 [w1{m}; w2{m}; w3{m}] R) /\
-          w3res = rcons w3{m} (phi_decomp x 3 [w1{m}; w2{m}; w3{m}] R)) =>
-      nth 0 result.`1 i + nth 0 result.`2 i + nth 0 result.`3 i =
-      nth 0 (rcons s (eval_gate x s)) i by smt().
-    apply H'. clear H'. assumption.
-    elim*. progress.
-    have Hind' := (Hind (rcons w1{m} (phi_decomp x 1 [w1{m}; w2{m}; w3{m}] R))
-                        (rcons w2{m} (phi_decomp x 2 [w1{m}; w2{m}; w3{m}] R))
-                        (rcons w3{m} (phi_decomp x 3 [w1{m}; w2{m}; w3{m}] R)) (eval_circuit_aux [x] s) s' _).
-    do ? split=>//.
-    smt(eval_circuit_aux_size size_rcons).
-    smt(eval_circuit_aux_size size_rcons).
-    smt(eval_circuit_aux_size size_rcons).
-    call Hind'. clear Hgate Hind Hind'.
-    auto. progress. smt(). smt(). smt().
-    have H' :
-      (let (w1', w2', w3') = result in
-      (forall (i : int), nth 0 w1' i + nth 0 w2' i + nth 0 w3' i = nth 0 s' i) /\
-      size s' = size w1' /\ size w1' = size w2' /\ size w2' = size w3') =>
-      size s' = size result.`1.
-    smt(). apply H'. assumption.
-    have H' :
-      (let (w1', w2', w3') = result in
-      (forall (i : int), nth 0 w1' i + nth 0 w2' i + nth 0 w3' i = nth 0 s' i) /\
-      size s' = size w1' /\ size w1' = size w2' /\ size w2' = size w3') =>
-      size result.`1 = size result.`2.
-    smt(). apply H'. assumption.
-    have H' :
-      (let (w1', w2', w3') = result in
-      (forall (i : int), nth 0 w1' i + nth 0 w2' i + nth 0 w3' i = nth 0 s' i) /\
-      size s' = size w1' /\ size w1' = size w2' /\ size w2' = size w3') =>
-      size result.`2 = size result.`3.
-    smt(). apply H'. assumption.
+    + auto. call Hgate. clear Hgate.
+      skip. move=> *.
+      split; smt().
+
+      elim*; progress.
+      have Hind' := (Hind (rcons w1{m} (phi_decomp x 1 [w1{m}; w2{m}; w3{m}] R))
+                          (rcons w2{m} (phi_decomp x 2 [w1{m}; w2{m}; w3{m}] R))
+                          (rcons w3{m} (phi_decomp x 3 [w1{m}; w2{m}; w3{m}] R)) (eval_circuit_aux [x] s) s' _).
+      do ? split=>//; smt(eval_circuit_aux_size size_rcons).
+      call Hind'. clear Hind Hind'.
+      auto. move=> ? ?.
+      split; smt().
     + hoare. inline *. sp.
       rcondt 1. progress.
       auto. rcondf 12. progress.
@@ -516,13 +452,6 @@ lemma phi_sim__circuit_equiv c' e':
                 let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w2, phi_w3)
               else
                 let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w3, phi_w1))))]).
-            (* (={c, w1, w2} /\ c{1} = c' /\ w1{1} = w1' /\ w2{1} = w2' /\ w3{1} = w3') /\ *)
-            (*  (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 s i)) *)
-            (* ==> *)
-            (* (let (phi_w1, phi_w2, phi_w3) = res{1} in *)
-            (*   size s' = size phi_w1 /\ size phi_w1 = size phi_w2 /\ size phi_w2 = size phi_w3 /\ *)
-            (*   (forall i, (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 s' i)) /\ *)
-            (*   let (sim_w1, sim_w2) = res{2} in (sim_w1, sim_w2) = (phi_w1, phi_w2))]). *)
 proof.
   elim c'.
   - (* empty circuit *)
@@ -629,76 +558,16 @@ proof.
         ={c} /\ e{2} = e' /\ c{1} = (x::l)).
    + have Hgate := phi_sim_equiv x e' w1' w2' w3' s (eval_circuit_aux [x] s) _. smt().
      call Hgate. clear Hgate. clear IH.
-     skip; progress. smt(). smt(). smt(). smt(). smt(). smt().
-     smt(). smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2 =>
-      result_L.`1 = result_R.`1 by smt().
-     smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w1 /\ sim_w2 = phi_w2 =>
-      result_L.`2 = result_R.`2 by smt().
-     smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w2 /\ sim_w2 = phi_w3 =>
-      result_L.`2 = result_R.`1 by smt().
-     smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w2 /\ sim_w2 = phi_w3 =>
-      result_L.`2 = result_R.`1 by smt().
-     smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w3 /\ sim_w2 = phi_w1 =>
-      result_L.`1 = result_R.`2 by smt().
-     smt().
-     have :
-      let (phi_w1, phi_w2, phi_w3) = result_L in
-        let (sim_w1, sim_w2) = result_R in sim_w1 = phi_w3 /\ sim_w2 = phi_w1 =>
-      result_L.`1 = result_R.`2 by smt().
-     smt().
+     skip. move=> *.
+     split; smt().
   elim*. progress.
   have IH' := (IH (rcons w1' (phi_decomp x 1 [w1'; w2'; w3'] R))
                   (rcons w2' (phi_decomp x 2 [w1'; w2'; w3'] R))
                   (rcons w3' (phi_decomp x 3 [w1'; w2'; w3'] R)) (eval_circuit_aux [x] s) s' _).
   smt(eval_circuit_aux_size size_rcons).
   call IH'. clear IH IH'.
-  auto; progress.
-  smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-  have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-  have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
+  auto. move => *.
+  split; smt().
 qed.
 
 
@@ -713,24 +582,15 @@ proof.
 
   case (e' = 1).
   - seq 5 2 : (#pre /\ ={x1, x2} /\ x' = x1{1} + x2{1} + x3{1}).
-    auto. progress. algebra.
+    auto; progress; algebra.
     exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
     have Heq := phi_sim__circuit_equiv c' e' [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux c' [x']) _.
     smt().
-    call Heq. clear Heq. skip; progress.
-    smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
+    call Heq. clear Heq.
+    skip. move=> *.
     have Hlast := last_nth 0.
     rewrite /eval_circuit.
-    rewrite !Hlast.
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
+    split; smt().
 
   case (e' = 2).
   - seq 5 2 : (#pre /\ x1{2} = x2{1} /\ x3{1} = x2{2} /\ x' = x1{1} + x2{1} + x3{1}).
@@ -738,64 +598,29 @@ proof.
     swap{1} 2 - 1.
     rnd (fun z => h{1} - x20{1} - z).
     rnd.
-    skip; progress. algebra.
-    apply dinput_funi.
-    apply dinput_fu.
-    algebra.
-    algebra.
-    algebra.
+    skip; smt(dinput_funi dinput_fu).
     exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
     have Heq := phi_sim__circuit_equiv c' e' [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux c' [x']) _.
     smt().
-    call Heq. clear Heq. skip; progress.
-    smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
+    call Heq. clear Heq.
+    skip. move=> *.
     have Hlast := last_nth 0.
     rewrite /eval_circuit.
-    rewrite !Hlast.
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
+    split; smt().
+
+ (* case e' = 3 *)
   - seq 5 2 : (#pre /\ x1{2} = x3{1} /\ x1{1} = x2{2} /\ x' = x1{1} + x2{1} + x3{1}).
     sp; wp.
     swap{2} 2 - 1.
     rnd (fun z => h{1} - x10{1} - z).
     rnd.
-    skip; progress. algebra.
-    apply dinput_funi.
-    apply dinput_fu.
-    algebra.
-    algebra.
+    skip; smt(dinput_funi dinput_fu).
     exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
     have Heq := phi_sim__circuit_equiv c' e' [x1_L] [x2_L] [x3_L] [x'] (eval_circuit_aux c' [x']) _.
     smt().
-    call Heq. clear Heq. skip; progress.
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
-
+    call Heq. clear Heq.
+    skip. move=> *.
     have Hlast := last_nth 0.
     rewrite /eval_circuit.
-    rewrite !Hlast.
-    have : result_L = (result_L.`1, result_L.`2, result_L.`3) by smt().
-    have : result_R = (result_R.`1, result_R.`2) by smt(). smt().
+    split; smt().
 qed.
