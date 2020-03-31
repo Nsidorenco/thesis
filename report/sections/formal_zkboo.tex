@@ -1,5 +1,130 @@
 \chapter{Formalising ZKBoo}
-\ref{ch:formal_zkboo}
+\label{ch:formal_zkboo}
+
+To formalise the ZKBoo protocol we need the following:
+
+\begin{itemize}
+  \item A formalisation of Arithmetic circuits
+    \begin{itemize}
+        \item With evaluation semantics
+    \end{itemize}
+  \item A formalisation of the (2,3)-Decomposition
+    \begin{itemize}
+      \item Proof of completeness
+      \item Proof of 2-Privacy
+    \end{itemize}
+  \item An instantiation of a $\Sigma$-protocol for ``MPC in the head''
+\end{itemize}
+
+\section{Formalising Arithmetic circuits}
+\label{sec:arith_circuits}
+Since the function we are computing are on the form $\phi(x) = y$, where $\phi$
+can perform any arbitrary computation depending on x we need gates with
+out-degree of $\geq 1$.
+
+We are restricted to finite integer rings, and therefore, we only need four
+basic gates to express our circuit, namely, Add to constant (ADDC),
+multiply by constant (MULTC), addition of two wires, and multiplication
+of two wires.
+
+For ADDC and MULTC the gates only have one in-going edge, but
+can have arbitrary out-going edges. ADD and MULT have two in-going edges, but
+can also have an arbitrary number of out-going edges.
+
+\paragraph{Depth of circuits}
+Since arithmetic circuits can usually be expressed as an upside-down tree, the
+depth of the circuit is depth of the tree.
+We chose the visualize our circuit is a different way, namely that, each gate in
+the circuit is its own layers and the depth of the circuit is therefore the
+number of gates in the circuit. The reason for this, is to simplify the proofs
+of correctness and privacy, which both depend on the structure on the circuits.
+\todo{This can be seen in the following sections \dots}.
+
+\todo{Tikz example showing the two representations}
+
+From this representation each gate can be labelled according to its depth. This
+gives an ordering on the execution for all the gates. From this ordering a
+natural choice is the represent the circuit as a list of gates, such that gate
+at depth 0 is the gate at index 0 in the list.
+
+One remaining problem is then, that gates can have input wires coming from any
+depth of the circuit, and the is no way to calculate the incoming gates based on
+its location within the list. We therefore encode the incoming wires directly
+into our representation of the gates, e.g. the multiplication gate will consist
+of a tuple $(i,j)$ where $i$ is the index of left incoming wire and $j$ is the
+index of right incoming wire.
+
+\begin{lstlisting}[float,label=lst:gate_types,caption=Type declaration of gates]
+type gate = [
+  | ADDC of (int * int)
+  | MULTC of (int * int)
+  | MULT of (int * int)
+  | ADD of (int * int)
+].
+
+type circuit = gate list.
+\end{lstlisting}
+
+To differentiate between the tuples we use \easycrypt's type system to make
+types for each gate, which can be seen in figure \ref{lst:gate_types}. Here the
+unary gates of ADDC and MULTC are also represented as tuples. The first entry of
+the tuple is the incoming wire and the second entry is the constant used.
+
+\begin{lstlisting}[float,label=lst:circuit_eval,caption=Circuit evaluation function]
+op eval_gate (g : gate, s : int list) : int =
+  with g = MULT inputs => let (i, j) = inputs in
+                          let x = (nth 0 s i) in
+                          let y = (nth 0 s j) in x * y
+  with g = ADD inputs =>  let (i, j) = inputs in
+                          let x = (nth 0 s i) in
+                          let y = (nth 0 s j) in x + y
+  with g = ADDC inputs => let (i, c) = inputs in
+                          let x = (nth 0 s i) in x + c
+  with g = MULTC inputs => let (i, c) = inputs in
+                          let x = (nth 0 s i) in x * c.
+
+op eval_circuit_aux(c : circuit, s : int list) : int list =
+    with c = [] => s
+    with c = g :: gs =>
+     let r = eval_gate g s in
+     eval_circuit_aux gs (rcons s r).
+
+op eval_circuit (c : circuit, s : state) : output =
+    last 0 (eval_circuit_aux c s).
+\end{lstlisting}
+
+From this representation of circuits as a list of gates, where gates are types,
+it is not possible to define the semantic meaning of this representation, by
+defining the evaluation function, which can be seen in figure \ref{lst:circuit_eval}.
+The evaluation is broken into two parts: one for evaluation one gate, and one
+for evaluating the entire circuits, based on the former.
+To evaluate one gate, we first need to determine which gate it is. This is done
+by matching on the type of the gate.
+Then, since execution order follows the ordering of indexes, it can be assumed
+that if we are computing index $i$ of the circuit, then indices $[0 \dots i-1]$
+have already been computed to an value representing the result of computing the
+gate. Perform the appropriate function then simply reduces to looking the values
+of the incoming wires and computing the function.
+
+Computing the entire gate then follows from the same fact, that gate are always
+evaluated in the order the appear in the list, and the no gate can depend on
+the result of gates, which have a higher index than itself. By continually
+performing gate evaluation of the first entry of the list, saving the result
+into ``state'' where each index correspond to the computed value of the gate at
+that index in the circuit, and the calling recursively on the list with the
+first entry removed, then the output of the gate will be in the last entry of
+the state, when there are no more gates to compute. Assuming that there is only
+one output gate.
+
+\todo{Add function to verify correctness of circuit?}
+
+\section{(2,3) Decomposition of circuits}
+\label{sec:decomposition}
+
+\todo{We put no assumptions on the circuit being valid, since the decomposition
+  will fail with the same values as the circuit evaluation.}
+
+
 
 %%% Local Variables:
 %%% mode: latex
