@@ -15,6 +15,33 @@ We therefore need a more generalised approach, that is able to generate
 zero-knowledge proof for an entire family of relations rather than a specific relation.
 One such family of relations is the pre-image under group homomorphisms \dots
 
+Another important factor of zero-knowledge compilers is the reduce the proof
+size. ZK proofs are notoriously expensive to run.
+
+\section{ZKBOO}
+\label{sec:zkboo}
+The ZKBoo protocol, which was invented by \citet{zkboo}, is a zero-knowledge compiler for relations, which can be
+expressed as the pre-image of a group homomorphism, i.e.
+
+\[
+  R \text{ h w} = \phi(w) = h
+\]
+
+This technique assumes that the function $\phi$ can be expressed in a way, that
+allows for a (2,3)-Decomposition.
+
+\todo{A (2,3) decomposition is...}
+
+For the scope of this thesis we simply this assumption, and only look at
+functions, which can be represented as a arithmetic circuit in some finite
+integer ring. If the function is represented as an integer arithmetic circuit,
+then a general technique exists for perform the (2,3)-Decomposition
+
+\todo{Describe technique for 2,3 decomp of arith.}
+
+\todo{Proof size of ZKboo}
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "../main"

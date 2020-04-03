@@ -37,8 +37,11 @@ presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
 
 \todo{explain the flow of the protocol. what is a \dots}
 
+\begin{definition}[$\Sigma$-Protocol Security]
+\label{def:sigma:sec}
 To prove security of a $\Sigma$-protocols, we require three properties, namely,
 \textbf{Completeness}, \textbf{Special Soundness}, and \textbf{Special Honest Verifier Zero Knowledge (SHVZK)}.
+\end{definition}
 
 \paragraph{Completeness}
 Protocol should always succeed with correct output, if both parties are honest.
@@ -124,10 +127,16 @@ and message $m'$ such that $(c, d') \leftarrow Com(ck, m')$.
 The Hiding property states that a party given a commitment $c$, will not be able
 to extract the message $m$, which the commitment was based on.
 
-\section{Multi-Part Computation}
+\section{Multi-Part Computation (MPC)}
 \label{sec:background:mpc}
+Consider the problem, where $n$ parties, called $P_{1}, \dots, p_{n}$, with
+corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ want to compute a commonly
+known function, $f : (\text{input})^{n} \rightarrow \text{output}$, such that
+every party agrees on the same output $y$, such that $y = f(\textbf{x})$, but none of them learns the inputs to function, barring their own.
 
+\todo{Different notions of security. We need passive.}
 
+This is the exact problem that MPC aims to solve.
 
 %%% Local Variables:
 %%% mode: latex

@@ -1,5 +1,76 @@
 \chapter{Formalising Sigma-Protocols}
 \label{ch:formal_sigma}
+This section will aim to formalise $\Sigma$-protocols according to the
+definitions set out in section \ref{sec:background:sigma_protocols}, with a
+sufficiently general set-up to allows easy instantiation of arbitrary concrete
+protocols.
+This abstraction is provided by \easycrypt's abstract theories, where we let
+$\Sigma$-Protocol be quantified over the abstract types:
+\begin{itemize}
+  \item message
+  \item witness
+  \item response
+  \item randomness
+  \item input
+\end{itemize}
+
+And a relation $R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$.
+
+We then define the $\Sigma$-protocol itself be a series of probabilistic procedures:
+\begin{itemize}
+  \item init
+  \item response
+  \item verify
+\end{itemize}
+
+\todo{Rewrite as EC module}
+
+Along with another set of algorithms required to satisfy the definition of
+security defined in \ref{def:sigma:sec}.
+
+\begin{itemize}
+  \item gen
+  \item witness\_extractor
+  \item simulator
+\end{itemize}
+
+An instantiation of a $\Sigma$-Protocol is the an implementation of the above procedures.
+
+We then model security as a series of games:
+
+\begin{definition}[Completeness]
+  \begin{lstlisting}[float, label=lst:sigma_completeness,caption=Completeness game for $\Sigma$-Protocols]
+  module Completeness(S : SigmaProtocol) = {
+    proc main(h : input, w : witness) : bool = {
+       var a, e, z;
+       a = S.init(h,w);
+       e <$ dchallenge;
+       z = S.response(h, a, e);
+       v = S.verify(h, a, e, z);
+       return v;
+    }
+  }.
+  \end{lstlisting}
+  We say the protocol is complete, if the probabilistic procedure in
+  \ref{lst:sigma_completeness} outputs 1 with probability 1, i.e.
+  \begin{equation}
+    \label{eq:sigma_completeness}
+    \forall \&m h w, R h w \implies Pr[\text{Completeness.main}(h,w) @ \&m : res] = 1\%r.
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Special Soundness]
+
+\end{definition}
+
+\begin{lemma}
+  A $\Sigma$-Protocol is secure if all the above games succeed with probability $1$
+\end{lemma}
+
+\todo{Argue that games corresponds to original definitions}
+
+\todo{To prove composition we assume to following relations to be true \dots and
+this only hold if both inputs are in the domain of R.}
 
 %%% Local Variables:
 %%% mode: latex
