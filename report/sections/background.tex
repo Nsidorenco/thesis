@@ -25,10 +25,15 @@ explicitly showing $w$ to him.
   \begin{tikzpicture}
       % \draw (-3,0) -- (-3,-3) (3,0) -- (3,-3);
       \node at (-3,.3) {Prover};
+      \node at (-3,-.2) {$(h, w)$};
       \node at (3,.3) {Verifier};
+      \node at (3,-.2) {$h$};
+      \node at (-5,-1) {$Init(h, w) \rightarrow a$};
       \draw[->] (-3,-1) -- node[midway,above] {a} (3,-1);
       \draw[<-] (-3,-2) -- node[midway,above] {e} (3,-2);
+      \node at (-5.75,-2) {$Response(h, w, a, e) \rightarrow z$};
       \draw[->] (-3,-3) -- node[midway,above] {z} (3,-3);
+      \node at (5,-3) {$Verify(h,a,e,z)$};
   \end{tikzpicture}
   \caption{\label{fig:proto_sigma} $\Sigma$-Protocol}
 \end{figure}

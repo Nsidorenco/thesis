@@ -23,22 +23,9 @@ probabilistic programs within \easycrypt, we require that sampling from the
 distribution is always successful. This is refereed to as the distribution being lossless.
 
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
-\begin{itemize}
-  \item init
-  \item response
-  \item verify
-\end{itemize}
+\lstinputlisting[linerange={32-40}]{../code/SigmaProtocols.ec}
 
-\todo{Rewrite as EC module}
-
-Along with another set of algorithms required to satisfy the definition of
-security defined in \ref{def:sigma:sec}.
-
-\begin{itemize}
-  \item gen
-  \item witness\_extractor
-  \item simulator
-\end{itemize}
+\todo{Here gen is \dots}
 
 \begin{lstlisting}[float, label=lst:sigma_completeness,caption=Completeness game for $\Sigma$-Protocols]
 module Completeness(S : SigmaProtocol) = {
@@ -59,6 +46,7 @@ procedures, which can be seen in Listing \ref{lst:sigma_completeness}.
 We then model security as a series of games:
 
 \begin{definition}[Completeness]
+\label{def:sigma:completeness}
   We say the protocol is complete, if the probabilistic procedure in
   \ref{lst:sigma_completeness} outputs 1 with probability 1, i.e.
   \begin{equation}
@@ -66,6 +54,78 @@ We then model security as a series of games:
     \forall \&m h w, R h w \implies Pr[\text{Completeness.main}(h,w) @ \&m : res] = 1\%r.
   \end{equation}
 \end{definition}
+
+One problem with definition $\ref{def:sigma:completeness}$ is that
+quantification over challenges is implicitly done when sampling from the random
+distribution of challenges. This mean that reasoning about the challenges are
+done within the probabilistic Hoare logic, and not the ambient logic. If we at
+some later point need the completeness property to hold for a specific
+challenge, then that is not true by this definition of completeness, since
+the ambient logic does not quantify over the challenges. To alleviate this
+problem we introduce a alternative definition of completeness:
+
+\begin{definition}[Alternative Completeness]
+\label{def:sigma:alt_completeness}
+  We say the protocol is complete if:
+  \begin{equation}
+    \label{eq:sigma_completeness}
+    \forall \&m h w e, R h w \implies Pr[\text{Completeness.special}(h,w,e) @ \&m : res] = 1\%r.
+  \end{equation}
+  Where the procedure ``Completeness.special'' is defined as
+  \lstinputlisting[linerange={43-51}]{../code/SigmaProtocols.ec}
+\end{definition}
+
+Now, since the alternative procedure no longer samples from a random
+distribution it is not possible to prove equivalence between the two procedure,
+but to show that this alternative definition is still captures what is means for
+a protocol to be complete we have the following lemma:
+
+\begin{lemma}
+Given that definition \ref{def:sigma:alt_completeness} then it must hold that
+definition \ref{def:sigma:completeness} holds, given the same public input and witness.
+
+This can be stated in \easycrypt as:
+\begin{lstlisting}
+lemma special_implies_main (S <: SProtocol) h' w':
+  (forall h' w' e', phoare[Completeness(S).special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
+  phoare[Completeness(S).main : (h = h' /\ w = w') ==> res] = 1%r.
+\end{lstlisting}
+\end{lemma}
+
+\begin{proof}
+First we start by defining an intermediate game:
+\begin{lstlisting}
+proc intermediate(h : input, w : witness) : bool = {
+   e <$ dchallenge;
+   v = Completeness.special(h, w, e);
+   return v;
+}
+\end{lstlisting}
+
+From this it is easy to prove equivalence between the two procedures
+``intermediate'' and ``main'' by simply inlinining the procudures and moving
+the sampling to the first line of each program. This will make the two programs
+equivalent.
+
+Now, we can prove the lemma by instead proving:
+\begin{lstlisting}
+lemma special_implies_main (S <: SProtocol) h' w':
+  (forall h' w' e', phoare[Completeness(S).special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
+  phoare[Completeness(S).intermediate : (h = h' /\ w = w') ==> res] = 1%r.
+\end{lstlisting}
+
+The proof then proceeds by first sampling $e$ and then proving the following
+probabilistic Hoare triplet: $true \vdash \{\exists e', e = e'\}
+\text{Completeness.special(h,w,e)} \{true\}$. Now, we can move the existential
+from the pre-condition into the context:
+\[
+  e' \vdash \{e = e'\} \text{Completeness.special(h,w,e)} \{true\}
+\]
+
+Which then is proven by the hypothesis of the ``special'' procedure being complete.
+
+\todo{variable declarations have been omitted}
+\end{proof}
 
 
 \begin{definition}[Special Soundness]
@@ -78,7 +138,23 @@ efficient \todo{what is efficient?} algorithm $A$,
 which given the two transcripts outputs a valid witness for the relation $R$.
 
 Alternatively we state $2$-special soundness as:
-\todo{Add game from EC}
+\begin{lstlisting}
+module SpecialSoundness(S : SProtocol) = {
+  proc main(h : statement, m : message, c c' : challenge, z z' : response) : bool = {
+    var w, v, v';
+
+    v  = S.verify(h, m, c, z);
+    v' = S.verify(h, m, c', z');
+
+    w = S.witness_extractor(h, m, c, c', z, z');
+
+    return (c <> c' /\ (R h w) /\ v /\ v');
+  }
+}.
+\end{lstlisting}
+
+\todo{Write math for game}
+
 \end{definition}
 
 \begin{definition}[Special Honest Verifier Zero-Knowledge]

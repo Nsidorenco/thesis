@@ -23,8 +23,6 @@ size. ZK proofs are notoriously expensive to run.
 The ZKBoo protocol, which was invented by \citet{zkboo}, is a zero-knowledge compiler for relations, which can be
 expressed as the pre-image of a group homomorphism, i.e.
 
-\todo{explain MPC in the head}
-
 \[
   R \text{ h w} = \phi(w) = h
 \]
@@ -69,7 +67,6 @@ to actually perform the MPC protocol. Having to depend on $n$ different parties
 to perform a zero-knowledge protocol is not a feasible solution, so instead of
 recruiting the help of $n$ external parties to perform the protocol we instead
 perform the entire protocol locally by simulating every party in the protocol.
-
 This is commonly refereed to as performing the protocol ``in the head''.
 
 \todo{implication on security by having all parties locally}
@@ -80,16 +77,46 @@ input into an MPC protocol computing the function take $n$ inputs. Then, having
 properly defined the MPC protocol, we will show how to use the ``MPC in the
 head'' protocol to make a zero-knowledge protocol to and prove lemma \ref{lemma:zkboo_secure}.
 
-\subsection{(2,3)-Decomposition}
+\subsection{(2,3)-Function Decomposition}
 \label{subsec:decomposition}
+(2,3)-Function decomposition is a general technique given a function
+$f : X \rightarrow Y$ and a input value $x \in X$ to compute the value $f(x)$ by
+splitting it into three computational branches, where revealing tow of the
+branches reveals no information about the input $x$.
+Through-out this section we will simply refer the a (2,3)-Function decomposition
+as $\decomp$.
 
+\todo{General description}
 
-\todo{A (2,3) decomposition is...}
+Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
+can then define the two necessary properties from \cite{zkboo} for security of
+our (2,3)-Function decomposition, namely, correctness and privacy.
 
-For the scope of this thesis we simply this assumption, and only look at
+\begin{definition}[Correctness]
+\label{def:decomp_correctness}
+A (2,3)-decomposition $\decomp$ is correct if $\forall x \in X, \Pr{\phi(x) = \Phi_{\phi}^{*}(x)} = 1$.
+\todo{Change notation to account for randomness}
+\end{definition}
+
+\begin{definition}[Privacy]
+\label{def:decomp_privacy}
+A (2,3)-decomposition $\decomp$ is 2-private if it is correct and for all challenges
+$e \in \{1,2,3\}$ there exists a probabilistic polynomial time simulator $S_{e}$
+such that:
+\[
+  \forall x \in x, \left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2} \right)
+  \equiv S_{e}(x)
+\]
+Where $\left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2}
+\right)$ is produced by running $\decomp$ on input $x$
+\end{definition}
+
+\subsubsection{(2,3)-Function Decomposition for Arithmetic circuits}
+
+\todo{For the scope of this thesis we simplify this assumption, and only look at
 functions, which can be represented as a arithmetic circuit in some finite
 integer ring. If the function is represented as an integer arithmetic circuit,
-then a general technique exists for perform the (2,3)-Decomposition
+then a general technique exists for perform the (2,3)-Decomposition}
 
 \todo{Describe technique for 2,3 decomp of arith.}
 
