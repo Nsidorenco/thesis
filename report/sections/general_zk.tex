@@ -23,12 +23,66 @@ size. ZK proofs are notoriously expensive to run.
 The ZKBoo protocol, which was invented by \citet{zkboo}, is a zero-knowledge compiler for relations, which can be
 expressed as the pre-image of a group homomorphism, i.e.
 
+\todo{explain MPC in the head}
+
 \[
   R \text{ h w} = \phi(w) = h
 \]
 
-This technique assumes that the function $\phi$ can be expressed in a way, that
-allows for a (2,3)-Decomposition.
+Where $h$ is the public input and $w$ is the witness.
+
+The principle idea of this protocol is based on a technique called ``MPC in the
+head''. Recall from section \ref{sec:background:mpc}, that the theory of
+Multipart Computation allows us, for any given function taking $n$ inputs to
+securely compute output $y$ for the function. We then have by definition
+\ref{def:mpc:d-privacy} that as long as less than $d \leq n$ views are available to the adversary, then the inputs to the function are private.
+
+Now, if we instead of proving the knowledge of a witness satisfying $\phi(w) = h$
+we revealed a run, i.e. the views, of a MPC protocol computing the above
+function, but with the witness distributed amongst all parties then we have the
+claims:
+
+\begin{lemma}
+\label{lemma:zkboo_correctness}
+By correctness (definition \ref{def:mpc:correctness}), and assuming that
+the input share to the parties where indeed a valid distribution of the
+witness, then we can conclude that the witness is the pre-image of the public input
+\end{lemma}
+
+\begin{lemma}
+\label{lemma:zkboo_privacy}
+By d-privacy (definition \ref{def:mpc:d-privacy}) if less than $d$ views are
+revealed, then the witness is not revealed.
+\end{lemma}
+
+Which ultimately gives us:
+
+\begin{lemma}
+\label{lemma:zkboo_secure}
+From lemma \ref{lemma:zkboo_correctness} and lemma \ref{lemma:zkboo_privacy} it
+follows that MPC can be used to create an zero-knowledge protocol for the
+pre-image of a group homomorphism.
+\end{lemma}
+
+Before we go into proving the above lemmas, we first need to address how we are
+to actually perform the MPC protocol. Having to depend on $n$ different parties
+to perform a zero-knowledge protocol is not a feasible solution, so instead of
+recruiting the help of $n$ external parties to perform the protocol we instead
+perform the entire protocol locally by simulating every party in the protocol.
+
+This is commonly refereed to as performing the protocol ``in the head''.
+
+\todo{implication on security by having all parties locally}
+
+The following section we then, in order, be dedicated to explaining how to
+distribute the witness to multiple parties, and decomposing the original single
+input into an MPC protocol computing the function take $n$ inputs. Then, having
+properly defined the MPC protocol, we will show how to use the ``MPC in the
+head'' protocol to make a zero-knowledge protocol to and prove lemma \ref{lemma:zkboo_secure}.
+
+\subsection{(2,3)-Decomposition}
+\label{subsec:decomposition}
+
 
 \todo{A (2,3) decomposition is...}
 
@@ -38,6 +92,11 @@ integer ring. If the function is represented as an integer arithmetic circuit,
 then a general technique exists for perform the (2,3)-Decomposition
 
 \todo{Describe technique for 2,3 decomp of arith.}
+
+\subsection{Making the protocol zero-knowledge}
+\label{subsec:zkboo_sigma}
+
+
 
 \todo{Proof size of ZKboo}
 

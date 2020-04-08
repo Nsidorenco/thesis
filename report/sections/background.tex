@@ -7,10 +7,13 @@ formalisations and proofs of security.
 First, we start by describing $\Sigma$-protocols, along with its security
 definitions and extensions.
 
+\section{Zero-Knowledge}
+\label{sec:background:zk}
+
 
 \section{Sigma Protocols}
 \label{sec:background:sigma_protocols}
-Originally introduced by Cramer, $\Sigma$-protocols are two-party protocols with a
+Originally introduced by Cramer \todo{reference}, $\Sigma$-protocols are two-party protocols with a
 three-move-form, based on a, computationally hard, relation $R$, such that $(h, w) \in R$
 if $h$ is an instance of a computationally hard problem, and $w$ is
 the solution to $h$. $\Sigma$-protocols then allows a prover, P, who knows the
@@ -137,6 +140,16 @@ every party agrees on the same output $y$, such that $y = f(\textbf{x})$, but no
 \todo{Different notions of security. We need passive.}
 
 This is the exact problem that MPC aims to solve.
+
+\begin{definition}[Correctness]
+\label{def:mpc:correctness}
+
+\end{definition}
+
+\begin{definition}[d-Privacy]
+\label{def:mpc:d-privacy}
+
+\end{definition}
 
 %%% Local Variables:
 %%% mode: latex
