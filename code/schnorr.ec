@@ -8,35 +8,30 @@ require SigmaProtocols.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
-theory Types.
-  type statement  = group.
-  type witness    = F.t.
-  type message    = group.
-  type randomness = F.t.
-  type challenge  = F.t.
-  type response   = F.t.
+type statement  = group.
+type witness    = F.t.
+type message    = group.
+type challenge  = F.t.
+type response   = F.t.
 
-  op R_DL h w     = (h = g^w).
-end Types.
-export Types.
+op R_DL h w     = (h = g^w).
 
 clone import SigmaProtocols as Sigma with
-  type SigmaProtocols.statement <- statement,
-  type SigmaProtocols.witness <- witness,
-  type SigmaProtocols.message <- message,
-  type SigmaProtocols.randomness <- randomness,
-  type SigmaProtocols.challenge <- challenge,
-  type SigmaProtocols.response <- response,
+  type statement <- statement,
+  type witness <- witness,
+  type message <- message,
+  type challenge <- challenge,
+  type response <- response,
 
-  op SigmaProtocols.R = R_DL,
-  op SigmaProtocols.dchallenge = FDistr.dt
+  op R = R_DL,
+  op dchallenge = FDistr.dt
   proof *.
-  realize SigmaProtocols.dchallenge_llfuni.
-      split. apply FDistr.dt_ll. apply FDistr.dt_funi. qed.
-export SigmaProtocols.
-
+  realize dchallenge_llfuni.
+      (* TODO: by [dt_ll, dt_funi] *)
+      split. apply FDistr.dt_ll. smt. qed.
 
 module Schnorr : SProtocol = {
+  var r : F.t
   proc gen() : statement * witness = {
     var w, h;
     w =$ FDistr.dt;
@@ -44,14 +39,14 @@ module Schnorr : SProtocol = {
     return (h, w);
   }
 
-  proc init(h : statement, w : witness) : message * randomness = {
-    var r,a;
+  proc init(h : statement, w : witness) : message = {
+    var a;
     r =$ FDistr.dt;
     a = g^r;
-    return (a, r);
+    return a;
   }
 
-  proc response(h : statement, w : witness, m : message, r : randomness, e : challenge) : response = {
+  proc response(h : statement, w : witness, m : message, e : challenge) : response = {
     return r + e * w;
   }
 
@@ -144,86 +139,86 @@ section Security.
 
 end section Security.
 
-require ORProtocol.
+(* require ORProtocol. *)
 
-clone import ORProtocol as OR with
-  type ORProtocol.statement1 <- statement,
-  type ORProtocol.statement2 <- statement,
-  type ORProtocol.witness    <- witness,
-  type ORProtocol.message1   <- message,
-  type ORProtocol.message2   <- message,
-  type ORProtocol.randomness <- randomness,
-  type ORProtocol.challenge  <- challenge,
-  type ORProtocol.response1  <- response,
-  type ORProtocol.response2  <- response,
+(* clone import ORProtocol as OR with *)
+(*   type ORProtocol.statement1 <- statement, *)
+(*   type ORProtocol.statement2 <- statement, *)
+(*   type ORProtocol.witness    <- witness, *)
+(*   type ORProtocol.message1   <- message, *)
+(*   type ORProtocol.message2   <- message, *)
+(*   type ORProtocol.randomness <- randomness, *)
+(*   type ORProtocol.challenge  <- challenge, *)
+(*   type ORProtocol.response1  <- response, *)
+(*   type ORProtocol.response2  <- response, *)
 
-  op ORProtocol.R1 = R,
-  op ORProtocol.R2 = R,
+(*   op ORProtocol.R1 = R, *)
+(*   op ORProtocol.R2 = R, *)
 
-  op ORProtocol.dchallenge = dchallenge
-  proof *.
-  realize ORProtocol.dchallenge_llfuni. exact dchallenge_llfuni. qed.
-  realize ORProtocol.xorK. admitted.
-  realize ORProtocol.xorA. admitted.
-export ORProtocol.
+(*   op ORProtocol.dchallenge = dchallenge *)
+(*   proof *. *)
+(*   realize ORProtocol.dchallenge_llfuni. exact dchallenge_llfuni. qed. *)
+(*   realize ORProtocol.xorK. admitted. *)
+(*   realize ORProtocol.xorA. admitted. *)
+(* export ORProtocol. *)
 
-print OR.ORProtocol.ORProtocol.
-print ORProtocol.Completeness.
-print SigmaProtocols.Completeness.
+(* print OR.ORProtocol.ORProtocol. *)
+(* print ORProtocol.Completeness. *)
+(* print SigmaProtocols.Completeness. *)
 
-lemma or_schnorr_schnorr_special_soundness x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m:
-      ch <> ch' =>
-      ch = e1 ^^ e2 => (* We explicitly write out what it means for an OR conversation to be accepting *)
-      ch' = e1' ^^ e2' =>
-      phoare[Schnorr.verify : ( h = (fst x) /\ m = (fst msg) /\ e=  e1/\ z = z1) ==> res] = 1%r =>
-      phoare[Schnorr.verify : ( h = (fst x) /\ m = (fst msg) /\ e=  e1'/\ z = z1') ==> res] = 1%r =>
-      phoare[Schnorr.verify : ( h = (snd x) /\ m = (snd msg) /\ e=  e2 /\ z =z2) ==> res] = 1%r =>
-      phoare[Schnorr.verify : ( h = (snd x) /\ m = (snd msg) /\ e=  e2'/\ z = z2') ==> res] = 1%r =>
-      Pr[SigmaProtocols.SpecialSoundness(ORProtocol(Schnorr, Schnorr)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
-  proof.
-  move=> ch_diff ch_rel ch'_rel transcript_valid.
-    have Hss := (or_special_soundness Schnorr Schnorr _ _ _ _ _ _ _ _ x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m ch_diff ch_rel ch'_rel).
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - progress.
-      have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//.
-      have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//.
-      have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
-      byequiv=>//. proc. inline *. auto.
-    - progress.
-      have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//.
-      have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//.
-      have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2).
-      byequiv=>//. proc. inline *. auto.
-    - apply (Hss transcript_valid).
-  qed.
-
-
-lemma or_schnorr_schnorr_completenes h' w' e' &m:
-    (R1 (fst h') w') \/ (R2 (snd h') w') =>
-    Pr[SigmaProtocols.Completeness(ORProtocol(Schnorr, Schnorr)).main(h', w', e') @ &m : res] = 1%r.
-  proof.
-    have H := (or_completeness Schnorr Schnorr _ _ _ _ h' w' &m); progress.
-      - have <- := (schnorr_completeness h w &m0 H).
-        byequiv=> //. proc. sim. rnd. call (: true). auto. progress.
-      - have <- := (schnorr_completeness h w &m0 H).
-        byequiv=> //. proc. sim. rnd. call (: true). auto. progress.
-      - have <- := (schnorr_shvzk_ideal_success h'0 &m0).
-        byequiv=>//. proc. sim. rnd. progress.
-      - have <- := (schnorr_shvzk_ideal_success h'0 &m0).
-        byequiv=>//. proc. sim. rnd. progress.
-  qed.
+(* lemma or_schnorr_schnorr_special_soundness x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m: *)
+(*       ch <> ch' => *)
+(*       ch = e1 ^^ e2 => (* We explicitly write out what it means for an OR conversation to be accepting *) *)
+(*       ch' = e1' ^^ e2' => *)
+(*       phoare[Schnorr.verify : ( h = (fst x) /\ m = (fst msg) /\ e=  e1/\ z = z1) ==> res] = 1%r => *)
+(*       phoare[Schnorr.verify : ( h = (fst x) /\ m = (fst msg) /\ e=  e1'/\ z = z1') ==> res] = 1%r => *)
+(*       phoare[Schnorr.verify : ( h = (snd x) /\ m = (snd msg) /\ e=  e2 /\ z =z2) ==> res] = 1%r => *)
+(*       phoare[Schnorr.verify : ( h = (snd x) /\ m = (snd msg) /\ e=  e2'/\ z = z2') ==> res] = 1%r => *)
+(*       Pr[SigmaProtocols.SpecialSoundness(ORProtocol(Schnorr, Schnorr)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r. *)
+(*   proof. *)
+(*   move=> ch_diff ch_rel ch'_rel transcript_valid. *)
+(*     have Hss := (or_special_soundness Schnorr Schnorr _ _ _ _ _ _ _ _ x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m ch_diff ch_rel ch'_rel). *)
+(*     - admit. *)
+(*     - admit. *)
+(*     - admit. *)
+(*     - admit. *)
+(*     - admit. *)
+(*     - admit. *)
+(*     - progress. *)
+(*       have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//. *)
+(*       have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//. *)
+(*       have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2). *)
+(*       byequiv=>//. proc. inline *. auto. *)
+(*     - progress. *)
+(*       have Hpr1 : Pr[Schnorr.verify(x0, msg0, ch0, d) @ &m0 : res] = 1%r by byphoare H0=>//. *)
+(*       have Hpr2 : Pr[Schnorr.verify(x0, msg0, ch'0, d') @ &m0 : res] = 1%r by byphoare H1=>//. *)
+(*       have <- := (schnorr_special_soundness x0 msg0 ch0 ch'0 d d' &m0 H Hpr1 Hpr2). *)
+(*       byequiv=>//. proc. inline *. auto. *)
+(*     - apply (Hss transcript_valid). *)
+(*   qed. *)
 
 
+(* lemma or_schnorr_schnorr_completenes h' w' e' &m: *)
+(*     (R1 (fst h') w') \/ (R2 (snd h') w') => *)
+(*     Pr[SigmaProtocols.Completeness(ORProtocol(Schnorr, Schnorr)).main(h', w', e') @ &m : res] = 1%r. *)
+(*   proof. *)
+(*     have H := (or_completeness Schnorr Schnorr _ _ _ _ h' w' &m); progress. *)
+(*       - have <- := (schnorr_completeness h w &m0 H). *)
+(*         byequiv=> //. proc. sim. rnd. call (: true). auto. progress. *)
+(*       - have <- := (schnorr_completeness h w &m0 H). *)
+(*         byequiv=> //. proc. sim. rnd. call (: true). auto. progress. *)
+(*       - have <- := (schnorr_shvzk_ideal_success h'0 &m0). *)
+(*         byequiv=>//. proc. sim. rnd. progress. *)
+(*       - have <- := (schnorr_shvzk_ideal_success h'0 &m0). *)
+(*         byequiv=>//. proc. sim. rnd. progress. *)
+(*   qed. *)
 
-  lemma schnorr_svhzk_ideal_success h' &m:
 
-  have completeness_schnorr1 := (schnorr_completeness (fst h') w' &m).
-  have completeness_schnorr2 := (schnorr_completeness (snd h') w' &m).
-  case (R1 (fst h') w'). move=> rel.
-  apply completeness_schnorr1 in rel.
-  apply H.
+
+(*   lemma schnorr_svhzk_ideal_success h' &m: *)
+
+(*   have completeness_schnorr1 := (schnorr_completeness (fst h') w' &m). *)
+(*   have completeness_schnorr2 := (schnorr_completeness (snd h') w' &m). *)
+(*   case (R1 (fst h') w'). move=> rel. *)
+(*   apply completeness_schnorr1 in rel. *)
+(*   apply H. *)
