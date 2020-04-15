@@ -324,6 +324,34 @@ proof.
     trivial.
 qed.
 
+lemma correctness h' c' &m:
+    Pr[Phi.main(h', c') @ &m : res = eval_circuit c' [h']] = 1%r.
+proof.
+  byphoare(: h = h' /\ c = c' ==> _)=>//.
+  proc.
+  inline Phi.output Phi.reconstruct. auto.
+  seq 1 : (#pre /\ exists (x1' x2' x3' : input), x1' = x1 /\ x2' = x2 /\ x3' = x3 /\ x1' + x2' + x3' = h').
+  inline *. auto.
+  inline *. auto. progress.
+    - apply dinput_ll. smt().
+  elim*. progress.
+  have H := compute_circuit_correct c' [x1'] [x2'] [x3'] [h'] (eval_circuit_aux c' [h']) _.
+   - smt().
+  call H. clear H.
+  skip; progress.
+  smt().
+  have Hlast := last_nth 0.
+  rewrite !Hlast.
+  smt().
+  hoare. inline *. auto. progress.
+  smt().
+  progress.
+qed.
+
+
+
+
+lemma compute_circuit_correct c':
 
 lemma phi_sim_equiv g e':
     (forall w1' w2' w3' s s',
