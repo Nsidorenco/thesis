@@ -54,6 +54,7 @@ To prove security of a $\Sigma$-protocols, we require three properties, namely,
 \paragraph{Completeness}
 Protocol should always succeed with correct output, if both parties are honest.
 
+\todo{remove paragraphs and make definitions with text below.}
 \paragraph{Special Soundness}
 Given two, accepting, transcripts, with different challenges it is possible to
 compute an accepting witness for the statement in the relation.
@@ -69,6 +70,16 @@ times, to ensure negligible probability.
 
 Can also be generalised to $s$-Special Soundness, which requires that the
 witness can be constructed, given $s$ accepting conversations.
+
+\begin{definition}[Special Soundness]
+Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$
+and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
+where both transcripts have the same initial message, $a$ and $e \neq e'$.
+
+Then we say that $S$ satisfies $2$-special soundness if, there exists an
+efficient \todo{what is efficient?} algorithm, which we call the ``witness\_extractor'',
+that given the two transcripts outputs a valid witness for the relation $R$.
+\end{definition}
 
 \paragraph{SHVZK}
 Zero knowledge is proven by giving a simulator. Not possible to define for

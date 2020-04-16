@@ -19,11 +19,13 @@ And a relation $R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$.
 
 Moreover, we require that there exists an uniform distribution, for which
 elements of type challenge can be sampled from. Now, since distribution are also
-probabilistic programs within \easycrypt, we require that sampling from the
+probabilistic programs within \easycrypt\ , we require that sampling from the
 distribution is always successful. This is refereed to as the distribution being lossless.
 
+\todo{Relate to figure in background chapter?}
+
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
-\lstinputlisting[linerange={32-40}]{../code/SigmaProtocols.ec}
+\lstinputlisting[linerange={29-38}]{../code/SigmaProtocols.eca}
 
 \todo{Here gen is \dots}
 
@@ -47,11 +49,11 @@ We then model security as a series of games:
 
 \begin{definition}[Completeness]
 \label{def:sigma:completeness}
-  We say the protocol is complete, if the probabilistic procedure in
+  We say that a $\Sigma$-protocol, S, is complete, if the probabilistic procedure in
   \ref{lst:sigma_completeness} outputs 1 with probability 1, i.e.
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall \&m h w, R h w \implies Pr[\text{Completeness.main}(h,w) @ \&m : res] = 1\%r.
+    \forall \&m h w, R h w \implies Pr[\text{Completeness(S).main}(h,w) @ \&m : res] = 1\%r.
   \end{equation}
 \end{definition}
 
@@ -66,13 +68,13 @@ problem we introduce a alternative definition of completeness:
 
 \begin{definition}[Alternative Completeness]
 \label{def:sigma:alt_completeness}
-  We say the protocol is complete if:
+  We say that a $\Sigma$-protocol, S, is complete if:
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall \&m h w e, R h w \implies Pr[\text{Completeness.special}(h,w,e) @ \&m : res] = 1\%r.
+    \forall \&m h w e, R h w \implies Pr[\text{Completeness(S).special}(h,w,e) @ \&m : res] = 1\%r.
   \end{equation}
-  Where the procedure ``Completeness.special'' is defined as
-  \lstinputlisting[linerange={43-51}]{../code/SigmaProtocols.ec}
+  Where the procedure ``Completeness(S).special'' is defined as
+  \lstinputlisting[linerange={40-48}]{../code/SigmaProtocols.eca}
 \end{definition}
 
 Now, since the alternative procedure no longer samples from a random
@@ -85,9 +87,11 @@ Given that definition \ref{def:sigma:alt_completeness} then it must hold that
 definition \ref{def:sigma:completeness} holds, given the same public input and witness.
 
 This can be stated in \easycrypt as:
-\begin{lstlisting}
+\begin{lstlisting}[mathescape]
 lemma special_implies_main (S <: SProtocol) h' w':
-  (forall h' w' e', phoare[Completeness(S).special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
+  ($\forall$ h' w' e',
+    phoare[special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r)
+  =>
   phoare[Completeness(S).main : (h = h' /\ w = w') ==> res] = 1%r.
 \end{lstlisting}
 \end{lemma}
@@ -97,7 +101,7 @@ First we start by defining an intermediate game:
 \begin{lstlisting}
 proc intermediate(h : input, w : witness) : bool = {
    e <$ dchallenge;
-   v = Completeness.special(h, w, e);
+   v = special(h, w, e);
    return v;
 }
 \end{lstlisting}
@@ -110,16 +114,16 @@ equivalent.
 Now, we can prove the lemma by instead proving:
 \begin{lstlisting}
 lemma special_implies_main (S <: SProtocol) h' w':
-  (forall h' w' e', phoare[Completeness(S).special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
-  phoare[Completeness(S).intermediate : (h = h' /\ w = w') ==> res] = 1%r.
+  (forall h' w' e', phoare[special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
+  phoare[intermediate : (h = h' /\ w = w') ==> res] = 1%r.
 \end{lstlisting}
 
 The proof then proceeds by first sampling $e$ and then proving the following
 probabilistic Hoare triplet: $true \vdash \{\exists e', e = e'\}
-\text{Completeness.special(h,w,e)} \{true\}$. Now, we can move the existential
+\text{special(h,w,e)} \{true\}$. Now, we can move the existential
 from the pre-condition into the context:
 \[
-  e' \vdash \{e = e'\} \text{Completeness.special(h,w,e)} \{true\}
+  e' \vdash \{e = e'\} \text{special(h,w,e)} \{true\}
 \]
 
 Which then is proven by the hypothesis of the ``special'' procedure being complete.
@@ -129,16 +133,12 @@ Which then is proven by the hypothesis of the ``special'' procedure being comple
 
 
 \begin{definition}[Special Soundness]
+\label{def:sigma:soundness}
 Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$
 and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
 where both transcripts have the same initial message, $a$ and $e \neq e'$.
 
-Then we say that $S$ satisfies $2$-special soundness if, there exists an
-efficient \todo{what is efficient?} algorithm $A$,
-which given the two transcripts outputs a valid witness for the relation $R$.
-
-Alternatively we state $2$-special soundness as:
-\begin{lstlisting}
+\begin{lstlisting}[float, label=lst:sigma-soundness, caption= 2-special soundness game]
 module SpecialSoundness(S : SProtocol) = {
   proc main(h : statement, m : message, c c' : challenge, z z' : response) : bool = {
     var w, v, v';
@@ -153,14 +153,15 @@ module SpecialSoundness(S : SProtocol) = {
 }.
 \end{lstlisting}
 
-\todo{Write math for game}
+We then define special soundness as winning the game
+defined in Listing \ref{lst:sigma-soundness} with probability 1.
 
 \end{definition}
 
 \begin{definition}[Special Honest Verifier Zero-Knowledge]
 Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$ and
 witness $w$, then $S$ is said to be Special Honest Verifier Zero-knowledge
-(SHVZK), if there exists a simulator, Sim, which given input $h$ outputs a
+(SHVZK), if there exists a simulator that given input $h$ outputs a
 transcript $(a,e,z)$, which is indistinguishable from the transcript observed by
 running $S$ on input $h, w$.
 
@@ -168,9 +169,11 @@ running $S$ on input $h, w$.
 
 \end{definition}
 
-\begin{lemma}
-  A $\Sigma$-Protocol is secure if all the above games succeed with probability $1$
-\end{lemma}
+\begin{definition}
+\label{def:sigma-protocol}
+  S is said to be a $\Sigma$-Protocol if it satisfies the above three definition
+  and is on three-move form.
+\end{definition}
 
 \todo{Argue that games corresponds to original definitions}
 
@@ -179,17 +182,64 @@ this only hold if both inputs are in the domain of R.}
 
 \section{Composition Protocols}
 \label{sec:sigma_comp}
+\todo{Some introduction based on background chapter?}
 
 \subsection{AND}
 \label{subsec:sigma_AND}
 \todo{Needed to change definition of games to relate challenges}
+
+In this section we prove the AND construction to be a $\Sigma$-protocol by
+definition \ref{def:sigma-protocol}.
+
+\todo{Write protocol as diagram?}
+\todo{Write procedure definitions?}
+
+\begin{lemma}[AND completeness]
+  \begin{align*}
+    R h w \land
+    \Pr{Completeness.main(S_{1})} = 1 \land \Pr{Completeness.main(S_{2})} = 1 \\
+    \implies \Pr{Completeness.main(AND(S_{1}, S_{2}))} = 1
+  \end{align*}
+  % If the completeness definition (\ref{def:sigma:completeness}) is instantiated
+  % with the AND protocol, then it will succeed with probability 1, if $S_{1}$ and $S_{2}$
+  \todo{Missing parameters and quantification}
+\end{lemma}
+\begin{proof}
+  The proof proceeds by game-hopping to:
+  \begin{lstlisting}[mathescape]
+  proc intermediate(h : input, w : witness) = {
+    $(h_{1}, h_{2}) = h$;
+    $(w_{1}, w_{2}) = w$;
+    $v_{1} = Completeness(S_1).main(h_1, w_{1})$
+    $v_{2} = Completeness(S_2).main(h_2, w_{2})$
+
+    return $v_{1} \land v_{2}$
+  }
+  \end{lstlisting}
+
+  This intermediate game will return true with probability 1 since both
+  $v_{1}$ and $v_{2}$ will always return true by our assumption of completeness
+  for $S_{1}$ and $S_{2}$.
+\end{proof}
+
+\begin{lemma}[AND special soundness]
+  \begin{align*}
+    &R (h_{1}, h_{2}) (w_{1}, w_{2}) \\
+    \land &\Pr{S_{1}.verify(h_{1}, w_{1}, e, z)} = 1 \\
+    \land &\Pr{S_{2}.verify(h_{2}, w_{2}, e', z')} = 1 \\
+    &\implies \Pr{SpecialSoundness(AND(S_{1}, S_{2})).main} = 1
+  \end{align*}
+\end{lemma}
+
+
 
 \subsection{OR}
 \label{subsec:sigma_OR}
 \todo{Needed to change relation}
 
 
-
+\subsection{Concrete Example: Schnorr protocol}
+\label{subsec:schnorr}
 
 
 

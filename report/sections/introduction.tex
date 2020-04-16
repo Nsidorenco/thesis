@@ -1,9 +1,62 @@
 \chapter{Introduction}
 \label{ch:intro}
 
-\todo{motivate and explain the problem to be addressed}
+Computer-aided cryptography is an active area of research that combines the
+fields of formal verification and cryptography to develop
+formal machine-checkable proofs approaches to cryptographic protocol design as
+well as the implementations of said protocols \cite{SOK:CAC}.
 
-\todo{get your bibtex entries from \url{https://dblp.org/}}
+\todo{Formal verification is ...}
+
+the field of cryptography has in recent times lend itself to ``game hopping''
+approach to design-level security of protocols. In this approach security is
+modelled as the probability of an adversary, with varying degrees of power,
+breaking the intended design of the protocol. This is done usually done by
+either proving that it is impossible for the adversary to break to protocol by
+mathematical reasoning on the possible choices the adversary can make or
+proving that breaking the protocol is computationally equivalent to
+solving a, presumably, difficult problem.
+
+The problem with this approach is that these game reduction are often prone to
+implicit assumptions and rely on peer-reviewing of the proof of security.
+
+Finally, cryptographic design does not led it self to implementation level
+security issues, which is usually left to domain expert when implementing the
+protocols.
+
+Computer-aided cryptographic can help us solve these problems by making the
+assumptions more transparent, but moreover it also makes the logical reasoning
+more transparent. Since formal proofs can only proceed by applying logical
+rules, then an error can only arise from having a flaw in the core logic or in
+one of the assumptions made for the protocol.
+
+% State of the art Computer-aided cryptography now allows us to build toolchains,
+% where it is possible to prove the security of a protocol within a logical
+% framework and then compiling it to efficient machine-level code, while ensure
+% that this compilation is sound, i.e. the same security guarantees provided in
+% the host language will still hold in the target language.
+
+Having formally verified software is especially important when it is used as a
+building block in bigger and more complex protocols. One such example of a
+fundamental building block in cryptology is Zero knowledge proofs, which is used in
+a myriad of different protocols, most notably on the blockchain and in the GMW compiler, which allows for active security of any passively secure protocols.
+
+One problem with most Zero-knowledge proof is that they are usually
+prohibitively expensive to run \todo{reference}. We have therefore a surge in
+research with regards to creating zero-knowledge protocols, which are efficient
+to run. One of the predominant works in the field is zkSNARKS.
+
+Since these generalised zero-knowledge compilers can be used within applications
+where security is critical it is important to that they have been rigorously
+studied and formally proven.
+
+In this paper we will therefore look at the ZKBoo protocol by \citet{zkboo},
+which can generate zero-knowledge proofs for any relation, assuming the relation
+can be expressed as a circuit, with a bound on the proof size.
+
+In doing so we will develop a rich formalisation of $\Sigma$-protocols they
+relate to Zero-knowledge. Moreover, we will show how to create a fully verified
+toolchain for constructing a generalised zero-knowledge compiler based on ZKBoo.
 
 
 %%% Local Variables:
