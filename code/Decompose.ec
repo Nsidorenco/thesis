@@ -348,11 +348,6 @@ proof.
   progress.
 qed.
 
-
-
-
-lemma compute_circuit_correct c':
-
 lemma phi_sim_equiv g e':
     (forall w1' w2' w3' s s',
       size s = size w1' /\
