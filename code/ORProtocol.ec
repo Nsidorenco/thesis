@@ -139,17 +139,17 @@ theory ORProtocol.
     }
 
     proc witness_extractor(h : statement, m : message,
-                           e : challenge, e' : challenge,
-                           z : response, z' : response) : witness = {
+                           e : challenge list,
+                           z : response list) : witness = {
       var h1, h2, m1, m2, w, e1, e2, e1', e2', z1, z2, z1', z2';
       (h1, h2) = h;
       (m1, m2) = m;
-      (e1, z1, e2, z2) = z;
-      (e1', z1', e2', z2') = z';
+      (e1, z1, e2, z2) = oget (onth z 0);
+      (e1', z1', e2', z2') = oget (onth z 1);
       if (e1 <> e1') {
-        w = P1.witness_extractor(h1, m1, e1, e1', z1, z1');
+        w = P1.witness_extractor(h1, m1, [e1;e1'], [z1;z1']);
       } else {
-        w = P2.witness_extractor(h2, m2, e2, e2', z2, z2');
+        w = P2.witness_extractor(h2, m2, [e2;e2'], [z2;z2']);
       }
       return w;
     }
@@ -507,13 +507,13 @@ local module Completeness' = {
     ch <> ch' =>
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
-    Pr[S1.SpecialSoundness(SP1).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+    Pr[S1.SpecialSoundness(SP1).main(x, msg, [ch;ch'], [d; d']) @ &m : res] = 1%r.
 
   axiom special_soundness_sp2 x msg ch ch' d d' &m :
     ch <> ch' =>
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
-    Pr[S2.SpecialSoundness(SP2).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+    Pr[S2.SpecialSoundness(SP2).main(x, msg, [ch;ch'], [d;d']) @ &m : res] = 1%r.
 
   local module SpecialSoundness' = {
       var w : witness
@@ -526,7 +526,7 @@ local module Completeness' = {
         vd  = SP1.verify(h1, m, e, z);
         vd' = SP1.verify(h1, m, e', z');
 
-        w = SP1.witness_extractor(h1, m, e, e', z, z');
+        w = SP1.witness_extractor(h1, m, [e;e'], [z;z']);
 
         return (e <> e' /\ (R1 h1 w) /\ vd /\ vd');
       }
@@ -537,7 +537,7 @@ local module Completeness' = {
         vd  = SP2.verify(h2, m, e, z);
         vd' = SP2.verify(h2, m, e', z');
 
-        w = SP2.witness_extractor(h2, m, e, e', z, z');
+        w = SP2.witness_extractor(h2, m, [e;e'], [z;z']);
 
         return (e <> e' /\ (R2 h2 w) /\ vd /\ vd');
       }
@@ -563,22 +563,31 @@ local module Completeness' = {
   local lemma special_soundness_soundness'_equiv
     x msg ch ch' e1 e1' e2 e2' z1 z1' z2 z2' &m:
       Pr[SpecialSoundness'.main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] =
-      Pr[Sigma.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res].
+      Pr[Sigma.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, [ch;ch'], [(e1, z1, e2, z2);(e1', z1', e2', z2')]) @ &m : res].
   proof.
     byequiv=>//. proc. inline *. sp.
     case (e1 <> e1').
     rcondt{1} 1. auto.
-    rcondt{2} 24. move=> ?. do ? (wp; call (:true)). auto.
-    (* Put statements in similar order between the two programs *)
-    swap{2} 11 1; swap{1} 2 8; swap{2} 1 1.
+    rcondt{2} 1. auto.
+    rcondt{2} 16. auto. call (:true). call (:true). auto.
+    rcondf{2} 31. auto. call (:true). call (:true). auto. call (:true). call (:true). auto.
+    rcondt{2} 39. move=> ?. do ? (wp; call (:true)). auto.
+    sp. wp.
+    swap{2} 16 1.
+    swap{1} 2 8.
+    swap{2} 1 1.
     do ? (wp; call (:true)).
-    auto. smt().
-    (* case : e2 <> e2' *)
+    skip; progress; smt().
+    (* case e2 <> e2' *)
     rcondf{1} 1. auto.
-    rcondf{2} 24. move=> ?. do ? (wp; call (:true)). auto.
+    rcondt{2} 1. auto.
+    rcondt{2} 16. auto. call (:true). call (:true). auto.
+    rcondf{2} 31. auto. call (:true). call (:true). auto. call (:true). call (:true). auto.
+    rcondf{2} 39. move=> ?. do ? (wp; call (:true)). auto.
+    sp.
     swap{1} 2 8.
     do ? (wp; call (:true)).
-    auto. smt().
+    skip; progress; smt().
   qed.
 
   local lemma special_soundness1'
@@ -592,7 +601,13 @@ local module Completeness' = {
     move=> ch_diff accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp1 (fst h{m}) m{m} e{m} e'{m} z{m} z'{m} &m ch_diff accept1 accept2).
-    byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
+    byequiv=>//. proc. do ? call(:true).
+    rcondt {2} 4. auto.
+    rcondt {2} 10. auto. call(:true). auto.
+    rcondf {2} 16. auto. call(:true). auto. call(:true). auto.
+    do ? (wp; call(:true)).
+    auto; smt().
+  qed.
 
   local lemma special_soundness2'
     x msg ch ch' r r':
@@ -605,7 +620,13 @@ local module Completeness' = {
     move=> ch_diff accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp2 (snd h{m}) m{m} e{m} e'{m} z{m} z'{m} &m ch_diff accept1 accept2).
-    byequiv=>//. proc. do ? call(:true). auto; smt(). qed.
+    byequiv=>//. proc. do ? call(:true).
+    rcondt {2} 4. auto.
+    rcondt {2} 10. auto. call(:true). auto.
+    rcondf {2} 16. auto. call(:true). auto. call(:true). auto.
+    do ? (wp; call(:true)).
+    auto; smt().
+  qed.
 
   local lemma special_soundness'
     x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m:
@@ -643,7 +664,7 @@ local module Completeness' = {
       phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = e1' /\ z = z1') ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2 /\ z = z2) ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = e2' /\ z = z2') ==> res] = 1%r =>
-      Pr[Sigma.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] = 1%r.
+      Pr[Sigma.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, [ch;ch'], [(e1, z1, e2, z2);(e1', z1', e2', z2')]) @ &m : res] = 1%r.
   proof. move=> ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22.
     have <- := (special_soundness_soundness'_equiv x msg ch ch' e1 e1' e2 e2' z1 z1' z2 z2' &m).
     by have := (special_soundness' x msg ch ch' e1 e1' z1 z1' e2 e2' z2 z2' &m ch_diff ch_valid ch'_valid accept11 accept12 accept21 accept22).

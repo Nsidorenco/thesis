@@ -1,10 +1,6 @@
 (* Concrete instantiation of a Sigma Protocol *)
-require import Int.
-require import Real.
-require import Distr.
-require import CyclicGroup.
-
-require SigmaProtocols.
+require import Int Real Distr CyclicGroup List FSet.
+require (*--*) SigmaProtocols.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
@@ -54,8 +50,13 @@ module Schnorr : SProtocol = {
     return (g^z = m * (h ^e));
   }
 
-  proc witness_extractor(h : statement, m : message, e e' : challenge, z z' : response) : witness= {
-    return (z - z') / (e - e');
+  proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness= {
+    var e1, e2, z1, z2;
+    e1 = oget (onth e 0);
+    e2 = oget (onth e 1);
+    z1 = oget (onth z 0);
+    z2 = oget (onth z 1);
+    return (z1 - z2) / (e1 - e2);
   }
 
   proc simulator(h : statement, e : challenge) = {
@@ -92,7 +93,7 @@ section Security.
       Pr[Schnorr.verify(x, msg, ch, d) @ &m : res] = 1%r =>
       Pr[Schnorr.verify(x, msg, ch', d') @ &m : res] = 1%r =>
       (* phoare[Schnorr.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> (res /\ g^d' = msg * (x ^ ch'))] = 1%r => *)
-      Pr[SpecialSoundness(Schnorr).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+      Pr[SpecialSoundness(Schnorr).main(x, msg, [ch; ch'], [d; d']) @ &m : res] = 1%r.
   proof. move => c_diff accept_1_pr accept_2_pr.
   have accept_1: phoare[Schnorr.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> (res /\ g^d = msg * (x ^ ch))] = 1%r.
   - bypr. progress. rewrite - accept_1_pr.
@@ -102,16 +103,22 @@ section Security.
   - bypr. progress. rewrite - accept_2_pr.
     byequiv=>//. proc. auto.
 
-  byphoare (: h = x /\ m = msg /\ c = ch /\ c' = ch' /\ z = d /\ z' = d' ==> _)=> //=.
+  byphoare (: h = x /\ m = msg /\ c = [ch;ch'] /\ z = [d;d'] ==> _)=> //=.
   proc.
-  swap [1..2] 1.
-  inline Schnorr.witness_extractor.
-  call accept_2.
-  call accept_1.
-  auto. progress.
+  sp.
+  inline Schnorr.witness_extractor; wp.
+  rcondt 1; auto.
+  rcondt 7; auto. call (:true); auto.
+  rcondf 13; auto. call (:true); auto. call (:true); auto.
+  sp.
+  call accept_2; wp.
+  call accept_1; wp.
+  skip; progress.
+  smt().
   rewrite /R /R_DL.
   rewrite div_def -pow_pow sub_def -mul_pow pow_opp.
-  rewrite H2 H0 inv_def.
+  rewrite H H0 H3 H4.
+  rewrite H2 H6 inv_def.
   algebra.
   qed.
 

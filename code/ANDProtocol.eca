@@ -1,5 +1,5 @@
 (* Formalization of Sigma Protocols *)
-require import AllCore Distr DBool.
+require import AllCore Distr DBool List.
 
 require SigmaProtocols.
 
@@ -116,15 +116,17 @@ module ANDProtocol (P1 : S1.SProtocol, P2 : S2.SProtocol) : Sigma.SProtocol = {
   }
 
   proc witness_extractor(h : statement, m : message,
-                          e : challenge, e' : challenge,
-                          z : response, z' : response) = {
-    var h1, h2, m1, m2, z1, z2, z1', z2', w1, w2;
+                         e : challenge list,
+                         z : response list) = {
+    var h1, h2, m1, m2, z1, z2, z1', z2', w1, w2, e1, e2;
     (h1, h2) = h;
     (m1, m2) = m;
-    (z1, z2) = z;
-    (z1', z2') = z';
-    w1 = P1.witness_extractor(h1, m1, e, e', z1, z1');
-    w2 = P2.witness_extractor(h2, m2, e, e', z2, z2');
+    e1 = oget (onth e 0);
+    e2 = oget (onth e 1);
+    (z1, z2) = oget (onth z 0);
+    (z1', z2') = oget (onth z 1);
+    w1 = P1.witness_extractor(h1, m1, [e1;e2], [z1;z1']);
+    w2 = P2.witness_extractor(h2, m2, [e1;e2], [z2;z2']);
     return (w1, w2);
   }
 
@@ -398,12 +400,12 @@ qed.
   axiom special_soundness_sp1 x msg ch ch' d d' &m :
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP1.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
-    Pr[S1.SpecialSoundness(SP1).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+    Pr[S1.SpecialSoundness(SP1).main(x, msg, [ch;ch'], [d;d']) @ &m : res] = 1%r.
 
   axiom special_soundness_sp2 x msg ch ch' d d' &m :
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch /\ z = d) ==> res] = 1%r =>
     phoare[SP2.verify : (h = x /\ m = msg /\ e = ch' /\ z = d') ==> res] = 1%r =>
-    Pr[S2.SpecialSoundness(SP2).main(x, msg, ch, ch', d, d') @ &m : res] = 1%r.
+    Pr[S2.SpecialSoundness(SP2).main(x, msg, [ch;ch'], [d;d']) @ &m : res] = 1%r.
 
   local module SpecialSoundness' = {
       var w1 : witness1
@@ -416,7 +418,7 @@ qed.
         v1  = SP1.verify(h1, m, e, z);
         v1' = SP1.verify(h1, m, e', z');
 
-        w1 = SP1.witness_extractor(h1, m, e, e', z, z');
+        w1 = SP1.witness_extractor(h1, m, [e;e'], [z;z']);
 
         return (e <> e' /\ (R1 h1 w1) /\ v1 /\ v1');
       }
@@ -424,7 +426,7 @@ qed.
         v2  = SP2.verify(h2, m, e, z);
         v2' = SP2.verify(h2, m, e', z');
 
-        w2 = SP2.witness_extractor(h2, m, e, e', z, z');
+        w2 = SP2.witness_extractor(h2, m, [e;e'], [z;z']);
 
         return (e <> e' /\ (R2 h2 w2) /\ v2 /\ v2');
       }
@@ -444,13 +446,16 @@ qed.
     x msg ch ch' z1 z1' z2 z2' &m:
       ch <> ch' =>
       Pr[SpecialSoundness'.main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res] =
-      Pr[Sigma.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res].
+      Pr[Sigma.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, [ch;ch'], [(z1, z2);(z1', z2')]) @ &m : res].
   proof.
     move=> ch_diff.
     byequiv=>//. proc. inline *. sp.
+    rcondt{2} 1; auto.
+    rcondt{2} 16; auto. call (:true). call(:true). auto.
+    rcondf{2} 31; auto. call (:true). call(:true). wp. call(:true). call(:true). auto.
     swap{1} 3 8; swap{1} 2 7.
     do ? (wp; call (:true)).
-    skip; smt().
+    auto; smt().
   qed.
 
   local lemma special_soundness1'
@@ -463,7 +468,13 @@ qed.
     move=> accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp1 h1{m} m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
-    byequiv=>//. proc. by do ? call(:true). qed.
+    byequiv=>//. proc. do ? call(:true).
+    rcondt {2} 4. auto.
+    rcondt {2} 10. auto. call(:true). auto.
+    rcondf {2} 16. auto. call(:true). auto. call(:true). auto.
+    do ? (wp; call(:true)).
+    auto; smt().
+  qed.
 
   local lemma special_soundness2'
     x msg ch ch' r r':
@@ -475,7 +486,13 @@ qed.
     move=> accept1 accept2.
     bypr. progress.
     have <- := (special_soundness_sp2 h2{m} m{m} e{m} e'{m} z{m} z'{m} &m accept1 accept2).
-    byequiv=>//. proc. by do ? call(:true). qed.
+    byequiv=>//. proc. do ? call(:true).
+    rcondt {2} 4. auto.
+    rcondt {2} 10. auto. call(:true). auto.
+    rcondf {2} 16. auto. call(:true). auto. call(:true). auto.
+    do ? (wp; call(:true)).
+    auto; smt().
+  qed.
 
   local lemma special_soundness'
     x msg ch ch' z1 z1' z2 z2' &m:
@@ -502,7 +519,7 @@ qed.
       phoare[SP1.verify : (h = (fst x) /\ m = (fst msg) /\ e = ch' /\ z = z1') ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch /\ z = z2) ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = (snd msg) /\ e = ch' /\ z = z2') ==> res] = 1%r =>
-      Pr[Sigma.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, ch, ch', (z1, z2), (z1', z2')) @ &m : res] = 1%r.
+      Pr[Sigma.SpecialSoundness(ANDProtocol(SP1, SP2)).main(x, msg, [ch;ch'], [(z1, z2);(z1', z2')]) @ &m : res] = 1%r.
   proof. move=> ch_diff accept11 accept12 accept21 accept22.
     have <- := (special_soundness_soundness'_equiv x msg ch ch' z1 z1' z2 z2' &m ch_diff).
     by have := (special_soundness' x msg ch ch' z1 z1' z2 z2' &m ch_diff accept11 accept12 accept21 accept22).

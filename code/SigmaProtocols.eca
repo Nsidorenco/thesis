@@ -1,5 +1,5 @@
 (* Formalization of Sigma Protocols *)
-require import AllCore Distr DBool.
+require import AllCore Distr DBool List FSet.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
@@ -32,7 +32,7 @@ module type SProtocol = {
   proc response(h : statement, w : witness,
                 m : message, e : challenge) : response
   proc verify(h : statement, m : message, e : challenge, z : response) : bool
-  proc witness_extractor(h : statement, m : message, e e' : challenge, z z' : response) : witness
+  proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness
   proc simulator(h : statement, e : challenge) : message * response
 }.
 
@@ -87,15 +87,27 @@ proof.
 qed.
 
 module SpecialSoundness(S : SProtocol) = {
-  proc main(h : statement, m : message, c c' : challenge, z z' : response) : bool = {
-    var w, v, v';
+  proc main(h : statement, m : message, c : challenge list, z : response list) : bool = {
+    var w, valid_all, valid_tmp, c', z', c_copy, z_copy;
 
-    v  = S.verify(h, m, c, z);
-    v' = S.verify(h, m, c', z');
+    valid_all = true;
+    c_copy = c;
+    z_copy = z;
 
-    w = S.witness_extractor(h, m, c, c', z, z');
+    while (c_copy <> []) {
+      c' = oget (ohead c_copy);
+      z' = oget (ohead z_copy);
+      valid_tmp = S.verify(h, m, c', z');
+      valid_all = valid_all /\ valid_tmp;
+      c_copy = behead c_copy;
+      z_copy = behead z_copy;
+    }
 
-    return (c <> c' /\ (R h w) /\ v /\ v');
+    w = S.witness_extractor(h, m, c, z);
+
+
+    return (undup c = c /\ (R h w) /\ valid_all);
+
   }
 }.
 

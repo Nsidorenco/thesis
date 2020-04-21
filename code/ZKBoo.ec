@@ -148,8 +148,19 @@ module ZKBoo(Com : Protocol) : SProtocol = {
 
   }
 
-  proc witness_extractor(h : statement, m : message, e e' : challenge, z z' : response) = {
-    return 0;
+  proc witness_extractor(h : statement, a : message,
+                         e : challenge list, z : response list) = {
+    var c, y, w1, w2, w3, r1, r2, r3, pk, open;
+    (c, y) = h;
+    (pk, open) = oget (onth z 0);
+    (w1, r1) = fst open;
+    (pk, open) = oget (onth z 1);
+    (w2, r2) = fst open;
+    (pk, open) = oget (onth z 2);
+    (w3, r3) = fst open;
+
+    return (oget (onth w1 0)) + (oget (onth w2 0)) + (oget (onth w3 0));
+
   }
 
   proc simulator(h : statement, e : challenge) = {
@@ -414,59 +425,6 @@ proof.
   by have := inter_completeness h' w' e' &m rel.
 qed.
 
-
-(* idea: reduce to Phi.main; Com.correctness *)
-lemma zkboo_complete &m h' w' e':
-    R h' w' =>
-    Pr[Sigma.Completeness(ZKBoo(Com)).special(h', w', e') @ &m : res] = 1%r.
-proof.
-  rewrite /R /R_DL.
-  move=> rel.
-  byphoare(: h = h' /\ w = w' /\ e = e' ==> _)=>//.
-  proc.
-  inline Completeness(ZKBoo(Com)).special.
-  inline ZKBoo(Com).init.
-  swap 4 2.
-  swap [6..9] 3.
-  inline Phi.share. sp.
-  seq 3 : (#pre /\ exists (x1' x2' x3' : input), x1' = x10 /\ x2' = x20 /\ x3' = x30 /\ x1' + x2' + x3' = w'); last first; last first.
-    - hoare. auto. progress. smt().
-    - progress.
-    - auto. auto. progress.
-      apply dinput_ll. smt().
-  sp. elim *. progress.
-  have Hcompute := compute_circuit_correct (fst h') [x1'] [x2'] [x3'] [w'] (eval_circuit_aux (fst h') [w']) _.
-   - smt().
-  inline ZKBoo(Com).response.
-  inline ZKBoo(Com).verify.
-  case (e' = 1).
-    auto. rcondt 23.
-    auto.
-    call (:true).
-    call (:true).
-    call (:true).
-    call (:true).
-    call (:true). auto.
-    call (:true). auto.
-    call (:true). auto.
-    call (:true). auto.
-    auto.
-  rcondt 14.
-    auto.
-    call (:true).
-    call (:true).
-    call (:true).
-    call (:true).
-    call (:true); auto.
-    call (:true); auto.
-    call (:true); auto.
-    call (:true); auto.
-  inline Phi.reconstruct. auto.
-  inline ZKBoo(Com).valid_output_share Phi.output.
-  auto.
-  sp.
-  swap 1 2.
-
-
+lemma zkboo_shvzk
 
 end section Protocol.
