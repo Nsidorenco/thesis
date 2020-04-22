@@ -123,34 +123,40 @@ module Phi = {
   proc reconstruct(s1 s2 s3 : int) = {
     return s1 + s2 + s3;
   }
-  proc compute(c : circuit, w1 w2 w3 : view) = {
-    var g, k1, k2, k3, r1, r2, r3;
+  proc compute(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+    var g, r1, r2, r3, v1, v2, v3;
     while (c <> []) {
       g = head (ADDC(0,0)) c;
-      k1 <$ dinput;
-      k2 <$ dinput;
-      k3 <$ dinput;
-      r1 = phi_decomp g 1 [w1;w2;w3] [k1;k2;k3];
-      r2 = phi_decomp g 2 [w1;w2;w3] [k1;k2;k3];
-      r3 = phi_decomp g 3 [w1;w2;w3] [k1;k2;k3];
-      w1 = (rcons w1 r1);
-      w2 = (rcons w2 r2);
-      w3 = (rcons w3 r3);
+      r1 <$ dinput;
+      r2 <$ dinput;
+      r3 <$ dinput;
+      v1 = phi_decomp g 1 [w1;w2;w3] [r1;r2;r3];
+      v2 = phi_decomp g 2 [w1;w2;w3] [r1;r2;r3];
+      v3 = phi_decomp g 3 [w1;w2;w3] [r1;r2;r3];
+      w1 = (rcons w1 v1);
+      w2 = (rcons w2 v2);
+      w3 = (rcons w3 v3);
+      k1 = (rcons k1 r1);
+      k2 = (rcons k2 r2);
+      k3 = (rcons k3 r3);
       c = behead c;
     }
-    return (w1, w2, w3);
+    return (k1, k2, k3, w1, w2, w3);
   }
-  proc compute_stepped(c : circuit, w1 w2 w3 : view) = {
-    (w1, w2, w3) = compute([head (ADDC(0,0)) c], w1, w2, w3);
+  proc compute_stepped(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+    (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c], w1, w2, w3, k1, k2, k3);
     c = behead c;
-    (w1, w2, w3) = compute(c, w1, w2, w3);
-    return (w1, w2, w3);
+    (k1, k2, k3, w1, w2, w3) = compute(c, w1, w2, w3, k1, k2, k3);
+    return (k1, k2, k3, w1, w2, w3);
 
   }
   proc main(h : input, c : circuit) = {
-    var x1, x2, x3, y, w1, w2, w3, y1, y2, y3;
+    var x1, x2, x3, y, w1, w2, w3, y1, y2, y3, k1, k2, k3;
     (x1, x2, x3) = share(h);
-    (w1, w2, w3) = compute(c, [x1], [x2], [x3]);
+    k1 = [];
+    k2 = [];
+    k3 = [];
+    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], k1, k2, k3);
     y1 = output(w1);
     y2 = output(w2);
     y3 = output(w3);
@@ -160,46 +166,51 @@ module Phi = {
 }.
 
 module Simulator = {
-  proc compute(c : circuit, e : int, w1 w2 : view) = {
-    var g, k1, k2, k3, r1, r2;
+  proc compute(c : circuit, e : int, w1 w2 : view, k1 k2 : random_tape) = {
+    var g, r1, r2, r3, v1, v2;
     while (c <> []) {
       g = head (ADDC(0,0)) c;
-      k1 <$ dinput;
-      k2 <$ dinput;
-      k3 <$ dinput;
-      r1 = simulator_eval g 1 e [w1;w2] [k1;k2;k3];
-      r2 = simulator_eval g 2 e [w1;w2] [k1;k2;k3];
-      w1 = (rcons w1 r1);
-      w2 = (rcons w2 r2);
+      r1 <$ dinput;
+      r2 <$ dinput;
+      r3 <$ dinput;
+      v1 = simulator_eval g 1 e [w1;w2] [r1;r2;r3];
+      v2 = simulator_eval g 2 e [w1;w2] [r1;r2;r3];
+      w1 = (rcons w1 v1);
+      w2 = (rcons w2 v2);
+      k1 = (rcons k1 r1);
+      k2 = (rcons k2 r2);
       c = behead c;
     }
 
-    return (w1, w2);
+    return (k1, k2, w1, w2);
   }
-  proc compute_stepped(c : circuit, e : int, w1 w2 : view) = {
-    (w1, w2) = compute([head (ADDC(0,0)) c], e, w1, w2);
+  proc compute_stepped(c : circuit, e : int, w1 w2 : view, k1 k2 : random_tape) = {
+    (k1, k2, w1, w2) = compute([head (ADDC(0,0)) c], e, w1, w2, k1, k2);
     c = behead c;
-    (w1, w2) = compute(c, e, w1, w2);
-    return (w1, w2);
+    (k1, k2, w1, w2) = compute(c, e, w1, w2, k1, k2);
+    return (k1, k2, w1, w2);
 
   }
 }.
 
 module Privacy = {
   proc real(h : input, c : circuit, e : int) = {
-    var x1, x2, x3, w1, w2, w3, y1, y2, y3, ret;
+    var x1, x2, x3, w1, w2, w3, y1, y2, y3, ret, k1, k2, k3;
     (x1, x2, x3) = Phi.share(h);
-    (w1, w2, w3) = Phi.compute(c, [x1], [x2], [x3]);
+    k1 = [];
+    k2 = [];
+    k3 = [];
+    (k1, k2, k3, w1, w2, w3) = Phi.compute(c, [x1], [x2], [x3], k1, k2, k3);
     y1 = Phi.output(w1);
     y2 = Phi.output(w2);
     y3 = Phi.output(w3);
     if (e = 1) {
-      ret = ((w1, w2), y3);
+      ret = ((k1, w1, k2, w2), y3);
     } else {
       if (e = 2) {
-        ret = ((w2, w3), y1);
+        ret = ((k2, w2, k3, w3), y1);
       } else {
-        ret = ((w3, w1), y2);
+        ret = ((k3, w3, k1, w1), y2);
       }
     }
 
@@ -207,15 +218,17 @@ module Privacy = {
   }
 
   proc ideal(y : output, c : circuit, e : int) = {
-    var x1, x2, w1, w2, y1, y2, y3;
+    var x1, x2, w1, w2, y1, y2, y3, k1, k2;
     x1 <$ dinput;
     x2 <$ dinput;
-    (w1, w2) = Simulator.compute(c, e, [x1], [x2]);
+    k1 = [];
+    k2 = [];
+    (k1, k2, w1, w2) = Simulator.compute(c, e, [x1], [x2], k1, k2);
     y1 = Phi.output(w1);
     y2 = Phi.output(w2);
     y3 = y - (y1 + y2);
 
-    return ((w1, w2), y3);
+    return ((k1, w1, k2, w2), y3);
   }
 }.
 
