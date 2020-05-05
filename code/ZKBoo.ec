@@ -1,5 +1,5 @@
 (* Formalization of ZKBoo Sigma-protocol *)
-require import AllCore Distr List DInterval DList Decompose.
+require import AllCore Distr List DInterval DList Decompose DBool.
 require (****) SigmaProtocols.
 require import Commitment.
 (** Ignore: This is now the preferred setup but is not yet the default **)
@@ -57,7 +57,7 @@ module ZKBoo(Com : Protocol) : SProtocol = {
     return (([], 0),0);
   }
   proc init(h : statement, w : witness) = {
-    var x1,x2,x3,y,c,c1,c2,c3,sk,y1,y2,y3,k1,k2,k3;
+    var x1,x2,x3,y,c,c1,c2,c3,sk,y1,y2,y3;
     (c, y) = h;
     (sk, pk) <$ Commit.dkey;
     (x1, x2, x3) = Phi.share(w);
@@ -164,22 +164,48 @@ module ZKBoo(Com : Protocol) : SProtocol = {
 
   proc simulator(h : statement, e : challenge) = {
     var c, y, views, sk, pk, a, z;
-    var w1, w2, y1, y2, y3;
+    var w1, w2, w3, y1, y2, y3;
     var c1, c2, c3, r1, r2, r3;
     var k1, k2;
     (c, y) = h;
-    (views, y3) = Privacy.ideal(y, c, e);
-    (k1, w1, k2, w2) = views;
-    w3 <$ dlist dinput (size w1);
-    y1 = Phi.output(w1);
-    y2 = Phi.output(w2);
-
     (sk, pk) <$ Commit.dkey;
-    (c1, r1) = Com.commit(sk, w1);
-    (c2, r2) = Com.commit(sk, w2);
-    (c3, r3) = Com.commit(sk, w3);
+    if (e = 1) {
+      (views, y3) = Privacy.ideal(y, c, e);
+      (k1, w1, k2, w2) = views;
+      w3 <$ dlist dinput (size w1);
+      y1 = Phi.output(w1);
+      y2 = Phi.output(w2);
+
+      (c1, r1) = Com.commit(sk, w1);
+      (c2, r2) = Com.commit(sk, w2);
+      (c3, r3) = Com.commit(sk, w3);
+      z = (pk, (((k1, w1), r1), ((k2, w2), r2)));
+    } else {
+      if (e = 2) {
+        (views, y1) = Privacy.ideal(y, c, e);
+        (k2, w2, k3, w3) = views;
+        w1 <$ dlist dinput (size w2);
+        y2 = Phi.output(w2);
+        y3 = Phi.output(w3);
+
+        (c1, r1) = Com.commit(sk, w1);
+        (c2, r2) = Com.commit(sk, w2);
+        (c3, r3) = Com.commit(sk, w3);
+        z = (pk, (((k2, w2), r2), ((k3, w3), r3)));
+      } else {
+        (views, y2) = Privacy.ideal(y, c, e);
+        (k3, w3, k1, w1) = views;
+        w2 <$ dlist dinput (size w3);
+        y3 = Phi.output(w3);
+        y1 = Phi.output(w1);
+
+        (c1, r1) = Com.commit(sk, w1);
+        (c2, r2) = Com.commit(sk, w2);
+        (c3, r3) = Com.commit(sk, w3);
+        z = (pk, (((k3, w3), r3), ((k1, w1), r1)));
+      }
+    }
     a = (y1, y2, y3, c1, c2, c3);
-    z = (pk, (((k1, w1), r1), ((k2, w2), r2)));
 
     return (a, z);
   }
@@ -197,6 +223,8 @@ axiom Com_correct :
     phoare[Correctness(Com).key_fixed : (sk, pk) \in Commit.dkey ==> res] = 1%r.
 axiom Com_hiding &m (A <: HidingAdv):
   Pr[HidingGame(Com, A).main() @ &m : res] = 1%r.
+axiom Com_hiding_alt :
+  equiv[Com.commit ~ Com.commit : ={sk, glob Com} ==> ={res, glob Com}].
 axiom Com_binding &m (A <: BindingAdv):
   Pr[BindingGame(Com, A).main() @ &m : res] = 1%r.
 axiom commit_ll : islossless Com.commit.
@@ -420,10 +448,176 @@ proof.
   by have := inter_completeness h' w' e' &m rel.
 qed.
 
-lemma zkboo_shvzk h' a' z1 z2 z3 &m:
-    phoare[ZKBoo(Com).verify : h = h' /\ m = a' /\ e = 1 /\ z = z1 ==> res]= 1%r =>
-    phoare[ZKBoo(Com).verify : h = h' /\ m = a' /\ e = 2 /\ z = z2 ==> res]= 1%r =>
-    phoare[ZKBoo(Com).verify : h = h' /\ m = a' /\ e = 3 /\ z = z3 ==> res]= 1%r =>
+(* module type Distinguisher = { *)
+(*   proc * get(h : statement) : challenge *)
+(*   proc guess(a : message, e : challenge, z : response) : bool *)
+(* }. *)
+
+(* local module ZKBooSHVZKGame (D : Distinguisher) = { *)
+(*   module SHVZKGames = SHVZK(ZKBoo(Com)) *)
+
+(*   proc main(h : statement, w : witness) = { *)
+(*     var b, b', a, e, z, trans; *)
+(*     b <$ dbool; *)
+(*     e = D.get(h); *)
+(*     if (b) { *)
+(*       trans = SHVZKGames.real(h, w, e); *)
+(*       (a, e, z) = oget trans; *)
+(*     } else { *)
+(*       trans = SHVZKGames.ideal(h, e); *)
+(*       (a, e, z) = oget trans; *)
+(*     } *)
+(*     b' = D.guess(a, e, z); *)
+
+(*     return (b = b'); *)
+(*   } *)
+(* }. *)
+
+(* local module ZKBooSHVZKGame' (D : Distinguisher) = { *)
+(*   module ZK = ZKBoo(Com) *)
+(*   module SHVZKGames = SHVZK(ZK) *)
+
+(*   proc main(h : statement, w : witness) = { *)
+(*     var b, b', a, e, z, trans; *)
+(*     b <$ dbool; *)
+(*     e = D.get(h); *)
+(*     if (b) { *)
+(*       a = ZK.init(h, w); *)
+(*       z = ZK.response(h, w, a, e); *)
+(*     } else { *)
+(*       trans = SHVZKGames.ideal(h, e); *)
+(*       (a, e, z) = oget trans; *)
+(*     } *)
+(*     b' = D.guess(a, e, z); *)
+
+(*     return (b = b'); *)
+(*   } *)
+(* }. *)
+
+(* local equiv inter_shvzk (D <: Distinguisher): *)
+(*     ZKBooSHVZKGame(D).main ~ ZKBooSHVZKGame'(D).main : *)
+(*     ={h, w} ==> ={res}. *)
+(* proof. *)
+(*     proc. *)
+(*     sim. *)
+(*     seq 2 2 : (#pre /\ ={b, e}). *)
+(*     call (:true). *)
+(*     auto. *)
+(*     if; progress. *)
+(*     - auto. *)
+(*       inline ZKBooSHVZKGame(D).SHVZKGames.real. *)
+(*       sp. wp. *)
+(*       inline ZKBoo(Com).verify. *)
+(*       inline Phi.reconstruct. *)
+(*       auto. *)
+(*       case (e{1} = 1). *)
+(*       rcondt{1} 10. auto. *)
+(*       call (:true). auto. *)
+(*       call (:true). auto. *)
+(*       auto. *)
+(*       inline ZKBoo(Com).valid_output_share Phi.output. *)
+(*       auto. *)
+(*       call (:true). sim. *)
+
+(* local lemma zkboo_shvzk (D <: Distinguisher) (A <: HidingAdv) h w &m: *)
+(*     Pr[ZKBooSHVZKGame(D).main(h, w) @ &m : res] <= *)
+(*     Pr[HidingGame(Com, A).main() @ &m : res]. *)
+(* proof. *)
+(*     byequiv=>//. *)
+(*     proc. *)
+(*     inline ZKBooSHVZKGame(D).SHVZKGames.real. *)
+
+
+equiv zkboo_shvzk:
+    SHVZK(ZKBoo(Com)).real ~ SHVZK(ZKBoo(Com)).ideal :
+    ={h, e, glob Com} /\ h{1}.`2 = eval_circuit h{1}.`1 [w{1}] /\ e{2} \in dchallenge ==> ={res}.
+proof.
+  proc.
+  auto.
+  exists* h{1}.`1. elim*=> c.
+  exists* e{2}. elim*=> e.
+  exists* w{1}. elim*=> w.
+  call (:true). sim.
+  inline ZKBoo(Com).simulator.
+  inline ZKBoo(Com).response.
+  inline ZKBoo(Com).init.
+  auto.
+  case (e = 1).
+    rcondt{2} 5. auto.
+    swap{2} [8..9] 4.
+    swap{1} 15 -2.
+    auto.
+    call (:true). sim.
+    call (:true). sim.
+    inline Phi.output. auto.
+    call Com_hiding_alt.
+    call (:true).
+    call (:true).
+    wp. sp.
+    inline Privacy.ideal Phi.share Phi.output. auto.
+    have Hsim := phi_sim_circuit_equiv c e [w].
+    call Hsim. clear Hsim.
+    auto. smt(dlist_ll dinput_ll nth_last).
+  case (e = 2).
+    rcondf{2} 5. auto.
+    rcondt{2} 5. auto.
+    swap{2} [8..9] 4.
+    call (:true). sim.
+    call (:true). sim.
+    inline Phi.output. auto.
+    call (:true).
+    call (:true).
+    call Com_hiding_alt.
+    (* swap{1} 4 5. *)
+    wp. sp.
+    inline Privacy.ideal Phi.share Phi.output. auto.
+    have Hsim := phi_sim_circuit_equiv c e [w].
+    call Hsim. clear Hsim.
+    wp. sp.
+    swap{1} 3 1.
+    rnd (fun x => (w - x20{1}) - x).
+    rnd.
+    auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
+  case (e = 3).
+    rcondf{2} 5. auto.
+    rcondf{2} 5. auto.
+    swap{2} [8..9] 4.
+    swap{1} 13 2.
+    call (:true). sim.
+    call (:true). sim.
+    inline Phi.output. auto.
+    call (:true).
+    call Com_hiding_alt.
+    call (:true).
+    (* swap{1} 4 5. *)
+    wp. sp.
+    inline Privacy.ideal Phi.share Phi.output. auto.
+    have Hsim := phi_sim_circuit_equiv c e [w].
+    call Hsim. clear Hsim.
+    wp. sp.
+    swap{2} 5 1.
+    rnd (fun x => (w - x2{2}) - x).
+    rnd.
+    auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
+
+    exfalso. smt.
+qed.
+
+lemma zkboo_verify_success h' a' e' z' &m:
+    Pr[ZKBoo(Com).verify(h', a', e', z') @ &m : res] =
+    Pr[ZKBoo(Com).verify(h', a', e', z') @ &m : res].
+
+(* Notes: *)
+(* What is a? *)
+(* what is z? *)
+(* Properties I need: *)
+(* 1. View w1 in a commitment *)
+(* 2. \forall i w[i] = phi_decomp*)
+
+lemma zkboo_soundness h' a' z1 z2 z3 &m:
+    Pr[ZKBoo(Com).verify(h', a', 1, z1) @ &m : res] = 1%r =>
+    Pr[ZKBoo(Com).verify(h', a', 2, z2) @ &m : res] = 1%r =>
+    Pr[ZKBoo(Com).verify(h', a', 3, z3) @ &m : res] = 1%r =>
     Pr[Sigma.SpecialSoundness(ZKBoo(Com)).main(h', a', [1;2;3], [z1;z2;z3]) @ &m : res] = 1%r.
 proof.
   move=> accept1 accept2 accept3.
