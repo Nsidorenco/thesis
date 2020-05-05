@@ -661,7 +661,6 @@ proof.
 qed.
 
 lemma phi_sim_equiv g e':
-    0 < e' /\ e' <= 3 =>
     (forall s,
       equiv[Phi.compute ~ Simulator.compute :
             size s = size w1{1} /\
@@ -673,6 +672,7 @@ lemma phi_sim_equiv g e':
             size k1{1} = size k1{2} /\
             size k2{1} = size k2{2} /\
             size k3{1} = size k3{2} /\
+            0 < e' /\ e' <= 3 /\
             (if (e' = 1) then ={w1, w2, k1, k2}
               else
               (if (e' = 2) then w2{1} = w1{2} /\ w3{1} = w2{2} /\ k2{1} = k1{2} /\ k3{1} = k2{2}
@@ -763,13 +763,13 @@ qed.
 
 
 lemma phi_sim_circuit_equiv c' e':
-    0 < e' /\ e' <= 3 =>
     (forall s,
       (* s' = eval_circuit_aux c' s => *)
       equiv[Phi.compute ~ Simulator.compute :
             size s = size w1{1} /\
             size s = size w2{1} /\
             size s = size w3{1} /\
+            0 < e' /\ e' <= 3 /\
             size k1{1} = size w1{1} - 1 /\
             size k2{1} = size k1{1} /\
             size k3{1} = size k1{1} /\
@@ -800,7 +800,6 @@ lemma phi_sim_circuit_equiv c' e':
               else
                 (sim_k1, sim_k2, sim_w1, sim_w2) = (k3, k1, phi_w3, phi_w1))))]).
 proof.
-  move=> e_range.
   elim c'.
   - (* empty circuit *)
     progress.
@@ -821,6 +820,7 @@ proof.
       size k1{1} = size k1{2} /\
       size k2{1} = size k2{2} /\
       size k3{1} = size k3{2} /\
+      0 < e' /\ e' <= 3 /\
       c{1} = (x::l)
       ==> ={res})
      (size s = size w1{1} /\
@@ -832,6 +832,7 @@ proof.
       size k1{1} = size k1{2} /\
       size k2{1} = size k2{2} /\
       size k3{1} = size k3{2} /\
+      0 < e' /\ e' <= 3 /\
       (if (e' = 1) then ={w1, w2, k1, k2}
         else
         (if (e' = 2) then w2{1} = w1{2} /\ w3{1} = w2{2} /\ k2{1} = k1{2} /\ k3{1} = k2{2}
@@ -877,7 +878,8 @@ proof.
     size k3{1} = size k1{1} /\
     size k1{1} = size k1{2} /\
     size k2{1} = size k2{2} /\
-    size k3{1} = size k3{2}
+    size k3{1} = size k3{2} /\
+    0 < e' /\ e' <= 3
      ==>
      ={res})
     (size s = size w1{2} /\
@@ -889,6 +891,7 @@ proof.
      size k1{2} = size k1{1} /\
      size k2{2} = size k2{1} /\
      size k3{2} = size k3{1} /\
+     0 < e' /\ e' <= 3 /\
     (if (e' = 1) then ={w1, w2, k1, k2}
       else
       (if (e' = 2) then w2{2} = w1{1} /\ w3{2} = w2{1} /\ k2{2} = k1{1} /\ k3{2} = k2{1}
@@ -925,8 +928,8 @@ proof.
   (* main proof *)
   symmetry.
   proc. auto.
+  have Hgate := phi_sim_equiv x e' s.
   have IH' := IH (eval_circuit_aux [x] s).
-  have Hgate := phi_sim_equiv x e' _ s. smt().
   call IH'. wp. call Hgate.
   clear IH IH' Hgate.
   auto; smt().
@@ -944,8 +947,7 @@ proof.
   auto.
 
   case (e' = 1).
-  - have Heq := phi_sim_circuit_equiv c' e' _ [x'].
-    smt().
+  - have Heq := phi_sim_circuit_equiv c' e' [x'].
     call Heq. clear Heq.
     auto; smt(nth_last).
 
@@ -957,8 +959,7 @@ proof.
     rnd.
     skip; smt(dinput_funi dinput_fu).
     exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
-    have Heq := phi_sim_circuit_equiv c' e' _ [x'].
-    smt().
+    have Heq := phi_sim_circuit_equiv c' e' [x'].
     call Heq. clear Heq.
     auto; smt(nth_last).
 
@@ -970,8 +971,7 @@ proof.
     rnd.
     skip; smt(dinput_funi dinput_fu).
     exists* x1{1}; exists* x2{1}; exists* x3{1}; elim*; progress.
-    have Heq := phi_sim_circuit_equiv c' e' _ [x'].
-    smt().
+    have Heq := phi_sim_circuit_equiv c' e' [x'].
     call Heq. clear Heq.
     auto; smt(nth_last).
 qed.
