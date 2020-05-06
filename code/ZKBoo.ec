@@ -48,7 +48,7 @@ pred valid_view (view view2 : view) (c : circuit) (k1 k2 : random_tape) =
   (forall i, 0 <= i /\ i + 1 < size view =>
     (nth 0 view (i + 1)) = phi_decomp (nth (ADDC(0,0)) c i) i 1 view view2 k1 k2).
 
-module ZKBoo(Com : Protocol) : SProtocol = {
+module ZKBoo(C : Committer, V : Verifier) : SProtocol = {
   var pk : public_key
   var r1, r2, r3 : randomness
   var w1, w2, w3 : view
@@ -59,15 +59,15 @@ module ZKBoo(Com : Protocol) : SProtocol = {
   proc init(h : statement, w : witness) = {
     var x1,x2,x3,y,c,c1,c2,c3,sk,y1,y2,y3;
     (c, y) = h;
-    (sk, pk) <$ Commit.dkey;
+    (sk, pk) = C.key_gen();
     (x1, x2, x3) = Phi.share(w);
     k1 = [];
     k2 = [];
     k3 = [];
     (k1, k2, k3, w1, w2, w3) = Phi.compute(c, [x1], [x2], [x3], k1, k2, k3);
-    (c1, r1) = Com.commit(sk, w1);
-    (c2, r2) = Com.commit(sk, w2);
-    (c3, r3) = Com.commit(sk, w3);
+    (c1, r1) = C.commit(sk, w1);
+    (c2, r2) = C.commit(sk, w2);
+    (c3, r3) = C.commit(sk, w3);
     y1 = Phi.output(w1);
     y2 = Phi.output(w2);
     y3 = Phi.output(w3);
@@ -108,8 +108,8 @@ module ZKBoo(Com : Protocol) : SProtocol = {
       (o2, r2') = snd open;
       (k1', w1') = o1;
       (k2', w2') = o2;
-      valid_com1 = Commit.verify pk w1' c1 r1';
-      valid_com2 = Commit.verify pk w2' c2 r2';
+      valid_com1 = V.verify(pk, w1', c1, r1');
+      valid_com2 = V.verify(pk, w2', c2, r2');
       valid_share1 = valid_output_share(y1, w1');
       valid_share2 = valid_output_share(y2, w2');
       (* valid = valid_view w1' w2' c k1' k2'; *)
@@ -119,8 +119,8 @@ module ZKBoo(Com : Protocol) : SProtocol = {
         (o2, r3') = snd open;
         (k2', w2') = o1;
         (k3', w3') = o2;
-        valid_com1 = Commit.verify pk w2' c2 r2';
-        valid_com2 = Commit.verify pk w3' c3 r3';
+        valid_com1 = V.verify(pk, w2', c2, r2');
+        valid_com2 = V.verify(pk, w3', c3, r3');
         valid_share1 = valid_output_share(y2, w2');
         valid_share2 = valid_output_share(y3, w3');
         (* valid = valid_view w2' w3' c k2' k3'; *)
@@ -129,8 +129,8 @@ module ZKBoo(Com : Protocol) : SProtocol = {
         (o2, r1') = snd open;
         (k3', w3') = o1;
         (k1', w1') = o2;
-        valid_com1 = Commit.verify pk w3' c3 r3';
-        valid_com2 = Commit.verify pk w1' c1 r1';
+        valid_com2 = V.verify(pk, w1', c1, r1');
+        valid_com1 = V.verify(pk, w3', c3, r3');
         valid_share1 = valid_output_share(y3, w3');
         valid_share2 = valid_output_share(y1, w1');
         (* valid_view = valid_view w3' w1' c k3' k1'; *)
@@ -168,7 +168,7 @@ module ZKBoo(Com : Protocol) : SProtocol = {
     var c1, c2, c3, r1, r2, r3;
     var k1, k2;
     (c, y) = h;
-    (sk, pk) <$ Commit.dkey;
+    (sk, pk) = C.key_gen();
     if (e = 1) {
       (views, y3) = Privacy.ideal(y, c, e);
       (k1, w1, k2, w2) = views;
@@ -176,9 +176,9 @@ module ZKBoo(Com : Protocol) : SProtocol = {
       y1 = Phi.output(w1);
       y2 = Phi.output(w2);
 
-      (c1, r1) = Com.commit(sk, w1);
-      (c2, r2) = Com.commit(sk, w2);
-      (c3, r3) = Com.commit(sk, w3);
+      (c1, r1) = C.commit(sk, w1);
+      (c2, r2) = C.commit(sk, w2);
+      (c3, r3) = C.commit(sk, w3);
       z = (pk, (((k1, w1), r1), ((k2, w2), r2)));
     } else {
       if (e = 2) {
@@ -188,9 +188,9 @@ module ZKBoo(Com : Protocol) : SProtocol = {
         y2 = Phi.output(w2);
         y3 = Phi.output(w3);
 
-        (c1, r1) = Com.commit(sk, w1);
-        (c2, r2) = Com.commit(sk, w2);
-        (c3, r3) = Com.commit(sk, w3);
+        (c1, r1) = C.commit(sk, w1);
+        (c2, r2) = C.commit(sk, w2);
+        (c3, r3) = C.commit(sk, w3);
         z = (pk, (((k2, w2), r2), ((k3, w3), r3)));
       } else {
         (views, y2) = Privacy.ideal(y, c, e);
@@ -199,9 +199,9 @@ module ZKBoo(Com : Protocol) : SProtocol = {
         y3 = Phi.output(w3);
         y1 = Phi.output(w1);
 
-        (c1, r1) = Com.commit(sk, w1);
-        (c2, r2) = Com.commit(sk, w2);
-        (c3, r3) = Com.commit(sk, w3);
+        (c1, r1) = C.commit(sk, w1);
+        (c2, r2) = C.commit(sk, w2);
+        (c3, r3) = C.commit(sk, w3);
         z = (pk, (((k3, w3), r3), ((k1, w1), r1)));
       }
     }
@@ -214,24 +214,27 @@ module ZKBoo(Com : Protocol) : SProtocol = {
 
 section Protocol.
 
-declare module Com : Commit.Protocol{ZKBoo}.
+declare module Com : Commit.Committer{ZKBoo}.
+declare module Ver : Commit.Verifier{Com, ZKBoo}.
 
 (* Assume security of Com *)
 (* axiom Com_correct &m a : Pr[Correctness(Com).main(a) @ &m : res] = 1%r. *)
 
+axiom key_gen_correct :
+    phoare[Com.key_gen : true ==> valid_key res] = 1%r.
 axiom Com_correct :
-    phoare[Correctness(Com).key_fixed : (sk, pk) \in Commit.dkey ==> res] = 1%r.
+    phoare[Correctness(Com, Ver).key_fixed : valid_key (sk, pk) ==> res] = 1%r.
 axiom Com_hiding &m (A <: HidingAdv):
   Pr[HidingGame(Com, A).main() @ &m : res] = 1%r.
 axiom Com_hiding_alt :
   equiv[Com.commit ~ Com.commit : ={sk, glob Com} ==> ={res, glob Com}].
 axiom Com_binding &m (A <: BindingAdv):
-  Pr[BindingGame(Com, A).main() @ &m : res] = 1%r.
+  Pr[BindingGame(Com, Ver, A).main() @ &m : res] = 1%r.
 axiom commit_ll : islossless Com.commit.
 
 
 local module Intermediate = {
-  module ComCorrectness = Correctness(Com)
+  module ComCorrectness = Correctness(Com, Ver)
   proc valid_output_share(y : output, w : view) : bool = {
     var share;
     share = Phi.output(w);
@@ -250,7 +253,7 @@ local module Intermediate = {
     y1 = Phi.output(w1);
     y2 = Phi.output(w2);
     y3 = Phi.output(w3);
-    (sk, pk) <$ Commit.dkey;
+    (sk, pk) = Com.key_gen();
     if (e = 1) {
       valid_com1 = ComCorrectness.key_fixed(w1, sk, pk);
       valid_com2 = ComCorrectness.key_fixed(w2, sk, pk);
@@ -295,10 +298,11 @@ proof.
     call commit_ll.
     call Com_correct.
     call Com_correct.
+    call key_gen_correct.
     auto.
     have Hcircuit := compute_circuit_correct h'.`1 [w'] [].
     call Hcircuit.
-    auto; smt(dinput_ll Commit.dkey_ll nth_last size_ge0).
+    auto; smt(dinput_ll nth_last size_ge0).
   case (e' = 2).
     rcondf 11. auto. do ? call(:true); auto.
     inline Intermediate.valid_output_share Phi.output Phi.reconstruct Phi.share.
@@ -311,10 +315,11 @@ proof.
     call Com_correct.
     call Com_correct.
     call commit_ll.
+    call key_gen_correct.
     auto.
     have Hcircuit := compute_circuit_correct h'.`1 [w'] [].
     call Hcircuit.
-    auto; smt(dinput_ll Commit.dkey_ll nth_last size_ge0).
+    auto; smt(dinput_ll nth_last size_ge0).
   (* case (e' = 2) *)
     rcondf 11. auto. do ? call(:true); auto.
     inline Intermediate.valid_output_share Phi.output Phi.reconstruct Phi.share.
@@ -327,34 +332,37 @@ proof.
     call Com_correct.
     call commit_ll.
     call Com_correct.
+    call key_gen_correct.
     auto.
     have Hcircuit := compute_circuit_correct h'.`1 [w'] [].
     call Hcircuit.
-    auto; smt(dinput_ll Commit.dkey_ll nth_last size_ge0).
+    auto; smt(dinput_ll nth_last size_ge0).
 qed.
 
 local equiv inter_equiv :
-    Sigma.Completeness(ZKBoo(Com)).special ~ Intermediate.main :
+    Sigma.Completeness(ZKBoo(Com, Ver)).special ~ Intermediate.main :
     ={h, w, e, glob Com} /\ R h{1} w{1} ==> ={res}.
 proof.
   proc.
-  inline ZKBoo(Com).init ZKBoo(Com).response ZKBoo(Com).verify.
+  inline ZKBoo(Com, Ver).init ZKBoo(Com, Ver).response ZKBoo(Com, Ver).verify.
   sp.
   case (e{1} = 1).
   rcondt{1} 18. progress.
     auto; do ? call (:true); auto.
-    inline *. auto.
+    inline *. auto. call (:true). auto.
   rcondt{2} 10. progress.
     auto; do ? call (:true); auto.
     inline *. auto.
   rcondt{1} 27. progress.
     auto; do ? call (:true); auto.
-    inline *. auto.
+    inline *. auto. call (:true). auto.
   inline Phi.reconstruct.
-  inline ZKBoo(Com).valid_output_share Intermediate.valid_output_share.
+  inline ZKBoo(Com, Ver).valid_output_share Intermediate.valid_output_share.
   inline Intermediate.ComCorrectness.key_fixed.
-  swap{2} [6..8] 14.
-  swap{2} 6 - 5.
+  swap{2} 9 - 8.
+  swap{2} [7..9] 13.
+  swap{2} [17..18] 4.
+  swap{2} [11..12] 8.
   auto. sim.
   wp.
   call (:true); auto.
@@ -364,15 +372,16 @@ proof.
   call (:true); auto.
   call (:true); auto.
   call (:true); auto. sim.
+  call (:true); auto.
   call (:true); auto.
 
   case (e{1} = 2).
   rcondf{1} 18. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondt{1} 18. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondf{2} 10. progress.
     auto; do ? call (:true); auto.
     inline *; auto.
@@ -381,15 +390,17 @@ proof.
     inline *; auto.
   rcondf{1} 27. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondt{1} 27. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   inline Phi.reconstruct.
-  inline ZKBoo(Com).valid_output_share Intermediate.valid_output_share.
+  inline ZKBoo(Com, Ver).valid_output_share Intermediate.valid_output_share.
   inline Intermediate.ComCorrectness.key_fixed.
   swap{2} [6..8] 14.
   swap{2} 6 - 5.
+  swap{2} [18..19] 3.
+  swap{2} [12..13] 7.
   auto. sim.
   wp.
   call (:true); auto.
@@ -399,15 +410,16 @@ proof.
   call (:true); auto.
   call (:true); auto.
   call (:true); auto. sim.
+  call (:true); auto.
   call (:true); auto.
 
   (* case e = 3 *)
   rcondf{1} 18. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondf{1} 18. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondf{2} 10. progress.
     auto; do ? call (:true); auto.
     inline *; auto.
@@ -416,15 +428,17 @@ proof.
     inline *; auto.
   rcondf{1} 27. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   rcondf{1} 27. progress.
     auto; do ? call (:true); auto.
-    inline *; auto.
+    inline *. auto. call (:true). auto.
   inline Phi.reconstruct.
-  inline ZKBoo(Com).valid_output_share Intermediate.valid_output_share.
+  inline ZKBoo(Com, Ver).valid_output_share Intermediate.valid_output_share.
   inline Intermediate.ComCorrectness.key_fixed.
   swap{2} [6..8] 14.
   swap{2} 6 - 5.
+  swap{2} [18..19] 3.
+  swap{2} [11..12] 8.
   auto. sim.
   wp.
   call (:true); auto.
@@ -435,14 +449,15 @@ proof.
   call (:true); auto.
   call (:true); auto. sim.
   call (:true); auto.
+  call (:true); auto.
 qed.
 
 lemma zkboo_completeness h' w' e' &m:
     R h' w' /\ valid_circuit h'.`1 =>
-    Pr[Sigma.Completeness(ZKBoo(Com)).special(h', w', e') @ &m : res] = 1%r.
+    Pr[Sigma.Completeness(ZKBoo(Com, Ver)).special(h', w', e') @ &m : res] = 1%r.
 proof.
   move=> rel.
-  have -> : Pr[Completeness(ZKBoo(Com)).special(h', w', e') @ &m : res] =
+  have -> : Pr[Completeness(ZKBoo(Com, Ver)).special(h', w', e') @ &m : res] =
             Pr[Intermediate.main(h', w', e') @ &m : res].
   - byequiv inter_equiv=>/#.
   by have := inter_completeness h' w' e' &m rel.
@@ -529,7 +544,7 @@ qed.
 
 
 equiv zkboo_shvzk:
-    SHVZK(ZKBoo(Com)).real ~ SHVZK(ZKBoo(Com)).ideal :
+    SHVZK(ZKBoo(Com, Ver)).real ~ SHVZK(ZKBoo(Com, Ver)).ideal :
     ={h, e, glob Com} /\ h{1}.`2 = eval_circuit h{1}.`1 [w{1}] /\ e{2} \in dchallenge ==> ={res}.
 proof.
   proc.
@@ -538,12 +553,12 @@ proof.
   exists* e{2}. elim*=> e.
   exists* w{1}. elim*=> w.
   call (:true). sim.
-  inline ZKBoo(Com).simulator.
-  inline ZKBoo(Com).response.
-  inline ZKBoo(Com).init.
+  inline ZKBoo(Com, Ver).simulator.
+  inline ZKBoo(Com, Ver).response.
+  inline ZKBoo(Com, Ver).init.
   auto.
   case (e = 1).
-    rcondt{2} 5. auto.
+    rcondt{2} 5. auto. call (:true). auto.
     swap{2} [8..9] 4.
     swap{1} 15 -2.
     auto.
@@ -557,10 +572,11 @@ proof.
     inline Privacy.ideal Phi.share Phi.output. auto.
     have Hsim := phi_sim_circuit_equiv c e [w].
     call Hsim. clear Hsim.
+    auto. call (:true).
     auto. smt(dlist_ll dinput_ll nth_last).
   case (e = 2).
-    rcondf{2} 5. auto.
-    rcondt{2} 5. auto.
+    rcondf{2} 5. auto. call (:true). auto.
+    rcondt{2} 5. auto. call (:true). auto.
     swap{2} [8..9] 4.
     call (:true). sim.
     call (:true). sim.
@@ -577,10 +593,11 @@ proof.
     swap{1} 3 1.
     rnd (fun x => (w - x20{1}) - x).
     rnd.
+    wp. call (:true).
     auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
   case (e = 3).
-    rcondf{2} 5. auto.
-    rcondf{2} 5. auto.
+    rcondf{2} 5. auto. call (:true). auto.
+    rcondf{2} 5. auto. call (:true). auto.
     swap{2} [8..9] 4.
     swap{1} 13 2.
     call (:true). sim.
@@ -598,14 +615,21 @@ proof.
     swap{2} 5 1.
     rnd (fun x => (w - x2{2}) - x).
     rnd.
+    wp. call (:true).
     auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
 
     exfalso. smt.
 qed.
 
+(* special soundness section *)
+(* Two proofs: *)
+(*  1) proof that all opened views are equal to the views in the first message *)
+(*  2) witness can be reconstructed from the three views*)
+
 lemma zkboo_verify_success h' a' e' z' &m:
-    Pr[ZKBoo(Com).verify(h', a', e', z') @ &m : res] =
-    Pr[ZKBoo(Com).verify(h', a', e', z') @ &m : res].
+    Pr[ZKBoo(Com, Ver).verify(h', a', e', z') @ &m : res] =
+    Pr[ZKBoo(Com, Ver).verify(h', a', e', z') @ &m : res].
+admitted.
 
 (* Notes: *)
 (* What is a? *)
@@ -614,22 +638,202 @@ lemma zkboo_verify_success h' a' e' z' &m:
 (* 1. View w1 in a commitment *)
 (* 2. \forall i w[i] = phi_decomp*)
 
-lemma zkboo_soundness h' a' z1 z2 z3 &m:
-    Pr[ZKBoo(Com).verify(h', a', 1, z1) @ &m : res] = 1%r =>
-    Pr[ZKBoo(Com).verify(h', a', 2, z2) @ &m : res] = 1%r =>
-    Pr[ZKBoo(Com).verify(h', a', 3, z3) @ &m : res] = 1%r =>
-    Pr[Sigma.SpecialSoundness(ZKBoo(Com)).main(h', a', [1;2;3], [z1;z2;z3]) @ &m : res] = 1%r.
+local module SoundnessInter = {
+  module ZK = ZKBoo(Com, Ver)
+  var v1, v2, v3 : bool
+  proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
+    v1 = ZK.verify(h, m, 1, z1);
+    v2 = ZK.verify(h, m, 2, z2);
+    v3 = ZK.verify(h, m, 3, z3);
+
+    return v1 /\ v2 /\ v3;
+  }
+  proc main(h : statement, m : message, z1 z2 z3 : response) = {
+    var v, w;
+    v = extract_views(h, m, z1, z2, z3);
+    w = ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
+
+    return v1 /\ v2 /\ v3 /\ R h w;
+  }
+
+  proc extract_views_inlined(h : statement, m : message, z1 z2 z3 : response) = {
+    var c, pk, open1, open2, open3, y1, y2, y3, c1, c2, c3, y, y';
+    var valid_com11, valid_com21;
+    var valid_com12, valid_com22;
+    var valid_com13, valid_com23;
+    var valid_share11, valid_share21;
+    var valid_share12, valid_share22;
+    var valid_share13, valid_share23;
+    var o11, o21, o12, o22, o13, o23;
+    var k11, w11, k21, w21;
+    var k22, w22, k32, w32;
+    var k33, w33, k13, w13;
+    var r11, r21;
+    var r22, r32;
+    var r33, r13;
+
+    (pk, open1) = z1;
+    (pk, open2) = z2;
+    (pk, open3) = z3;
+    (y1, y2, y3, c1, c2, c3) = m;
+    (c, y) = h;
+
+    (* Verify z1 *)
+    (o11, r11) = fst open1;
+    (o21, r21) = snd open1;
+    (k11, w11) = o11;
+    (k21, w21) = o21;
+    valid_com11 = Ver.verify(pk, w11, c1, r11);
+    valid_com21 = Ver.verify(pk, w21, c2, r21);
+    valid_share11 = ZK.valid_output_share(y1, w11);
+    valid_share21 = ZK.valid_output_share(y2, w21);
+
+    (* Verify z2 *)
+    (o12, r22) = fst open2;
+    (o22, r32) = snd open2;
+    (k22, w22) = o12;
+    (k32, w32) = o22;
+    valid_com12 = Ver.verify(pk, w22, c2, r22);
+    valid_com22 = Ver.verify(pk, w32, c3, r32);
+    valid_share12 = ZK.valid_output_share(y2, w22);
+    valid_share22 = ZK.valid_output_share(y3, w32);
+
+    (* Verify z3 *)
+    (o13, r33) = fst open3;
+    (o23, r13) = snd open3;
+    (k33, w33) = o13;
+    (k13, w13) = o23;
+    valid_com23 = Ver.verify(pk, w13, c1, r13);
+    valid_com13 = Ver.verify(pk, w33, c3, r33);
+    valid_share13 = ZK.valid_output_share(y3, w33);
+    valid_share23 = ZK.valid_output_share(y1, w13);
+
+    y' = Phi.reconstruct(y1, y2, y3);
+
+    return y' = y /\ valid_com11 /\ valid_com21 /\ valid_share11 /\ valid_share21
+                  /\ valid_com12 /\ valid_com22 /\ valid_share12 /\ valid_share22
+                  /\ valid_com13 /\ valid_com23 /\ valid_share13 /\ valid_share23;
+
+  }
+}.
+
+        (* (o1, r3') = fst open; *)
+        (* (o2, r1') = snd open; *)
+        (* (k3', w3') = o1; *)
+        (* (k1', w1') = o2; *)
+        (* valid_com2 = V.verify(pk, w1', c1, r1'); *)
+        (* valid_com1 = V.verify(pk, w3', c3, r3'); *)
+        (* valid_share1 = valid_output_share(y3, w3'); *)
+        (* valid_share2 = valid_output_share(y1, w1'); *)
+
+(* Proof idea: *)
+(* If responses differ, then they can be used as the binding adversary *)
+(* This will break the assumption of binding *)
+
+local equiv extracted_views :
+  SoundnessInter.extract_views ~ SoundnessInter.extract_views_inlined :
+  ={h, m, z1, z2, z3} /\ z2{2}.`1 = z3{2}.`1 /\ z1{2}.`1 = z3{2}.`1 ==> ={res}.
 proof.
-  move=> accept1 accept2 accept3.
-  byphoare(: h = h' /\ m = a' /\ c = [1;2;3] /\ z = [z1;z2;z3] ==>)=>//.
+  proc.
+  inline *. auto.
+  rcondt{1} 8. auto.
+  rcondf{1} 38. auto. call (:true). auto.
+  rcondt{1} 38. auto. call (:true). auto.
+  rcondf{1} 68. auto. call (:true). auto.
+  rcondf{1} 68. auto. call (:true). auto.
+  auto.
+  call (:true). wp.
+  call (:true). wp.
+  call (:true). wp.
+  call (:true). wp.
+  call (:true). wp.
+  call (:true). auto.
+  smt().
+qed.
+
+
+local equiv soundness_inter :
+  Sigma.SpecialSoundness(ZKBoo(Com, Ver)).main ~ SoundnessInter.main :
+  ={h, m} /\ c{1} = [1;2;3] /\ z{1} = [z1{2};z2{2};z3{2}] ==> ={res}.
+proof.
   proc.
   sp.
-  rcondt 1; auto.
-  rcondt 7. inline *. auto.
-  rcondt 13. inline *. auto.
-  rcondf 19. inline *. auto.
+  rcondt{1} 1. auto.
+  rcondt{1} 7. auto. call (:true). auto. auto.
+  rcondt{1} 13. auto. call (:true). auto. auto. call (:true). auto. auto.
+  rcondf{1} 19. auto. call (:true). auto. auto. call (:true). auto. auto. call (:true). auto. auto.
+  inline SoundnessInter.extract_views.
+  wp. call (:true). sim.
+  wp. call (:true). sim.
+  wp. call (:true). sim.
+  wp. call (:true). sim.
+  auto; progress.
+  smt().
+qed.
+
+local lemma zkboo_inter_views
+      c' y y1 y2 y3 c1 c2 c3 pk
+      k11 k21 w11 w21 r11 r21
+      k22 k32 w22 w32 r22 r32
+      k33 k13 w33 w13 r33 r13 &m:
+  phoare[SoundnessInter(ZKBoo(Com,Ver)).extract_views :
+         h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z1 = (pk, (((k11, w11), r11), ((k21, w21), r21))) /\ z2 = (pk, (((k22, w22), r22), ((k32, w32), r32))) /\ z3 = (pk, (((k33, w33), r33), ((k13, w13), r13)))
+         ==> SoundnessInter.v1 /\ w11 = w13] = 1%r.
+proof.
+  proc.
+  inline *.
+  rcondt 8. auto.
+  rcondf 38. auto. call (:true). auto.
+  rcondt 38. auto. call (:true). auto.
+  rcondf 68. auto. call (:true). auto.
+  rcondf 68. auto. call (:true). auto.
+  auto.
+  call (:true). auto.
+
+
+local lemma zkboo_inter_soundness
+      c' y y1 y2 y3 c1 c2 c3 pk
+      k11 k21 w11 w21 r11 r21
+      k22 k32 w22 w32 r22 r32
+      k33 k13 w33 w13 r33 r13 &m:
+    phoare[ZKBoo(Com, Ver).verify : h = (c', y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z =  (pk, (((k11, w11), r11), ((k21, w21), r21))) ==> res ] = 1%r =>
+    phoare[ZKBoo(Com, Ver).verify : h = (c', y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z =  (pk, (((k22, w22), r22), ((k32, w32), r32))) ==> res ] = 1%r =>
+    phoare[ZKBoo(Com, Ver).verify : h = (c', y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z =  (pk, (((k33, w33), r33), ((k13, w13), r13))) ==> res ] = 1%r =>
+    Pr[SoundnessInter(ZKBoo(Com, Ver)).main((c', y), (y1,y2,y3,c1,c2,c3), (pk, (((k11, w11), r11), ((k21, w21), r21))), (pk, (((k22, w22), r22), ((k32, w32), r32))), (pk, (((k33, w33), r33), ((k13, w13), r13)))) @ &m : res] = 1%r.
+proof.
+  move=> accept1 accept2 accept3.
+  byphoare(: h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z1 = (pk, (((k11, w11), r11), ((k21, w21), r21))) /\ z2 = (pk, (((k22, w22), r22), ((k32, w32), r32))) /\ z3 = (pk, (((k33, w33), r33), ((k13, w13), r13))) ==>)=>//.
+  proc.
+  inline ZKBoo(Com, Ver).witness_extractor.
+  wp.
+  call accept3.
+  call accept2.
+  call accept1.
+  skip; progress.
+  rewrite /R /R_DL.
+  rewrite /eval_circuit.
+
+
+
+lemma zkboo_soundness c' y y1 y2 y3 c1 c2 c3 pk
+      k11 k21 w11 w21 r11 r21
+      k22 k32 w22 w32 r22 r32
+      k33 k13 w33 w13 r33 r13 &m:
+    Pr[Sigma.SpecialSoundness(ZKBoo(Com, Ver)).main((c', y), (y1,y2,y3,c1,c2,c3), [1;2;3], [(pk, (((k11, w11), r11), ((k21, w21), r21))); (pk, (((k22, w22), r22), ((k32, w32), r32))); (pk, (((k33, w33), r33), ((k13, w13), r13)))]) @ &m : res] = 1%r.
+proof.
+  byphoare(: h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ c = [1;2;3] /\ z = [(pk, (((k11, w11), r11), ((k21, w21), r21))); (pk, (((k22, w22), r22), ((k32, w32), r32))); (pk, (((k33, w33), r33), ((k13, w13), r13)))] ==>)=>//.
+  proc.
   sp.
-  inline ZKBoo(Com).witness_extractor.
+  seq 1 : (#pre /\ k11 = k13 /\ w11 = w13).
+  - auto.
+  - rcondt 1. inline *. auto.
+    rcondt 7. inline *. auto.
+    rcondf 13. inline *. wp.
+    progress. smt().
+  (* inline ZKBoo(Com).verify ZKBoo(Com).witness_extractor. *)
+  inline *.
+  auto.
+  progress.
   wp. call accept3.
   wp. call accept2.
   wp. call accept1.
