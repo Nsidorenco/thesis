@@ -11,67 +11,65 @@ type randomness.
 
 op dm : {message distr | is_lossless dm} as dm_ll.
 op dr : {randomness distr | is_lossless dr} as dr_ll.
-op dkey : {(secret_key * public_key) distr | is_lossless dkey} as dkey_ll.
 
-op verify (pk : public_key, m : message, c : commitment, d : randomness): bool.
 
-module type Protocol = {
-  (* proc * key_gen() : secret_key * public_key *)
+op valid_key (key : secret_key * public_key) : bool.
+(* make a predicate *)
+
+module type Committer = {
+  proc * key_gen() : secret_key * public_key
   proc commit(sk : secret_key, m : message) : commitment * randomness
 }.
 
-module Correctness(P : Protocol) = {
+module type Verifier = {
+  proc verify (pk : public_key, m : message, c : commitment, d : randomness): bool
+}.
+
+
+module Correctness(C : Committer, V : Verifier) = {
   proc main(m : message) : bool = {
     var sk, pk, c, d, b;
-    (sk, pk) <$ dkey;
-    (c, d)   = P.commit(sk, m);
-    b = verify pk m c d;
+    (sk, pk) = C.key_gen();
+    (c, d)   = C.commit(sk, m);
+    b        = V.verify(pk, m, c, d);
     return b;
   }
 
   proc key_fixed(m : message, sk : secret_key, pk : public_key) : bool = {
     var c, d, b;
-    (c, d)   = P.commit(sk, m);
-    b = verify pk m c d;
+    (c, d)   = C.commit(sk, m);
+    b        = V.verify(pk, m, c, d);
     return b;
   }
 
   proc intermediate(m : message) = {
     var sk, pk, b;
-    (sk, pk) <$ dkey;
+    (sk, pk) = C.key_gen();
     b = key_fixed(m, sk, pk);
     return b;
 
   }
 }.
 
-lemma intermediate (Com <: Protocol) m' &m:
-    Pr[Correctness(Com).main(m') @ &m : res] =
-    Pr[Correctness(Com).intermediate(m') @ &m : res].
+lemma intermediate (C <: Committer) (V <: Verifier{C}) m' &m:
+    Pr[Correctness(C,V).main(m') @ &m : res] =
+    Pr[Correctness(C,V).intermediate(m') @ &m : res].
 proof.
   byequiv=>//. proc.
   inline *. sim.
 qed.
 
-lemma key_fixed_correct (Com <: Protocol) m' &m:
-    (forall sk' pk', phoare[Correctness(Com).key_fixed : sk = sk' /\ pk = pk' /\ (sk', pk') \in dkey ==> res] = 1%r)
-    => Pr[Correctness(Com).main(m') @ &m : res] = 1%r.
+lemma key_fixed_correct (C <: Committer) (V <: Verifier{C}) m'  &m:
+    phoare[C.key_gen : true ==> valid_key res] = 1%r =>
+    (phoare[Correctness(C,V).key_fixed : valid_key (sk, pk) ==> res] = 1%r)
+    => Pr[Correctness(C,V).main(m') @ &m : res] = 1%r.
 proof.
-  move => H.
-  have -> := (intermediate Com m' &m).
+  move => key_gen_valid H.
+  have -> := (intermediate C V m' &m).
   byphoare(: m = m' ==> )=>//.
   proc.
-  seq 1 : (#pre /\ exists sk' pk', sk = sk' /\ pk = pk' /\ (sk', pk') \in dkey).
-  auto. auto. progress.
-  apply dkey_ll.
-  smt().
-  elim * => sk' pk'.
-  have H' := H sk' pk'.
-  call H'.
-  skip; progress.
-  hoare.
-  auto. progress. smt().
-  progress.
+  call H.
+  call key_gen_valid. skip; smt().
 qed.
 
 
@@ -84,16 +82,16 @@ module type HidingAdv = {
 
 }.
 
-module HidingGame(P : Protocol, A : HidingAdv) = {
+module HidingGame(C : Committer, A : HidingAdv) = {
   proc main() = {
     var sk, pk, m0, m1, b, b', c, r;
-    (sk, pk) <$ dkey;
+    (sk, pk) = C.key_gen();
     (m0, m1) = A.get();
     b <$ DBool.dbool;
     if (b) {
-      (c, r) = P.commit(sk, m0);
+      (c, r) = C.commit(sk, m0);
     } else {
-      (c, r) = P.commit(sk, m1);
+      (c, r) = C.commit(sk, m1);
     }
     b' = A.check(c);
     return b = b';
@@ -104,13 +102,13 @@ module type BindingAdv = {
   proc bind(sk : secret_key, pk : public_key) : commitment * message * message * randomness * randomness
 }.
 
-module BindingGame(P : Protocol, B : BindingAdv) = {
+module BindingGame(C : Committer, V : Verifier, B : BindingAdv) = {
   proc main() = {
   var sk, pk, c, m, m', r, r', v, v';
-    (sk, pk) <$ dkey;
+    (sk, pk) = C.key_gen();
     (c, m, m', r, r') = B.bind(sk, pk);
-    v = verify pk m c r;
-    v' = verify pk m' c r';
+    v =  V.verify(pk, m, c, r);
+    v' = V.verify(pk, m', c, r');
     return (v /\ v') /\ (m <> m');
   }
 }.
