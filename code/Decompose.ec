@@ -385,14 +385,18 @@ lemma compute_gate_correct g:
           (forall i, 0 <= i /\ i < size w1 =>
             (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)) /\
           (forall i, 0 <= i /\ i + 1 < size w1 =>
-            (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) cprev i) i 1 w1 w2 k1 k2))
+            (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 1 w1 w2 k1 k2 /\
+            (nth 0 w2 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 2 w2 w3 k2 k3 /\
+            (nth 0 w3 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 3 w3 w1 k3 k1))
         ==>
         let (k1, k2, k3, w1res, w2res, w3res) = res in
           let s' = (eval_circuit_aux [g] s) in
         (forall i, 0 <= i /\ i < size w1res =>
           (nth 0 w1res i) + (nth 0 w2res i) + (nth 0 w3res i) = (nth 0 s' i)) /\
         (forall i, 0 <= i /\ i + 1 < size w1res =>
-          (nth 0 w1res (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 1 w1res w2res k1 k2)
+          (nth 0 w1res (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 1 w1res w2res k1 k2 /\
+          (nth 0 w2res (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 2 w2res w3res k2 k3 /\
+          (nth 0 w3res (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 3 w3res w1res k3 k1)
          /\ size (cprev ++ [g]) = size w1res - 1 /\ valid_gate g (size w1res - 1)
          /\ size k1 = size w1res - 1 /\ size k2 = size k1 /\ size k3 = size k1
          /\ size s' = size w1res /\ size s' = size w2res /\ size s' = size w3res]=1%r).
@@ -419,42 +423,55 @@ proof.
   case (i < size w1{hr}); progress.
   case (i < size cprev); progress.
   rewrite - !cats1.
-  have Hvalid := gate_computation_order (nth (ADDC(0,0)) cprev i) i 1 w1{hr} w2{hr}
-                                 [phi_decomp g (size w1{hr} - 1) 1 w1{hr} w2{hr} (k1{hr} ++ [v]) (k2{hr} ++ [v0])]
-                                 [phi_decomp g (size w1{hr} - 1) 2 w2{hr} w3{hr} (k2{hr} ++ [v0]) (k3{hr} ++ [v4])]
-                                 k1{hr} k2{hr} [v] [v0] _.
-                                 rewrite /valid_circuit in H3.
-                                 have := H3 i _. smt().
-                                 have -> := onth_nth (ADDC(0,0)) cprev i _. smt().
-                                 smt().
-
-  rewrite - Hvalid.
-  have : i + 1 < size w1{hr}. smt().
-  progress.
-  have := H8 i _. smt().
-  smt(last_cat).
+  smt.
   have -> : i + 1 = size w1{hr}. smt().
   have : i = size cprev. smt().
   progress.
   rewrite oget_some - !cats1 - H4.
-  have Hvalid := gate_computation_order_eq g (size cprev) 1 w1{hr} w2{hr}
-                                 [phi_decomp g (size cprev) 1 w1{hr} w2{hr} (k1{hr} ++ [v]) (k2{hr} ++ [v0])]
-                                 [phi_decomp g (size cprev) 2 w2{hr} w3{hr} (k2{hr} ++ [v0]) (k3{hr} ++ [v4])]
-                                 (k1{hr}++[v]) (k2{hr}++[v0]) _. smt(size_cat).
-
   smt.
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
   rewrite oget_some - !cats1.
-  have Hvalid := gate_computation_order_eq g (size cprev) 1 w1{hr} w2{hr}
-                                 [phi_decomp g (size w1{hr} - 1) 1 w1{hr} w2{hr} (k1{hr} ++ [v]) (k2{hr} ++ [v0])]
-                                 [phi_decomp g (size w1{hr} - 1) 2 w2{hr} w3{hr} (k2{hr} ++ [v0]) (k3{hr} ++ [v4])]
-                                 (k1{hr}++[v]) (k2{hr}++[v0]) _. smt(size_cat).
+  smt. smt().
+  smt(size_cat size_rcons).
 
+  rewrite !nth_rcons.
+  rewrite nth_cat.
+  case (i < size w1{hr}); progress.
+  case (i < size cprev); progress.
+  rewrite - !cats1.
   smt.
-  smt().
+  have -> : i + 1 = size w1{hr}. smt().
+  have : i = size cprev. smt().
+  progress.
+  rewrite oget_some - !cats1 - H4.
   smt.
+  case (i + 1 < size w1{hr}); progress.
+  have := H8 i _. smt().
+  case (i = size cprev); progress.
+  rewrite oget_some - !cats1.
+  smt. smt().
+  smt(size_cat size_rcons).
+
+  rewrite !nth_rcons.
+  rewrite nth_cat.
+  case (i < size w1{hr}); progress.
+  case (i < size cprev); progress.
+  rewrite - !cats1.
+  smt.
+  have -> : i + 1 = size w1{hr}. smt().
+  have : i = size cprev. smt().
+  progress.
+  rewrite oget_some - !cats1 - H4.
+  smt.
+  case (i + 1 < size w1{hr}); progress.
+  have := H8 i _. smt().
+  case (i = size cprev); progress.
+  rewrite oget_some - !cats1.
+  smt. smt().
+  smt(size_cat size_rcons).
+
   smt(size_cat size_rcons).
   smt(size_cat size_rcons).
   smt(size_cat size_rcons).
@@ -476,12 +493,16 @@ lemma compute_circuit_correct c':
           (forall i, 0 <= i /\ i < size w1 =>
               (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)) /\
           (forall i, 0 <= i /\ i + 1 < size w1 =>
-              (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 1 w1 w2 k1 k2))
+              (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 1 w1 w2 k1 k2 /\
+              (nth 0 w2 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 2 w2 w3 k2 k3 /\
+              (nth 0 w3 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 3 w3 w1 k3 k1))
         ==>  let (k1', k2', k3', w1', w2', w3') = res in
         (forall i, 0 <= i /\ i < size w1' =>
              (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 (eval_circuit_aux c' s) i)) /\
         (forall i, 0 <= i /\ i + 1 < size w1' =>
-            (nth 0 w1' (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++c') i) i 1 w1' w2' k1' k2')
+            (nth 0 w1' (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++c') i) i 1 w1' w2' k1' k2' /\
+            (nth 0 w2' (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++c') i) i 2 w2' w3' k2' k3' /\
+            (nth 0 w3' (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++c') i) i 3 w3' w1' k3' k1')
         /\ size (cprev ++ c') = size w1' - 1
         /\ size k1' = size w1' - 1 /\ size k2' = size k1' /\ size k3' = size k1'
         /\ size (eval_circuit_aux c' s) = size w1' /\ size w1' = size w2' /\ size w2' = size w3'] = 1%r).
