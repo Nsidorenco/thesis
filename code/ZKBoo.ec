@@ -847,7 +847,10 @@ local lemma zkboo_inter_views
                   /\ valid_view 3 w3 w1 c' k3 k1
                   /\ valid_view_output y1 w1
                   /\ valid_view_output y2 w2
-                  /\ valid_view_output y3 w3] = 1%r.
+                  /\ valid_view_output y3 w3
+                  /\ size c' = size w1 - 1
+                  /\ size w1 = size w2
+                  /\ size w1 = size w3] = 1%r.
 proof.
   (* proc. *)
   (* inline *. *)
@@ -862,23 +865,22 @@ admitted.
 
 local lemma zkboo_inter_views
       c' y y1 y2 y3 c1 c2 c3 pk
-      k1 k2 k3 w1 w2 w3 r1 r2 r3 &m:
+      k1' k2' k3' w1 w2 w3 r1 r2 r3 &m:
   phoare[SoundnessInter.main :
-         valid_circuit c' /\ h = (c',y) /\ m = (pk,y1,y2,y3,c1,c2,c3) /\ z1 = (((k1, w1), r1), ((k2, w2), r2)) /\ z2 = (((k2, w2), r2), ((k3, w3), r3)) /\ z3 = (((k3, w3), r3), ((k1, w1), r1))
+         valid_circuit c' /\ h = (c',y) /\ m = (pk,y1,y2,y3,c1,c2,c3) /\ z1 = (((k1', w1), r1), ((k2', w2), r2)) /\ z2 = (((k2', w2), r2), ((k3', w3), r3)) /\ z3 = (((k3', w3), r3), ((k1', w1), r1))
          ==> res] = 1%r.
 proof.
   proc.
   inline SoundnessInter.ZK.witness_extractor.
   auto.
-  have H := zkboo_inter_views c' y y1 y2 y3 c1 c2 c3 pk k1 k2 k3 w1 w2 w3 r1 r2 r3 &m.
+  have H := zkboo_inter_views c' y y1 y2 y3 c1 c2 c3 pk k1' k2' k3' w1 w2 w3 r1 r2 r3 &m.
   call H. clear H.
   skip; rewrite /valid_output_share /valid_view_output; progress.
   admit.
   admit.
   admit.
   rewrite !oget_some.
-  (* clear H8 H9 H10 H11 H12 H13. *)
-  clear H5 H6 H7 H8 H9 H10.
+  clear H8 H9 H10 H11 H12 H13.
   rewrite /R /R_DL.
   progress.
   rewrite /valid_output_shares in H1.
@@ -893,12 +895,136 @@ proof.
     Pr[Circuit.eval(c', [oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0)]) @ &m :
       res = y].
   byequiv correctness_module=>//.
+  have -> :
+    Pr[Phi.main(oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0), c') @ &m :
+      res = y] =
+    Pr[Phi.main_fixed(oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0), c' , k1', k2', k3') @ &m :
+      res = y].
+  byequiv main_fixed_equiv=>//.
   rewrite H1.
-  byphoare(: valid_circuit c' /\ c = c' /\ h = oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0) ==> res = last 0 w1 + last 0 w2 + last 0 w3)=>//.
+  byphoare(: valid_circuit c' /\ c = c' /\ k1 = k1' /\ k2 = k2' /\ k3 = k3' /\ h = oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0) ==> res = last 0 w1 + last 0 w2 + last 0 w3)=>//.
   proc.
   inline Phi.reconstruct Phi.output.
   wp.
+  inline *.
+  auto.
+  (* while ((forall i, *)
+  (*           nth 0 w1 i + nth 0 w2 i + nth 0 w3 i = nth 0 w10 i + nth 0 w20 i + nth 0 w30 i) *)
+  (*         /\ size w10 = size w20 *)
+  (*         /\ size w10 = size w30 *)
+  (*         /\ size w10 = size w1 - size c0 - 1 *)
+  (*         /\ size w20 = size w2 - size c0 - 1 *)
+  (*         /\ size w30 = size w3 - size c0 - 1) *)
+  (*       (size c0). *)
+  while ((forall i, nth (ADDC(0,0)) c0 i = nth (ADDC(0,0)) c' (size w10 - 1 + i)) /\
+         size w10 = size w1 - size c0 /\
+         size w20 = size w2 - size c0 /\
+         size w30 = size w3 - size c0 /\
+         k10 = k1' /\
+         k20 = k2' /\
+         k30 = k3' /\
+         0 < size w10 /\
+         0 < size w20 /\
+         0 < size w30 /\
+         (forall i, i < size w10 => nth 0 w1 i = nth 0 w10 i) /\
+         (forall i, i < size w20 => nth 0 w2 i = nth 0 w20 i) /\
+         (forall i, i < size w30 => nth 0 w3 i = nth 0 w30 i))
+        (size c0).
+  auto.
+  progress.
+  rewrite size_rcons.
+  have H18' := H8 i.
+  admit.
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  rewrite !nth_rcons.
+  case (i < size w10{hr0});progress.
+  smt.
+  case (i = size w10{hr0}); progress.
+  have -> := H2 (size w10{hr0} - 1) _. smt.
+  have -> := ohead_head (ADDC(0,0)) c0{hr0} H18.
+  rewrite oget_some.
+  have <- : (nth (ADDC(0,0)) c' (size w10{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
+  smt(nth0_head).
+  rewrite /valid_circuit /valid_gate in H.
+  have := H (size w10{hr0} - 1) _. smt.
+  have -> := onth_nth (ADDC(0,0)) c' (size w10{hr0} - 1). smt.
+  rewrite oget_some.
+  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2.
+  (* elim (head  (ADDC(0,0)) c0{hr0}); move=>x; case x=> x1 x2. *)
+  simplify.
+        smt.
+        smt.
+        simplify.
+        progress.
+        have : x1 < size w10{hr0}. smt.
+        smt.
+        smt.
+        smt.
+  admit.
+  admit.
+  smt(size_rcons head_behead).
+  auto.
+  progress.
+  apply dinput_ll.
+  smt().
+  smt().
+  smt().
+        rewrite /predT in H11.
+        smt.
 
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  rewrite !nth_rcons - H9 - H10.
+  case (i < size w10{hr0}); progress.
+  smt.
+  case (i = size w10{hr0}); progress.
+  have -> := H2 (size w10{hr0} - 1) _. admit.
+  have -> := H3 (size w10{hr0} - 1) _. admit.
+  have -> := H4 (size w10{hr0} - 1) _. admit.
+  elim
+  smt.
+
+
+  apply dinput_ll.
+  have -> := ohead_head (ADDC(0,0)) c0{hr0} _; trivial.
+  rewrite nth_rcons.
+  case (i < size w10{hr0}); progress.
+  smt.
+  case (i = size w10{hr0}); progress.
+  rewrite oget_some.
+  smt.
+  smt.
+  smt(size_rcons head_behead).
+  smt(size_rcons head_behead).
+  smt(size_rcons head_behead).
+  smt(size_rcons head_behead).
+  auto.
+  progress.
+  apply dinput_ll.
+  smt.
+  smt.
+  smt.
+  smt().
+  smt().
+  smt().
+  smt.
+  have <- := nth_last 0 w100.
+  have <- := nth_last 0 w200.
+  have <- := nth_last 0 w300.
+  have <- := nth_last 0 w1.
+  have <- := nth_last 0 w2.
+  have <- := nth_last 0 w3.
+  have := H15 (size w100 -1) _. smt.
+  smt.
 
   byphoare.
   byphoare(: valid_circuit c' /\ c = c' /\ h = oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0) ==> res = eval_circuit c' [oget (onth w1 0) + oget (onth w2 0) + oget (onth w3 0)])=>//.
