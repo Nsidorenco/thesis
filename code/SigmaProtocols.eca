@@ -32,7 +32,7 @@ module type SProtocol = {
   proc response(h : statement, w : witness,
                 m : message, e : challenge) : response
   proc verify(h : statement, m : message, e : challenge, z : response) : bool
-  proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness
+  proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness option
   proc simulator(h : statement, e : challenge) : message * response
 }.
 
@@ -88,7 +88,7 @@ qed.
 
 module SpecialSoundness(S : SProtocol) = {
   proc main(h : statement, m : message, c : challenge list, z : response list) : bool = {
-    var w, valid_all, valid_tmp, c', z', c_copy, z_copy;
+    var w, w_get, valid_all, valid_tmp, c', z', c_copy, z_copy, ret;
 
     valid_all = true;
     c_copy = c;
@@ -104,9 +104,14 @@ module SpecialSoundness(S : SProtocol) = {
     }
 
     w = S.witness_extractor(h, m, c, z);
+    if (w = None) {
+      ret = false;
+    } else {
+      w_get = oget w;
+      ret = (undup c = c /\ (R h w_get) /\ valid_all);
+    }
 
-
-    return (undup c = c /\ (R h w) /\ valid_all);
+    return ret;
 
   }
 }.
