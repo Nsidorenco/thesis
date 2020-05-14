@@ -1,5 +1,5 @@
 (* Formalization of MPC Phi decomposition *)
-require import AllCore Distr List IntDiv.
+require import AllCore Distr List IntDiv DList.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
@@ -96,6 +96,11 @@ proof.
       progress. smt().
 qed.
 
+lemma eval_circuit c' s' &m:
+    Pr[Circuit.eval(c', s') @ &m : res = eval_circuit c' s'] = 1%r.
+    smt.
+qed.
+
 (** Phi protocol **)
 
 (* define decomposed circuit function *)
@@ -183,6 +188,22 @@ module Phi = {
     }
     return (k1, k2, k3, w1, w2, w3);
   }
+
+  proc compute_fixed(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+    var g, v1, v2, v3;
+    while (c <> []) {
+      g = oget (ohead c);
+      v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+      v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+      v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+      w1 = (rcons w1 v1);
+      w2 = (rcons w2 v2);
+      w3 = (rcons w3 v3);
+      c = behead c;
+    }
+    return (w1, w2, w3);
+  }
+
   proc compute_stepped(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
     (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c], w1, w2, w3, k1, k2, k3);
     c = behead c;
@@ -209,7 +230,83 @@ module Phi = {
     y = reconstruct(y1, y2, y3);
     return y;
   }
+  (* proc main_fixed(h : input, c : circuit, k1, k2, k3) = { *)
+  (*   var x1, x2, x3, y, w1, w2, w3, y1, y2, y3; *)
+  (*   (x1, x2, x3) = share(h); *)
+  (*   (w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], k1, k2, k3); *)
+  (*   y1 = output(w1); *)
+  (*   y2 = output(w2); *)
+  (*   y3 = output(w3); *)
+  (*   y = reconstruct(y1, y2, y3); *)
+  (*   return y; *)
+  (* } *)
+  proc main_fixed_input(x1 x2 x3 : input, c : circuit) = {
+    var y, k1, k2, k3, w1, w2, w3, y1, y2, y3;
+    share(x1+x2+x3);
+    k1 = [];
+    k2 = [];
+    k3 = [];
+    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], k1, k2, k3);
+    y1 = output(w1);
+    y2 = output(w2);
+    y3 = output(w3);
+    y = reconstruct(y1, y2, y3);
+    return y;
+  }
+  proc main_fixed_input_and_tape(x1 x2 x3 : input, c : circuit, k1, k2, k3) = {
+    var y, w1, w2, w3, y1, y2, y3;
+    share(x1+x2+x3);
+    (w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], k1, k2, k3);
+    y1 = output(w1);
+    y2 = output(w2);
+    y3 = output(w3);
+    y = reconstruct(y1, y2, y3);
+    return y;
+  }
+
 }.
+
+equiv compute_fixed_output_eq:
+    Phi.compute ~ Phi.compute_fixed :
+    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}==>
+    let (k1, k2, k3, w1, w2, w3) = res{1} in
+    let (w1', w2', w3') = res{2} in
+    last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
+proof.
+    proc.
+    while (={c} /\ size w1{1} = size w1{2}
+                /\ size w2{1} = size w2{2}
+                /\ size w3{1} = size w3{2}
+                /\ size w1{1} = size w2{1}
+                /\ size w1{1} = size w3{1}
+                /\ size w1{2} = size w2{2}
+                /\ size w1{2} = size w3{2}
+                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
+    auto.
+    progress.
+    apply dinput_ll.
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    rewrite !nth_rcons - H - H0 - H1 - H2 - H3.
+    case (i < size w1{1}); progress.
+    smt.
+    case (i = size w1{1}); progress.
+    have -> := ohead_head (ADDC(0,0)) c{2} H7.
+    rewrite oget_some.
+    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
+    smt().
+    smt().
+    smt().
+    smt().
+    auto.
+    progress.
+    smt.
+qed.
 
 module Simulator = {
   proc compute(c : circuit, e : int, w1 w2 : view, k1 k2 k3 : random_tape) = {
@@ -417,80 +514,6 @@ proof.
   apply Hgate.
   progress.
   smt().
-qed.
-
-(* alternative correctness of decomposition *)
-op phi_circuit_aux (c : circuit, i : int, w1 w2 w3 : view, k1 k2 k3 : random_tape) : view * view * view =
-    with c = [] => (w1, w2, w3)
-    with c = g::gs =>
-    let r1 = phi_decomp g i 1 w1 w2 k1 k2 in
-    let r2 = phi_decomp g i 2 w2 w3 k2 k3 in
-    let r3 = phi_decomp g i 3 w3 w1 k3 k1 in
-    phi_circuit_aux gs (i + 1) (rcons w1 r1) (rcons w2 r2) (rcons w3 r3) k1 k2 k3.
-
-lemma phi_decomp_rcons s g:
-    (forall w1 w2 w3 k1 k2 k3,
-      let (w1',w2',w3') = (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3) in
-      phi_circuit_aux (rcons s g) (size w1) w1 w2 w3 k1 k2 k3 =
-      ((rcons w1' (phi_decomp g (size w1 + size s) 1 w1' w2' k1 k2)),
-      (rcons w2' (phi_decomp g (size w1 + size s) 2 w2' w3' k2 k3)),
-      (rcons w3' (phi_decomp g (size w1 + size s) 3 w3' w1' k3 k1)))).
-proof.
-   elim s.
-   - progress.
-   - progress.
-     have H' := H (rcons w1 (phi_decomp x (size w1) 1 w1 w2 k1 k2))
-                  (rcons w2 (phi_decomp x (size w1) 2 w2 w3 k2 k3))
-                  (rcons w3 (phi_decomp x (size w1) 3 w3 w1 k3 k1)) k1 k2 k3.
-     rewrite size_rcons in H'.
-     have -> :
-         phi_circuit_aux (rcons l g) (size w1 + 1)
-                         (rcons w1 (phi_decomp x (size w1) 1 w1 w2 k1 k2))
-                         (rcons w2 (phi_decomp x (size w1) 2 w2 w3 k2 k3))
-                         (rcons w3 (phi_decomp x (size w1) 3 w3 w1 k3 k1)) k1 k2 k3 =
-         (rcons x1 (phi_decomp g (size w1 + (1 + size l)) 1 x1 x2 k1 k2),
-         rcons x2 (phi_decomp g (size w1 + (1 + size l)) 2 x2 x3 k2 k3),
-         rcons x3 (phi_decomp g (size w1 + (1 + size l)) 3 x3 x1 k3 k1)) by smt().
-     smt().
-qed.
-
-lemma phi_equiv_ind gs:
-    (forall w1 w2 w3 s k1 k2 k3,
-      size s = size w1 /\
-      size s = size w2 /\
-      size s = size w3
-      /\ (forall i, (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)) =>
-      let (w1',w2',w3') = phi_circuit_aux gs (size w1) w1 w2 w3 k1 k2 k3 in
-      size w1' = size w2' /\ size w1' = size w3' /\ size (eval_circuit_aux gs s) = size w1' /\
-      (forall i, (nth 0 w1' i) + (nth 0 w2' i) + (nth 0 w3' i) = (nth 0 (eval_circuit_aux gs s) i))).
-proof.
-  elim /last_ind gs.
-  - progress. smt(). smt().
-  - progress.
-    admit. admit. admit.
-    have <- := eval_circuit_rcons s s0 x.
-    have Hphi := phi_decomp_rcons s x w1 w2 w3 k1 k2 k3.
-    have :
-      phi_circuit_aux (rcons s x) (size w1) w1 w2 w3 k1 k2 k3 =
-      (rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 (phi_decomp x (size w1 + size s) 1 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 k1 k2),
-       rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 (phi_decomp x (size w1 + size s) 2 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 k2 k3),
-       rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 (phi_decomp x (size w1 + size s) 3 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 k3 k1)). smt().
-    progress.
-    have -> : x1 =
-      (rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 (phi_decomp x (size w1 + size s) 1 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 k1 k2)) by smt().
-    have -> : x2 =
-      (rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 (phi_decomp x (size w1 + size s) 2 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 k2 k3)) by smt().
-    have -> : x3 =
-     (rcons (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 (phi_decomp x (size w1 + size s) 3 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3 (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 k3 k1)) by smt().
-    rewrite !nth_rcons.
-    have -> : size (eval_circuit_aux s s0) = size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1. admit.
-    have <- : size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 = size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`2. admit.
-    have <- : size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1 = size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`3. admit.
-    case (i < size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1); progress.
-    admit.
-    clear H5 Hphi.
-    case (i = size (phi_circuit_aux s (size w1) w1 w2 w3 k1 k2 k3).`1); progress.
-    admit.
 qed.
 
 lemma compute_gate_correct g:
@@ -843,6 +866,116 @@ proof.
   call{1} Hphi.
   inline *.
   auto.
+  smt().
+qed.
+
+equiv compute_fixed_input_equiv:
+    Phi.main ~ Phi.main_fixed_input :
+    (={c} /\ x1{2} + x2{2} + x3{2} = h{1}) /\ valid_circuit c{1}
+    ==> ={res}.
+proof.
+    proc.
+    inline Phi.reconstruct Phi.output.
+    auto.
+    exists* c{1}; elim*=> c.
+    seq 1 1 : (#pre /\ x1{1} + x2{1} + x3{1} = x1{2} + x2{2} + x3{2}).
+    inline *. auto. progress.
+    smt().
+    exists* x1{1}; elim*=>x1.
+    exists* x2{1}; elim*=>x2.
+    exists* x3{1}; elim*=>x3.
+    have Hvalid := compute_circuit_correct c [x1+x2+x3] [].
+    call{1} Hvalid.
+    call{2} Hvalid. clear Hvalid.
+    inline *.
+    auto.
+    progress.
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    have <- := nth_last 0 result0.`4.
+    have <- := nth_last 0 result0.`5.
+    have <- := nth_last 0 result0.`6.
+    have <- : (size result0.`4 = size result0.`5).
+    have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
+    smt().
+    have <- : (size result0.`4 = size result0.`6).
+    have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
+    smt().
+    have <- := nth_last 0 result.`4.
+    have <- := nth_last 0 result.`5.
+    have <- := nth_last 0 result.`6.
+    have <- : (size result.`4 = size result.`5).
+    have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+    smt().
+    have <- : (size result.`4 = size result.`6).
+    have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+    smt().
+
+  have Hsize1: size result0.`4 = size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
+  have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
+  smt().
+  have Heval1:
+    (forall (i : int),
+        0 <= i /\ i < size result0.`4 =>
+        nth 0 result0.`4 i + nth 0 result0.`5 i + nth 0 result0.`6 i =
+        nth 0 (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]) i).
+  have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
+  smt().
+  have -> := Heval1 (size result0.`4 - 1) _.
+  have : 1 <= size result0.`4.
+  have : 1 <= size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
+  smt(eval_circuit_aux_size size_ge0).
+  smt().
+  smt().
+
+  have Hsize2: size result.`4 = size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt().
+  have Heval2:
+    (forall (i : int),
+        0 <= i /\ i < size result.`4 =>
+        nth 0 result.`4 i + nth 0 result.`5 i + nth 0 result.`6 i =
+        nth 0 (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]) i).
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt().
+  have -> := Heval2 (size result.`4 - 1) _. split.
+  have : 1 <= size result.`4.
+  have : 1 <= size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
+  smt(eval_circuit_aux_size size_ge0).
+  smt().
+  smt().
+  smt().
+  smt().
+qed.
+
+equiv main_fixed_equiv:
+    Phi.main ~ Phi.main_fixed_input_and_tape :
+    ={c} /\ x1{2} + x2{2} + x3{2} = h{1} /\ valid_circuit c{1} ==> ={res}.
+proof.
+  transitivity
+      Phi.main_fixed_input
+      (={c} /\ x1{2} + x2{2} + x3{2} = h{1} /\ valid_circuit c{1} ==> ={res})
+      (={c, x1, x2, x3} /\ valid_circuit c{1} ==> ={res}).
+  progress.
+  exists (x1{2}, x2{2}, x3{2}, c{1}).
+  progress. progress.
+  proc*.
+  call compute_fixed_input_equiv.
+  skip; progress.
+  proc.
+  inline Phi.reconstruct Phi.output.
+  auto.
+  call compute_fixed_output_eq.
+  inline *. auto.
+  progress.
+  have : (result_L.`1, result_L.`2, result_L.`3, result_L.`4, result_L.`5, result_L.`6) = result_L by smt().
+  have : (result_R.`1, result_R.`2, result_R.`3) = result_R by smt().
   smt().
 qed.
 

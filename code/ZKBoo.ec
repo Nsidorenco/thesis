@@ -165,6 +165,7 @@ module ZKBoo(C : Committer) : SProtocol = {
       }
     }
 
+    (*TODO: Add circuit validation? *)
     return valid_output_shares y y1 y2 y3 /\ valid_com1 /\ valid_com2 /\ valid_share1 /\ valid_share2 /\ valid /\ valid_length;
 
   }
@@ -259,14 +260,14 @@ axiom Com_correct :
     phoare[Correctness(Com).main : true ==> res] = 1%r.
 axiom Com_hiding_alt :
   equiv[Com.commit ~ Com.commit : ={glob Com} ==> ={res, glob Com}].
-axiom Com_binding_pr m1 m2 &m:
-  Pr[BindingGame(Com).main(m1, m2) @ &m : ! res] = binding_prob.
+axiom Com_binding_pr c m1 m2 &m:
+  Pr[BindingGame(Com).main(c, m1, m2) @ &m : ! res] = binding_prob.
 lemma Com_binding :
   phoare[BindingGame(Com).main : true ==> ! res] = binding_prob by bypr=> &m H; smt(Com_binding_pr).
 axiom Com_ll: islossless Com.commit.
 
-axiom bind_three_equiv a1 a1' a2 a2' a3 a3' &m:
-    Pr[BindingGame(Com).bind_three(a1, a1', a2, a2', a3, a3') @ &m : ! res] = binding_prob.
+axiom bind_three_equiv c1 c2 c3 a1 a1' a2 a2' a3 a3' &m:
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, a1, a1', a2, a2', a3, a3') @ &m : ! res] = binding_prob.
 
 lemma Com_binding_three :
     phoare[BindingGame(Com).bind_three : true ==> ! res] = binding_prob.
@@ -275,38 +276,48 @@ proof.
     smt(bind_three_equiv).
 qed.
 
-lemma binding_pred_implies_cons m1 m1' m2 m2' m3 m3' &m:
-    Pr[BindingGame(Com).bind_three(m1, m1', m2, m2', m3, m3') @ &m : !res] =
-    Pr[BindingGame(Com).bind_three(m1, m1', m2, m2', m3, m3') @ &m : !(res /\ ((m1 = m1') /\ (m2 = m2') /\ (m3 = m3')))].
+lemma binding_pred_implies_cons c1 c2 c3 m1 m1' m2 m2' m3 m3' &m:
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, m1, m1', m2, m2', m3, m3') @ &m : !res] =
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, m1, m1', m2, m2', m3, m3') @ &m :
+      !(verify m1 c1 /\
+        verify m1' c1 /\
+        verify m2 c2 /\
+        verify m2' c2 /\
+        verify m3 c3 /\
+        verify m3' c3 /\
+        ((m1 = m1') /\ (m2 = m2') /\ (m3 = m3')))].
 proof.
    byequiv=>//.
    proc*.
    inline *. auto.
-   call (:true).
-   call (:true).
-   wp.
-   call (:true).
-   call (:true).
-   wp.
-   call (:true).
-   call (:true).
-   auto.
 qed.
 
-lemma binding_three_cons_pr a1 a1' a2 a2' a3 a3' &m:
-    Pr[BindingGame(Com).bind_three(a1, a1', a2, a2', a3, a3') @ &m :
-           !(res /\ (a1 = a1' /\ a2 = a2' /\ a3 = a3'))] = binding_prob.
+lemma binding_three_cons_pr c1 c2 c3 a1 a1' a2 a2' a3 a3' &m:
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, a1, a1', a2, a2', a3, a3') @ &m :
+      !(verify a1 c1 /\
+        verify a1' c1 /\
+        verify a2 c2 /\
+        verify a2' c2 /\
+        verify a3 c3 /\
+        verify a3' c3 /\
+        ((a1 = a1') /\ (a2 = a2') /\ (a3 = a3')))] = binding_prob.
 proof.
-    have Hbind := bind_three_equiv a1 a1' a2 a2' a3 a3' &m.
-    have <- := Com_binding_pr a1 a1' &m.
-    have <- := binding_pred_implies_cons a1 a1' a2 a2' a3 a3' &m.
+    have Hbind := bind_three_equiv c1 c2 c3 a1 a1' a2 a2' a3 a3' &m.
+    have <- := Com_binding_pr c1 a1 a1' &m.
+    have <- := binding_pred_implies_cons c1 c2 c3 a1 a1' a2 a2' a3 a3' &m.
     smt.
 qed.
 
-lemma binding_three_cons a1 a1' a2 a2' a3 a3':
+lemma binding_three_cons c1' c2' c3' a1 a1' a2 a2' a3 a3':
     islossless BindingGame(Com).bind_three =>
-    phoare[BindingGame(Com).bind_three : m1 = a1 /\ m1' = a1' /\ m2 = a2 /\ m2' = a2' /\ m3 = a3 /\ m3' = a3'
-           ==> !(res /\ (a1 = a1' /\ a2 = a2' /\ a3 = a3'))] = binding_prob.
+    phoare[BindingGame(Com).bind_three : c1 = c1' /\ c2 = c2' /\ c3 = c3' /\ m1 = a1 /\ m1' = a1' /\ m2 = a2 /\ m2' = a2' /\ m3 = a3 /\ m3' = a3'
+          ==> !(verify a1 c1' /\
+                verify a1' c1' /\
+                verify a2 c2' /\
+                verify a2' c2' /\
+                verify a3 c3' /\
+                verify a3' c3' /\
+                ((a1 = a1') /\ (a2 = a2') /\ (a3 = a3')))] = binding_prob.
 proof.
     move=> bg_ll.
     bypr=> &m Pre.
@@ -322,47 +333,47 @@ proof.
     proc*. call bg_ll.
     auto.
     bypr=> &m Pre.
-    by have <- := bind_three_equiv m1{m} m1'{m} m2{m} m2'{m} m3{m} m3'{m} &m.
+    by have <- := bind_three_equiv c1{m} c2{m} c3{m} m1{m} m1'{m} m2{m} m2'{m} m3{m} m3'{m} &m.
 qed.
 
-lemma binding_valid_pred_implies_cons m1 m1' m2 m2' m3 m3' &m:
-    Pr[BindingGame(Com).bind_three(m1, m1', m2, m2', m3, m3') @ &m : res] =
-    Pr[BindingGame(Com).bind_three(m1, m1', m2, m2', m3, m3') @ &m : (res /\ (m1 = m1') /\ (m2 = m2') /\ (m3 = m3'))].
+lemma binding_valid_pred_implies_cons c1 c2 c3 m1 m1' m2 m2' m3 m3' &m:
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, m1, m1', m2, m2', m3, m3') @ &m : res] =
+    Pr[BindingGame(Com).bind_three(c1, c2, c3, m1, m1', m2, m2', m3, m3') @ &m :
+       (verify m1 c1 /\
+        verify m1' c1 /\
+        verify m2 c2 /\
+        verify m2' c2 /\
+        verify m3 c3 /\
+        verify m3' c3 /\
+        ((m1 = m1') /\ (m2 = m2') /\ (m3 = m3')))].
 proof.
    byequiv=>//.
    proc*.
    inline *. auto.
-   call (:true).
-   call (:true).
-   wp.
-   call (:true).
-   call (:true).
-   wp.
-   call (:true).
-   call (:true).
-   auto; smt().
 qed.
 
-lemma binding_three_cons_valid a1 a1' a2 a2' a3 a3':
+lemma binding_three_cons_valid c1' c2' c3' a1 a1' a2 a2' a3 a3':
     islossless BindingGame(Com).bind_three =>
-    phoare[BindingGame(Com).bind_three : m1 = a1 /\ m2 = a2 /\ m3 = a3 /\ m1' = a1' /\ m2' = a2' /\ m3' = a3'
-           ==> (res /\ (a1 = a1' /\ a2 = a2' /\ a3 = a3'))] = (1%r - binding_prob).
+    phoare[BindingGame(Com).bind_three : c1 = c1' /\ c2 = c2' /\ c3 = c3' /\ m1 = a1 /\ m2 = a2 /\ m3 = a3 /\ m1' = a1' /\ m2' = a2' /\ m3' = a3'
+           ==> (verify a1 c1' /\
+                verify a1' c1' /\
+                verify a2 c2' /\
+                verify a2' c2' /\
+                verify a3 c3' /\
+                verify a3' c3' /\
+                ((a1 = a1') /\ (a2 = a2') /\ (a3 = a3')))] = (1%r - binding_prob).
 proof.
     move=> bg_ll.
     phoare split ! (1%r) binding_prob.
     proc.
     call (:true).
-    auto. call Com_ll.
-    by call Com_ll.
-    call (:true).
-    auto. call Com_ll.
-    by call Com_ll.
-    call (:true).
-    auto. call Com_ll.
-    by call Com_ll.
     auto.
+    call (:true).
+    auto.
+    call (:true).
+    auto. auto.
 
-    have Hvalid := binding_three_cons a1 a1' a2 a2' a3 a3' bg_ll.
+    have Hvalid := binding_three_cons c1' c2' c3' a1 a1' a2 a2' a3 a3' bg_ll.
     proc*. call Hvalid.
     auto.
 qed.
@@ -798,6 +809,7 @@ local module SoundnessInter = {
     var k1,k2,k3,k1',k2',k3';
     var w1,w2,w3,w1',w2',w3';
     var cons, v1, v2, v3;
+    var y1, y2, y3, c1, c2, c3;
 
     v1 = ZK.verify(h, m, 1, z1);
     v2 = ZK.verify(h, m, 2, z2);
@@ -806,7 +818,8 @@ local module SoundnessInter = {
     (k1, w1, k2, w2) = z1;
     (k2', w2', k3, w3) = z2;
     (k3', w3', k1', w1') = z3;
-    cons = BGame.bind_three((w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
+    (y1, y2, y3, c1, c2, c3) = m;
+    cons = BGame.bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
 
     return v1 /\ v2 /\ v3;
   }
@@ -838,8 +851,8 @@ proof.
   rcondt{1} 13. auto. call (:true). auto. auto. call (:true). auto. auto.
   rcondf{1} 19. auto. call (:true). auto. auto. call (:true). auto. auto. call (:true). auto. auto.
   inline SoundnessInter.extract_views.
-  swap{2} [7..9] 4.
-  swap{2} 1 12.
+  swap{2} [7..9] 5.
+  swap{2} 1 13.
   sp.
   wp. call (:true). sim.
   wp. call (:true). sim.
@@ -847,12 +860,6 @@ proof.
   wp. call (:true). sim.
   auto; progress.
   inline *.
-  auto; call{2} Com_ll.
-  auto; call{2} Com_ll.
-  auto; call{2} Com_ll.
-  auto; call{2} Com_ll.
-  auto; call{2} Com_ll.
-  auto; call{2} Com_ll.
   auto; smt().
 qed.
 
@@ -866,6 +873,7 @@ pred validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3' =
             /\ valid_view_output y1 w1
             /\ valid_view_output y2 w2
             /\ valid_view_output y3 w3
+            /\ valid_circuit c'
             /\ size c' = size w1 - 1
             /\ size w1 = size w2
             /\ size w1 = size w3.
@@ -877,16 +885,19 @@ local lemma extraction_success
   islossless BindingGame(Com).bind_three =>
   phoare[ZKBoo(Com).verify :
       h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k1, w1, k2, w2) ==>
-      valid_output_shares y y1 y2 y3 /\ valid_view 1 w1 w2 c' k1 k2 /\ valid_view_output y1 w1 /\ valid_view_output y2 w2
-      /\ size c' = size w1 - 1 /\ size w1 = size w2] = 1%r =>
+      res /\ valid_output_shares y y1 y2 y3 /\ valid_view 1 w1 w2 c' k1 k2 /\ valid_view_output y1 w1 /\ valid_view_output y2 w2
+      /\ valid_circuit c'
+      /\ size c' = size w1 - 1 /\ size w1 = size w2 /\ verify (w1, k1) c1 /\ verify (w2,k2) c2] = 1%r =>
   phoare[ZKBoo(Com).verify :
       h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k2', w2', k3, w3) ==>
-      valid_output_shares y y1 y2 y3 /\ valid_view 2 w2' w3 c' k2' k3 /\ valid_view_output y2 w2' /\ valid_view_output y3 w3
-      /\ size c' = size w2' - 1 /\ size w2' = size w3] = 1%r =>
+      res /\ valid_output_shares y y1 y2 y3 /\ valid_view 2 w2' w3 c' k2' k3 /\ valid_view_output y2 w2' /\ valid_view_output y3 w3
+      /\ valid_circuit c'
+      /\ size c' = size w2' - 1 /\ size w2' = size w3 /\ verify (w2', k2') c2 /\ verify (w3, k3) c3] = 1%r =>
   phoare[ZKBoo(Com).verify :
       h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k3', w3', k1', w1') ==>
-      valid_output_shares y y1 y2 y3 /\ valid_view 3 w3' w1' c' k3' k1' /\ valid_view_output y3 w3' /\ valid_view_output y1 w1'
-      /\ size c' = size w3' - 1 /\ size w3' = size w1'] = 1%r =>
+      res /\ valid_output_shares y y1 y2 y3 /\ valid_view 3 w3' w1' c' k3' k1' /\ valid_view_output y3 w3' /\ valid_view_output y1 w1'
+      /\ valid_circuit c'
+      /\ size c' = size w3' - 1 /\ size w3' = size w1' /\ verify (w3', k3') c3 /\ verify (w1', k1') c1] = 1%r =>
   phoare[SoundnessInter.extract_views :
       h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z1 = (k1, w1, k2, w2) /\ z2 = (k2', w2', k3, w3) /\ z3 = (k3', w3', k1', w1')
       ==> res /\ (validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3')] = (1%r - binding_prob).
@@ -894,7 +905,7 @@ proof.
     move=> bg_ll accept1 accept2 accept3.
     proc.
     auto.
-    have Hcons := binding_three_cons_valid (w1, k1) (w1', k1') (w2, k2) (w2', k2') (w3, k3) (w3', k3') bg_ll.
+    have Hcons := binding_three_cons_valid c1 c2 c3 (w1, k1) (w1', k1') (w2, k2) (w2', k2') (w3, k3) (w3', k3') bg_ll.
     call Hcons. clear Hcons.
     auto.
     call accept3.
@@ -902,6 +913,12 @@ proof.
     call accept1.
     auto.
     progress.
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
     smt().
 qed.
 
@@ -1081,67 +1098,232 @@ local lemma zkboo_inter_soundness
     islossless BindingGame(Com).bind_three =>
     phoare[ZKBoo(Com).verify :
         h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k1, w1, k2, w2) ==>
-        valid_output_shares y y1 y2 y3 /\ valid_view 1 w1 w2 c' k1 k2 /\ valid_view_output y1 w1 /\ valid_view_output y2 w2
-        /\ size c' = size w1 - 1 /\ size w1 = size w2] = 1%r =>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 1 w1 w2 c' k1 k2 /\ valid_view_output y1 w1 /\ valid_view_output y2 w2
+        /\ valid_circuit c'
+        /\ size c' = size w1 - 1 /\ size w1 = size w2 /\ verify (w1, k1) c1 /\ verify (w2,k2) c2] = 1%r =>
     phoare[ZKBoo(Com).verify :
         h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k2', w2', k3, w3) ==>
-        valid_output_shares y y1 y2 y3 /\ valid_view 2 w2' w3 c' k2' k3 /\ valid_view_output y2 w2' /\ valid_view_output y3 w3
-        /\ size c' = size w2' - 1 /\ size w2' = size w3] = 1%r =>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 2 w2' w3 c' k2' k3 /\ valid_view_output y2 w2' /\ valid_view_output y3 w3
+        /\ valid_circuit c'
+        /\ size c' = size w2' - 1 /\ size w2' = size w3 /\ verify (w2', k2') c2 /\ verify (w3, k3) c3] = 1%r =>
     phoare[ZKBoo(Com).verify :
         h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k3', w3', k1', w1') ==>
-        valid_output_shares y y1 y2 y3 /\ valid_view 2 w3' w1' c' k3' k1' /\ valid_view_output y3 w3' /\ valid_view_output y1 w1'
-        /\ size c' = size w3' - 1 /\ size w3' = size w1'] = 1%r =>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 3 w3' w1' c' k3' k1' /\ valid_view_output y3 w3' /\ valid_view_output y1 w1'
+        /\ valid_circuit c'
+        /\ size c' = size w3' - 1 /\ size w3' = size w1' /\ verify (w3', k3') c3 /\ verify (w1', k1') c1] = 1%r =>
     phoare[SoundnessInter.main :
         h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z1 = (k1, w1, k2, w2) /\ z2 = (k2', w2', k3, w3) /\ z3 = (k3', w3', k1', w1')
         ==> res] = (1%r - binding_prob).
 proof.
   move=> bg_ll accept1 accept2 accept3.
+  (* phoare split (1%r - binding_prob) binding_prob : (validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3'). *)
   proc.
+  inline SoundnessInter.ZK.witness_extractor.
   auto.
-  (* inline SoundnessInter.ZK.witness_extractor. *)
-  have extraction_success := extraction_success c' y y1 y2 y3 c1 c2 c3 w1 w2 w3 w1' w2' w3' k1 k2 k3 k1' k2' k3' bg_ll accept1 accept2 accept3.
-  call extraction_success. clear extraction_success accept1 accept2 accept3 bg_ll.
-  inline *.
-  auto;progress.
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
+  inline SoundnessInter.extract_views.
+  (* call (: validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3'). *)
 
 
-lemma zkboo_soundness c' y y1 y2 y3 c1 c2 c3 pk
-      k11 k21 w11 w21 r11 r21
-      k22 k32 w22 w32 r22 r32
-      k33 k13 w33 w13 r33 r13 &m:
-    Pr[Sigma.SpecialSoundness(ZKBoo(Com, Ver)).main((c', y), (y1,y2,y3,c1,c2,c3), [1;2;3], [(pk, (((k11, w11), r11), ((k21, w21), r21))); (pk, (((k22, w22), r22), ((k32, w32), r32))); (pk, (((k33, w33), r33), ((k13, w13), r13)))]) @ &m : res] = 1%r.
-proof.
-  byphoare(: h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ c = [1;2;3] /\ z = [(pk, (((k11, w11), r11), ((k21, w21), r21))); (pk, (((k22, w22), r22), ((k32, w32), r32))); (pk, (((k33, w33), r33), ((k13, w13), r13)))] ==>)=>//.
+  auto.
+  have Hcons := binding_three_cons_valid c1 c2 c3 (w1, k1) (w1', k1') (w2, k2) (w2', k2') (w3, k3) (w3', k3') bg_ll.
+  call Hcons. clear Hcons.
+  auto.
+  call accept3.
+  call accept2.
+  call accept1.
+  auto.
+  rewrite /valid_output_share /valid_view_output; progress.
+  rewrite !oget_some.
+  clear accept1 accept2 accept3 H25 H31 H32 H33 H34 H35 H36 H37 H26 H30 H8 H17 H20 H10 H19 H27 H24.
+  rewrite /R /R_DL.
+  progress.
+  rewrite /valid_output_shares in H0.
+  rewrite /valid_view in H1.
+  rewrite /valid_view in H18.
+  rewrite /valid_view in H9.
+  clear H29 H28 H15 H6 H14 H11 H21 H5.
+  have H' := eval_circuit_module c' [oget (onth w1' 0) + oget (onth w2' 0) + oget (onth w3' 0)] y &m.
+  apply H'. clear H'.
+  have <- :
+    Pr[Phi.main(oget (onth w1' 0) + oget (onth w2' 0) + oget (onth w3' 0), c') @ &m :
+      res = y] =
+    Pr[Circuit.eval(c', [oget (onth w1' 0) + oget (onth w2' 0) + oget (onth w3' 0)]) @ &m :
+      res = y].
+  byequiv correctness_module=>//.
+  have -> :
+    Pr[Phi.main(oget (onth w1' 0) + oget (onth w2' 0) + oget (onth w3' 0), c') @ &m :
+      res = y] =
+    Pr[Phi.main_fixed_input_and_tape(oget (onth w1' 0), oget (onth w2' 0), oget (onth w3' 0), c' , k1', k2', k3') @ &m :
+      res = y].
+  byequiv main_fixed_equiv=>//.
+  rewrite H0.
+  byphoare(: valid_circuit c' /\ c = c' /\ k1 = k1' /\ k2 = k2' /\ k3 = k3' /\ x1 = (oget (onth w1' 0)) /\ x2 = (oget (onth w2' 0)) /\ x3 = (oget (onth w3' 0)) ==> res = last 0 w1' + last 0 w2' + last 0 w3')=>//.
   proc.
-  sp.
-  seq 1 : (#pre /\ k11 = k13 /\ w11 = w13).
-  - auto.
-  - rcondt 1. inline *. auto.
-    rcondt 7. inline *. auto.
-    rcondf 13. inline *. wp.
-    progress. smt().
-  (* inline ZKBoo(Com).verify ZKBoo(Com).witness_extractor. *)
+  inline Phi.reconstruct Phi.output.
+  wp.
   inline *.
+  auto.
+  while (size w10 = size w1' - size c0 /\
+         size w20 = size w2' - size c0 /\
+         size w30 = size w3' - size c0 /\
+         size c' = size c0 + size w10 - 1 /\
+         k10 = k1' /\
+         k20 = k2' /\
+         k30 = k3' /\
+         0 < size w10 /\
+         0 < size w20 /\
+         0 < size w30 /\
+         (forall i, 0 <= i < size c0 => (nth (ADDC(0,0)) c0 i = nth (ADDC(0,0)) c' (size w10 - 1 + i) /\ (size w10 -1 + i) < size c')) /\
+         (forall i, i < size w10 => nth 0 w1' i = nth 0 w10 i) /\
+         (forall i, i < size w20 => nth 0 w2' i = nth 0 w20 i) /\
+         (forall i, i < size w30 => nth 0 w3' i = nth 0 w30 i))
+        (size c0).
   auto.
   progress.
-  wp. call accept3.
-  wp. call accept2.
-  wp. call accept1.
-  skip; progress.
-  rewrite /R /R_DL.
-  (* need more information from res in accept(1|2|3) *)
-  (* namely, view reconstruct *)
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  have H17' := H17 (i + 1) _. smt().
+  rewrite size_rcons.
+  have -> := nth_behead (ADDC(0,0)) c0{hr0} i _. smt().
+  smt.
+  smt(size_rcons).
+
+  rewrite !nth_rcons.
+  case (i < size w10{hr0});progress.
+  smt.
+  case (i = size w10{hr0}); progress.
+  have -> := H1 (size w10{hr0} - 1) _. smt.
+  have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
+  rewrite oget_some.
+  have <- : (nth (ADDC(0,0)) c' (size w10{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
+  smt(nth0_head size_ge0).
+  rewrite /valid_circuit /valid_gate in H2.
+  have := H2 (size w10{hr0} - 1) _. smt.
+  have -> := onth_nth (ADDC(0,0)) c' (size w10{hr0} - 1). smt.
+  rewrite oget_some.
+  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2.
+  simplify.
+        smt.
+        smt.
+        simplify.
+        progress.
+        have : x1 < size w10{hr0}. smt.
+        smt.
+        smt.
+        smt.
+  rewrite !nth_rcons.
+  case (i < size w20{hr0});progress.
+  smt.
+  case (i = size w20{hr0}); progress.
+  have -> := H9 (size w20{hr0} - 1) _. smt.
+  have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
+  rewrite oget_some.
+  have <- : (nth (ADDC(0,0)) c' (size w20{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
+  smt(nth0_head size_ge0).
+  rewrite /valid_circuit /valid_gate in H2.
+  have := H2 (size w20{hr0} - 1) _. smt.
+  have -> := onth_nth (ADDC(0,0)) c' (size w20{hr0} - 1). smt.
+  rewrite oget_some.
+  elim (nth (ADDC(0,0)) c' (size w20{hr0} - 1)); move=>x; case x=> x1 x2.
+  simplify.
+        smt.
+        smt.
+        simplify.
+        progress.
+        have : x1 < size w20{hr0}. smt.
+        smt.
+        smt.
+        smt.
+  rewrite !nth_rcons.
+  case (i < size w30{hr0});progress.
+  smt.
+  case (i = size w30{hr0}); progress.
+  have -> := H18 (size w30{hr0} - 1) _. smt.
+  have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
+  rewrite oget_some.
+  have <- : (nth (ADDC(0,0)) c' (size w30{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
+  smt(nth0_head size_ge0).
+  rewrite /valid_circuit /valid_gate in H2.
+  have := H2 (size w30{hr0} - 1) _. smt.
+  have -> := onth_nth (ADDC(0,0)) c' (size w30{hr0} - 1). smt.
+  rewrite oget_some.
+  elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2.
+  simplify.
+        smt.
+        smt.
+        simplify.
+        progress.
+        have : x1 < size w30{hr0}. smt.
+        smt full.
+        smt.
+        smt.
+  smt(size_rcons head_behead).
+  auto.
+  progress.
+  apply dinput_ll.
+  smt().
+  smt().
+  smt().
+  case (i = 0); progress.
+  smt(onth_nth oget_some size_ge0).
+  smt.
+  case (i = 0); progress.
+  smt(onth_nth oget_some size_ge0).
+  smt.
+  case (i = 0); progress.
+  smt(onth_nth oget_some size_ge0).
+  smt.
+  smt.
+  smt(nth_last).
+  smt(nth_last).
+  smt(nth_last).
+  smt(nth_last).
+  smt(nth_last).
+  smt(nth_last).
+  smt(nth_last).
+qed.
+
+
+lemma zkboo_soundness
+    c' y y1 y2 y3 c1 c2 c3
+    w1 w2 w3 w1' w2' w3'
+    k1 k2 k3 k1' k2' k3' &m:
+    islossless BindingGame(Com).bind_three =>
+    phoare[ZKBoo(Com).verify :
+        h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k1, w1, k2, w2) ==>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 1 w1 w2 c' k1 k2 /\ valid_view_output y1 w1 /\ valid_view_output y2 w2
+        /\ valid_circuit c'
+        /\ size c' = size w1 - 1 /\ size w1 = size w2 /\ verify (w1, k1) c1 /\ verify (w2,k2) c2] = 1%r =>
+    phoare[ZKBoo(Com).verify :
+        h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k2', w2', k3, w3) ==>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 2 w2' w3 c' k2' k3 /\ valid_view_output y2 w2' /\ valid_view_output y3 w3
+        /\ valid_circuit c'
+        /\ size c' = size w2' - 1 /\ size w2' = size w3 /\ verify (w2', k2') c2 /\ verify (w3, k3) c3] = 1%r =>
+    phoare[ZKBoo(Com).verify :
+        h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z = (k3', w3', k1', w1') ==>
+        res /\ valid_output_shares y y1 y2 y3 /\ valid_view 3 w3' w1' c' k3' k1' /\ valid_view_output y3 w3' /\ valid_view_output y1 w1'
+        /\ valid_circuit c'
+        /\ size c' = size w3' - 1 /\ size w3' = size w1' /\ verify (w3', k3') c3 /\ verify (w1', k1') c1] = 1%r =>
+    Pr[Sigma.SpecialSoundness(ZKBoo(Com)).main((c',y), (y1,y2,y3,c1,c2,c3), [1;2;3], [(k1, w1, k2, w2); (k2', w2', k3, w3); (k3', w3', k1', w1')]) @ &m :res]
+        = (1%r - binding_prob).
+proof.
+  move=> bg_ll accept1 accept2 accept3.
+  have -> :
+    Pr[SpecialSoundness(ZKBoo(Com)).main((c', y), (y1, y2, y3, c1, c2, c3), [1; 2; 3], [(k1, w1, k2, w2); (k2', w2', k3, w3); (k3', w3', k1', w1')]) @ &m : res] =
+    Pr[SoundnessInter.main((c', y), (y1, y2, y3, c1, c2, c3), (k1, w1, k2, w2), (k2', w2', k3, w3), (k3', w3', k1', w1') ) @ &m : res].
+  byequiv soundness_inter=>//.
+
+  byphoare(: h = (c',y) /\ m = (y1,y2,y3,c1,c2,c3) /\ z1 = (k1, w1, k2, w2) /\ z2 = (k2', w2', k3, w3) /\ z3 = (k3', w3', k1', w1') ==> _)=>//.
+  proc*.
+  have Hsuccess := zkboo_inter_soundness c' y y1 y2 y3 c1 c2 c3 w1 w2 w3 w1' w2' w3' k1 k2 k3 k1' k2' k3' &m bg_ll accept1 accept2 accept3.
+  call Hsuccess.
+  skip. progress.
+qed.
 
 
 end section Protocol.
