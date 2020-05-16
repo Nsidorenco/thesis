@@ -1060,16 +1060,8 @@ proof.
   have := H6 (size w30{hr0} - 1) _. smt.
   have -> := onth_nth (ADDC(0,0)) c' (size w30{hr0} - 1). smt.
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w30{hr0}. smt.
-        smt full.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2; smt().
+  smt(size_rcons head_behead).
   smt(size_rcons head_behead).
   auto.
   progress.
@@ -1187,99 +1179,57 @@ proof.
   smt(size_rcons).
   smt(size_rcons).
   smt(size_rcons).
-  have H17' := H17 (i + 1) _. smt().
-  rewrite size_rcons.
-  have -> := nth_behead (ADDC(0,0)) c0{hr0} i _. smt().
-  smt.
+  smt(nth_behead size_rcons).
   smt(size_rcons).
 
   rewrite !nth_rcons.
-  case (i < size w10{hr0});progress.
-  smt.
+  case (i < size w10{hr0}); first smt().
   case (i = size w10{hr0}); progress.
-  have -> := H1 (size w10{hr0} - 1) _. smt.
+  have -> := H1 (size w10{hr0} - 1) _. smt(size_ge0).
   have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
   rewrite oget_some.
   have <- : (nth (ADDC(0,0)) c' (size w10{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
   smt(nth0_head size_ge0).
   rewrite /valid_circuit /valid_gate in H2.
-  have := H2 (size w10{hr0} - 1) _. smt.
-  have -> := onth_nth (ADDC(0,0)) c' (size w10{hr0} - 1). smt.
+  have := H2 (size w10{hr0} - 1) _. smt(size_ge0).
+  have -> := onth_nth (ADDC(0,0)) c' (size w10{hr0} - 1). smt(size_ge0).
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w10{hr0}. smt.
-        smt.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2; smt().
+  smt(size_rcons head_behead).
+
   rewrite !nth_rcons.
-  case (i < size w20{hr0});progress.
-  smt.
+  case (i < size w20{hr0}); first smt().
   case (i = size w20{hr0}); progress.
-  have -> := H9 (size w20{hr0} - 1) _. smt.
+  have -> := H9 (size w20{hr0} - 1) _. smt(size_ge0).
   have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
   rewrite oget_some.
   have <- : (nth (ADDC(0,0)) c' (size w20{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
   smt(nth0_head size_ge0).
   rewrite /valid_circuit /valid_gate in H2.
-  have := H2 (size w20{hr0} - 1) _. smt.
-  have -> := onth_nth (ADDC(0,0)) c' (size w20{hr0} - 1). smt.
+  have := H2 (size w20{hr0} - 1) _. smt(size_ge0).
+  have -> := onth_nth (ADDC(0,0)) c' (size w20{hr0} - 1). smt(size_ge0).
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w20{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w20{hr0}. smt.
-        smt.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w20{hr0} - 1)); move=>x; case x=> x1 x2; smt().
+  smt(size_rcons head_behead).
+
   rewrite !nth_rcons.
-  case (i < size w30{hr0});progress.
-  smt.
+  case (i < size w30{hr0}); first smt().
   case (i = size w30{hr0}); progress.
-  have -> := H18 (size w30{hr0} - 1) _. smt.
+  have -> := H18 (size w30{hr0} - 1) _. smt(size_ge0).
   have -> := ohead_head (ADDC(0,0)) c0{hr0} H24.
   rewrite oget_some.
   have <- : (nth (ADDC(0,0)) c' (size w30{hr0} - 1)) = head (ADDC(0,0)) c0{hr0}.
   smt(nth0_head size_ge0).
   rewrite /valid_circuit /valid_gate in H2.
-  have := H2 (size w30{hr0} - 1) _. smt.
-  have -> := onth_nth (ADDC(0,0)) c' (size w30{hr0} - 1). smt.
+  have := H2 (size w30{hr0} - 1) _. smt(size_ge0).
+  have -> := onth_nth (ADDC(0,0)) c' (size w30{hr0} - 1). smt(size_ge0).
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w30{hr0}. smt.
-        smt full.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2; smt().
   smt(size_rcons head_behead).
+  smt().
+
   auto.
-  progress.
-  apply dinput_ll.
-  smt().
-  smt().
-  smt().
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  smt.
-  smt(nth_last).
+  smt(onth_nth oget_some size_ge0 dinput_ll nth_out nth_last).
   smt(nth_last).
   smt(nth_last).
   smt(nth_last).
