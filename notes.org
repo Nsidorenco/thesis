@@ -172,3 +172,7 @@ Measure Monad. Used to express probability distributions on elements
 if h2 \not\in Domain(R), is it possible to create a fake transcript based on h2?
 if not; it should not be possible to have completeness for the relation
 suggested by Ivan.
+
+
+Introduce the field of high assurance crypto. (Introduction).
+Target peers in formal sections.

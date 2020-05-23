@@ -636,86 +636,6 @@ proof.
   by have := inter_completeness h' w' e' &m rel.
 qed.
 
-(* module type Distinguisher = { *)
-(*   proc * get(h : statement) : challenge *)
-(*   proc guess(a : message, e : challenge, z : response) : bool *)
-(* }. *)
-
-(* local module ZKBooSHVZKGame (D : Distinguisher) = { *)
-(*   module SHVZKGames = SHVZK(ZKBoo(Com)) *)
-
-(*   proc main(h : statement, w : witness) = { *)
-(*     var b, b', a, e, z, trans; *)
-(*     b <$ dbool; *)
-(*     e = D.get(h); *)
-(*     if (b) { *)
-(*       trans = SHVZKGames.real(h, w, e); *)
-(*       (a, e, z) = oget trans; *)
-(*     } else { *)
-(*       trans = SHVZKGames.ideal(h, e); *)
-(*       (a, e, z) = oget trans; *)
-(*     } *)
-(*     b' = D.guess(a, e, z); *)
-
-(*     return (b = b'); *)
-(*   } *)
-(* }. *)
-
-(* local module ZKBooSHVZKGame' (D : Distinguisher) = { *)
-(*   module ZK = ZKBoo(Com) *)
-(*   module SHVZKGames = SHVZK(ZK) *)
-
-(*   proc main(h : statement, w : witness) = { *)
-(*     var b, b', a, e, z, trans; *)
-(*     b <$ dbool; *)
-(*     e = D.get(h); *)
-(*     if (b) { *)
-(*       a = ZK.init(h, w); *)
-(*       z = ZK.response(h, w, a, e); *)
-(*     } else { *)
-(*       trans = SHVZKGames.ideal(h, e); *)
-(*       (a, e, z) = oget trans; *)
-(*     } *)
-(*     b' = D.guess(a, e, z); *)
-
-(*     return (b = b'); *)
-(*   } *)
-(* }. *)
-
-(* local equiv inter_shvzk (D <: Distinguisher): *)
-(*     ZKBooSHVZKGame(D).main ~ ZKBooSHVZKGame'(D).main : *)
-(*     ={h, w} ==> ={res}. *)
-(* proof. *)
-(*     proc. *)
-(*     sim. *)
-(*     seq 2 2 : (#pre /\ ={b, e}). *)
-(*     call (:true). *)
-(*     auto. *)
-(*     if; progress. *)
-(*     - auto. *)
-(*       inline ZKBooSHVZKGame(D).SHVZKGames.real. *)
-(*       sp. wp. *)
-(*       inline ZKBoo(Com).verify. *)
-(*       inline Phi.reconstruct. *)
-(*       auto. *)
-(*       case (e{1} = 1). *)
-(*       rcondt{1} 10. auto. *)
-(*       call (:true). auto. *)
-(*       call (:true). auto. *)
-(*       auto. *)
-(*       inline ZKBoo(Com).valid_output_share Phi.output. *)
-(*       auto. *)
-(*       call (:true). sim. *)
-
-(* local lemma zkboo_shvzk (D <: Distinguisher) (A <: HidingAdv) h w &m: *)
-(*     Pr[ZKBooSHVZKGame(D).main(h, w) @ &m : res] <= *)
-(*     Pr[HidingGame(Com, A).main() @ &m : res]. *)
-(* proof. *)
-(*     byequiv=>//. *)
-(*     proc. *)
-(*     inline ZKBooSHVZKGame(D).SHVZKGames.real. *)
-
-
 equiv zkboo_shvzk:
     SHVZK(ZKBoo(Com)).real ~ SHVZK(ZKBoo(Com)).ideal :
     ={h, e, glob Com} /\ h{1}.`2 = eval_circuit h{1}.`1 [w{1}] /\ e{2} \in dchallenge ==> ={res}.
@@ -790,18 +710,6 @@ proof.
     exfalso. smt.
 qed.
 
-(* special soundness section *)
-(* Two proofs: *)
-(*  1) proof that all opened views are equal to the views in the first message *)
-(*  2) witness can be reconstructed from the three views*)
-
-(* Notes: *)
-(* What is a? *)
-(* what is z? *)
-(* Properties I need: *)
-(* 1. View w1 in a commitment *)
-(* 2. \forall i w[i] = phi_decomp*)
-
 local module SoundnessInter = {
   module ZK = ZKBoo(Com)
   module BGame = BindingGame(Com)
@@ -829,11 +737,11 @@ local module SoundnessInter = {
     v = extract_views(h, m, z1, z2, z3);
     w = ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
 
-    if (w = None) {
+    if (w = None \/ !v) {
       ret = false;
     } else{
       w_get = oget w;
-      ret = v /\ R h w_get;
+      ret = R h w_get;
     }
     return ret;
   }
@@ -1014,16 +922,9 @@ proof.
   have := H6 (size w10{hr0} - 1) _. smt.
   have -> := onth_nth (ADDC(0,0)) c' (size w10{hr0} - 1). smt.
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w10{hr0}. smt.
-        smt.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w10{hr0} - 1)); move=>x; case x=> x1 x2; smt().
+  smt(size_rcons head_behead).
+
   rewrite !nth_rcons.
   case (i < size w20{hr0});progress.
   smt.
@@ -1037,16 +938,9 @@ proof.
   have := H6 (size w20{hr0} - 1) _. smt.
   have -> := onth_nth (ADDC(0,0)) c' (size w20{hr0} - 1). smt.
   rewrite oget_some.
-  elim (nth (ADDC(0,0)) c' (size w20{hr0} - 1)); move=>x; case x=> x1 x2.
-  simplify.
-        smt.
-        smt.
-        simplify.
-        progress.
-        have : x1 < size w20{hr0}. smt.
-        smt.
-        smt.
-        smt.
+  elim (nth (ADDC(0,0)) c' (size w20{hr0} - 1)); move=>x; case x=> x1 x2; smt().
+  smt(size_rcons head_behead).
+
   rewrite !nth_rcons.
   case (i < size w30{hr0});progress.
   smt.
@@ -1063,23 +957,9 @@ proof.
   elim (nth (ADDC(0,0)) c' (size w30{hr0} - 1)); move=>x; case x=> x1 x2; smt().
   smt(size_rcons head_behead).
   smt(size_rcons head_behead).
+
   auto.
-  progress.
-  apply dinput_ll.
-  smt().
-  smt().
-  smt().
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  case (i = 0); progress.
-  smt(onth_nth oget_some size_ge0).
-  smt.
-  smt.
-  smt(nth_last).
+  smt(onth_nth oget_some size_ge0 dinput_ll nth_out nth_last).
 qed.
 
 
@@ -1109,6 +989,43 @@ local lemma zkboo_inter_soundness
 proof.
   move=> bg_ll accept1 accept2 accept3.
   (* phoare split (1%r - binding_prob) binding_prob : (validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3'). *)
+(*   proc. *)
+(*   seq 1 : (#pre /\ v /\ validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3') (1%r - binding_prob) 1%r binding_prob 0%r. *)
+(*   - auto. *)
+(*   - have H' := extraction_success c' y y1 y2 y3 c1 c2 c3 w1 w2 w3 w1' w2' w3' k1 k2 k3 k1' k2' k3' bg_ll accept1 accept2 accept3. *)
+(*     call H'. *)
+(*     auto. *)
+(*   wp. *)
+(*   have H' := zkboo_soundness_if_consistent c' y y1 y2 y3 c1 c2 c3 k1 k2 k3 w1 w2 w3 &m. *)
+(*   call H'. *)
+(*   skip. progress. *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(*   smt(). *)
+(* hoare. *)
+(* inline *. auto. *)
+(* progress. *)
+(* smt(). *)
+
+(* lemma zkboo_soundness_if_consistent *)
+(*       c' y y1 y2 y3 c1 c2 c3 *)
+(*       k1' k2' k3' w1 w2 w3 &m: *)
+  have Hcons := binding_three_cons_valid c1 c2 c3 (w1, k1) (w1', k1') (w2, k2) (w2', k2') (w3, k3) (w3', k3') bg_ll.
   proc.
   inline SoundnessInter.ZK.witness_extractor.
   auto.

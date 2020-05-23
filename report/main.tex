@@ -20,6 +20,8 @@
 \usepackage{lipsum}
 \usepackage{listings}
 \usepackage{tikz}
+\usepackage{lstautogobble}
+\usepackage{subcaption}
 
 \usepackage{amsthm}                                % Theorem package
 \theoremstyle{definition}                          % plain, definition, remark
@@ -29,6 +31,7 @@
 \renewcommand*\sfdefault{lmss}
 \renewcommand*\ttdefault{txtt}
 \newcommand{\easycrypt}{\texttt{EasyCrypt}}
+\newcommand{\validviews}[1]{\textbf{Valid}$(#1)$}
 \newenvironment{draft}{\color{red}}{\ignorespacesafterend}
 
 \newtheorem{theorem}{Theorem}[section]
@@ -66,7 +69,7 @@
   keywordstyle=\color{blue},       % keyword style
   % language=Octave,                 % the language of the code
   morekeywords={*,module,type,proc,Pr,equiv,hoare,lemma,forall, phoare,
-    res,op,with,let,in,require,const,var,return},            % if you want to add more keywords to the set
+    res,op,with,let,in,require,const,var,return,pred,None,Some},            % if you want to add more keywords to the set
   numbers=none,                    % where to put the line-numbers; possible values are (none, left, right)
   numbersep=5pt,                   % how far the line-numbers are from the code
   numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
@@ -165,7 +168,7 @@
 
 \cleardoublepage
 \appendix
-\input{sections/appendix.tex}
+% \input{sections/appendix.tex}
 
 \end{document}
 

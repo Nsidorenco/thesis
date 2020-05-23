@@ -2,9 +2,15 @@
 \label{ch:related_work}
 
 Sigma protocols has been done in a lesser extend in \easycrypt. Much of the same
-work has been done in Isabelle/CryptHOL by \citeauthor{cryptoeprint:2019:1185},
-along with \citeauthor{certicrypt_sigma}, which have done the work in
-CertiCrypt.
+work has been done in Isabelle/CryptHOL by \citeauthor{cryptoeprint:2019:1185}.
+
+\citeauthor{certicrypt_sigma} formalised $\Sigma$-Protocols within CertiCrypt,
+and proved the security of the $\Sigma^{\phi}$-Protocol, which proves knowledge
+of the pre-image of a group homomorphism. ZKBoo protocol described in section
+\ref{sec:zkboo} and the $\Sigma^{\phi}$-Protocol prove knowledge of the same
+relation, but ZKBoo has reduced proof size? \todo{Examine differences}.
+
+phi assumes the group homomorphism to be special?
 
 \todo{Differences between the works}
 

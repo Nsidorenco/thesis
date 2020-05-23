@@ -1,6 +1,8 @@
 \chapter{Introduction}
 \label{ch:intro}
 
+\todo{Maybe add database example from CertiCrypt paper?}
+
 Computer-aided cryptography is an active area of research that combines the
 fields of formal verification and cryptography to develop
 formal machine-checkable proofs approaches to cryptographic protocol design as
@@ -37,14 +39,24 @@ one of the assumptions made for the protocol.
 % the host language will still hold in the target language.
 
 Having formally verified software is especially important when it is used as a
-building block in bigger and more complex protocols. One such example of a
-fundamental building block in cryptology is Zero knowledge proofs, which is used in
-a myriad of different protocols, most notably on the blockchain and in the GMW compiler, which allows for active security of any passively secure protocols.
+building block in bigger and more complex protocols.
+One such example of a fundamental building block in cryptology is Zero knowledge
+arguments, which since their introduction has been in many complex cryptographic
+protocols. Most notably they have found important use on the blockchain and in
+the  GMW compiler, which can compile any passively secure protocol into a active
+secure one.
 
-One problem with most Zero-knowledge proof is that they are usually
-prohibitively expensive to run \todo{reference}. We have therefore a surge in
-research with regards to creating zero-knowledge protocols, which are efficient
-to run. One of the predominant works in the field is zkSNARKS.
+One problem with Zero-knowledge arguments is that they usually fall into two
+categories: They are either efficient, but to specialised, or they are
+generalised but too inefficient. A example of the former is Schnorr protocol,
+which allows us to prove knowledge of a discrete logarithm.
+
+This has led to a new class of protocols known as \textit{Succinct
+  Non-interactive ARguments of Knowledge}, also known as SNARKS, which aim to
+improve on the generalised zero knowledge protocols by reducing the size of the
+proof and moves the bulk of the work to prover, such that SNARKS can be quickly
+verified but are expensive to make.
+\todo{reference}
 
 Since these generalised zero-knowledge compilers can be used within applications
 where security is critical it is important to that they have been rigorously
@@ -58,6 +70,14 @@ In doing so we will develop a rich formalisation of $\Sigma$-protocols they
 relate to Zero-knowledge. Moreover, we will show how to create a fully verified
 toolchain for constructing a generalised zero-knowledge compiler based on ZKBoo.
 
+the main contribution of this thesis is \dots
+
+\todo{Goal: Develop a rich formalisation that be the basis for future formal analysis of zero-knowledge protocols}
+
+\paragraph{Outline}
+In chapter \ref{ch:EasyCrypt} \dots
+Then in chapter \ref{ch:background} we introduce the relevant background
+in regards to $\Sigma$-Protocols, Commitment schemes and Multi-part computations.
 
 %%% Local Variables:
 %%% mode: latex

@@ -1,5 +1,47 @@
 \chapter{Formalising commitment schemes}
 \label{ch:formal_commitment}
+This section aims to give a generalised formalisation of commitment schemes and
+their security in a way that makes it possible and easy to reason about the
+security properties of arbitrary instantiations of commitment schemes. Moreover,
+the formalisation provides a standard interface for other protocols to interact
+with commitment schemes.
+In this section we will introduce two flavours of commitment schemes. The first
+version formalises key-based commitment schemes, where it is necessary for the
+two parties to share a key. The other is a more idealised variant of commitment
+schemes, which does not require the parties to share any keys between them, and
+only assumes they share the function specification of the commitment schemes.
+The latter variant is usually instantiated by one-way/hash functions.
+
+\section{Key-based commitment schemes}
+\label{sec:commitment:key-based}
+For Key-based commitment schemes we fix to following types:
+\begin{align*}
+  \textbf{type: } &\text{public\_key} \\
+  &\text{secret\_key} \\
+  &\text{commitment} \\
+  &\text{message} \\
+  &\text{randomness} \\
+\end{align*}
+
+Here we specially fix a type ``randomness'', which is responsible to making two
+commitments to the same message look different. Technically this randomness
+could just be part of the ``commitment'' type, which is the type defining what
+values commitments takes. The choice of separating the two types, however, makes
+the formalisations of security easier to work with, which we will see later in
+this section.
+
+With the types fixed we then define a key-based commitment scheme as the
+following functions and procedures...
+
+
+\section{Key-less commitment schemes}
+\label{sec:commitment:key-less}
+
+
+\section{Concrete instantiation: Pedersen Commitment}
+\label{sec:label}
+
+
 
 %%% Local Variables:
 %%% mode: latex

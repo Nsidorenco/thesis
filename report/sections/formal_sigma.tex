@@ -4,8 +4,20 @@ This section will aim to formalise $\Sigma$-protocols according to the
 definitions set out in section \ref{sec:background:sigma_protocols}, with a
 sufficiently general set-up to allows easy instantiation of arbitrary concrete
 protocols.
+
+Moreover, we show that any protocol that adheres to this abstract specification
+of a $\Sigma$-Protocol can be compounded together whilst still being secure.
+
+We then end this section by formalising the Fiat-Shamir heuristic, which allows
+us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
+This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
+model, since Special honest verifier zero-knowledge ensure Zero-knowledge in the
+presence of an honest verifier. If we remove the verifier, then he can always be
+assumed honest.
+
+
 This abstraction is provided by \easycrypt's abstract theories, where we let
-$\Sigma$-Protocol be quantified over the abstract types:
+$\Sigma$-Protocol be quantified over the following types:
 \begin{itemize}
   \item input
   \item witness
@@ -25,7 +37,9 @@ distribution is always successful. This is refereed to as the distribution being
 \todo{Relate to figure in background chapter?}
 
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
-\lstinputlisting[linerange={29-38}]{../code/SigmaProtocols.eca}
+\lstinputlisting[linerange={29-38}, label=lst:sigma_procedures]{../code/SigmaProtocols.eca}
+
+\todo{Procedures are allowed to share global state - even verify. important wrt. security}
 
 \todo{Here gen is \dots}
 
@@ -159,6 +173,7 @@ defined in Listing \ref{lst:sigma-soundness} with probability 1.
 \end{definition}
 
 \begin{definition}[Special Honest Verifier Zero-Knowledge]
+\label{def:sigma:shvzk}
 Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$ and
 witness $w$, then $S$ is said to be Special Honest Verifier Zero-knowledge
 (SHVZK), if there exists a simulator that given input $h$ outputs a
@@ -166,13 +181,15 @@ transcript $(a,e,z)$, which is indistinguishable from the transcript observed by
 running $S$ on input $h, w$.
 
 \todo{define indistinguishability}
+\todo{Statistical and computation indistinguishability in EC?}
 
 \end{definition}
 
 \begin{definition}
 \label{def:sigma-protocol}
-  S is said to be a $\Sigma$-Protocol if it satisfies the above three definition
-  and is on three-move form.
+  S is said to be a $\Sigma$-Protocol if it implements the procedures in figure
+  \ref{lst:sigma_procedures} and satisfy the definitions of completeness,
+  special soundness, and special honest verifier zero-knowledge.
 \end{definition}
 
 \todo{Argue that games corresponds to original definitions}
@@ -182,7 +199,10 @@ this only hold if both inputs are in the domain of R.}
 
 \section{Composition Protocols}
 \label{sec:sigma_comp}
-\todo{Some introduction based on background chapter?}
+Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
+composes is various ways. More specially it is possible to prove knowledge of
+relations compounded by the logical operators ``and'' and ``or''.
+The benefit of this is...
 
 \subsection{AND}
 \label{subsec:sigma_AND}
@@ -236,6 +256,9 @@ definition \ref{def:sigma-protocol}.
 \subsection{OR}
 \label{subsec:sigma_OR}
 \todo{Needed to change relation}
+
+\subsection{Fiat-Shamir Heuristic}
+\label{subsec:fiat-shamir}
 
 
 \subsection{Concrete Example: Schnorr protocol}
