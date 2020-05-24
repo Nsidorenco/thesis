@@ -31,11 +31,99 @@ the formalisations of security easier to work with, which we will see later in
 this section.
 
 With the types fixed we then define a key-based commitment scheme as the
-following functions and procedures...
+following functions and procedures:
+
+\begin{lstlisting}[float,label=lst:commitment-procedures,caption= Key-Based commitment specification]
+op validate_key (sk : secret_key, pk : public_key) : bool.
+op verify (pk : public_key) (m : message) (c : commitment) (d : randomness) : bool.
+
+module type Committer = {
+  proc * key_gen() : secret_key * public_key
+  proc commit(sk : secret_key, m : message) : commitment * randomness
+}.
+\end{lstlisting}
+Here verification of commitments and key pairs are modelled as function, since
+we assume these function to always be deterministic and lossless. There should
+be need to sample additional randomness to verify these. Mo rover, if the
+verification algorithms cannot terminate within a reasonable amount of time,
+then it is probably not wroth studying the commitment scheme further.
+
+The committer is modelled as a module with two procedures. One for generating
+key pairs and one for committing to messages. This models the fact that a commit
+is able to hold state and make random choice, while the commitments he makes
+should be easily verifiable by anyone knowing the public key, without having to
+keep state about the committer.
+
+By separating the verification functions from the committers procedures we get a
+formalisation closer to the real world, where verification functions should not
+be able to read any of the state of the committer. This could alternatively have
+been modelled with the verifier being a module, but allowing the verify to keep
+state complicates proofs, since verifier two messages could potentially have an
+effect on each other \todo{rewrite this}.
+This is in contrast to previous work \cite{DBLP:journals/corr/MetereD17}, which
+has proven problematic to work with, when applying the formalisation of
+commitment schemes in larger protocols (Section \ref{sec:formal_zkboo}).
+\todo{Rewrite in sec \ref{sec:formal_zkboo} that it is needed to swap the order
+  of verifying commitments}
+
+We then attain the following definitions of security:
+
+\begin{definition}[Correctness]
+  \label{def:commitment:correctness}
+  A commitment scheme C is correct if the following procedures always succeeds.
+\end{definition}
+
+\begin{definition}[Hiding]
+  A commitment scheme C is ...
+  \todo{Explain how the adversary can express multiple levels of hiding.}
+\end{definition}
+
+\begin{definition}[Binding]
+  A commitment scheme C is ...
+  \todo{Explain how the adversary can express multiple levels of binding.}
+\end{definition}
+
 
 
 \section{Key-less commitment schemes}
 \label{sec:commitment:key-less}
+
+\section{Alternative definitions of security}
+\label{sec:commitment:alt-sec}
+Based on the previously defining notions of security we also introduce a number
+of alternative definitions, some which can be directly derivable from our
+original definitions, whilst the others does not offer an easy reduction but
+intuitively capture the same aspects of security.
+
+\begin{lemma}[Alternative correctness]
+  A commitment scheme C is correct if given as input a valid key pairs
+  $(sk, pk)$ then the verifier with public key $pk$ will always accept
+  commitments made by the committer using secret key $sk$.
+\end{lemma}
+\begin{proof}
+
+\end{proof}
+
+\begin{definition}[Perfect Hiding]
+  \label{def:commitment:perfect-hiding}
+  A commitment scheme C offers perfect hiding, if the output distribution of two
+  committers with the same state but different messages are perfectly
+  indistinguishable.
+
+  \todo{equiv statement here}
+\end{definition}
+
+\begin{definition}[Alternative Binding]
+  \label{def:commitment:alt-binding}
+  A commitment scheme C offers binding...
+\end{definition}
+
+The definition of hiding only works in the perfect case, but it is much easier
+to work with within \easycrypt\  when this is the case. This is due to most
+proofs being stated is indistinguishability proofs, which are bothersome to
+convert to adversarial proofs.
+
+The definition of binding allows us to ...
 
 
 \section{Concrete instantiation: Pedersen Commitment}
