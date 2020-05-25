@@ -74,19 +74,42 @@ We then attain the following definitions of security:
 \end{definition}
 
 \begin{definition}[Hiding]
+  \label{def:commitment:hiding}
   A commitment scheme C is ...
   \todo{Explain how the adversary can express multiple levels of hiding.}
 \end{definition}
 
 \begin{definition}[Binding]
+  \label{def:commitment:binding}
   A commitment scheme C is ...
   \todo{Explain how the adversary can express multiple levels of binding.}
 \end{definition}
 
-
+\todo{Mention randomness distributions?}
 
 \section{Key-less commitment schemes}
 \label{sec:commitment:key-less}
+\todo{Is this section necessary?}
+We furthermore formalise a variant of commitment schemes that we key-less. This
+is formalised independently from the key-based commitment schemes, since the
+change is function signatures makes it incompatible with the key-based
+formalisation, they would potentially be merged into one formalisation, which
+allows for both to be used whenever a commitment scheme is required. The main
+reason for not doing this is that proofs of protocols depending on commitment
+schemes can become easier when it is not necessary to quantify over keys (See
+section \ref{sec:formal_zkboo} for an example of this). Ideally it should be
+proven that the two formalisation are compatible wrt. security, and one can be
+used in place of the other, but this has been beyond the scope of this thesis.
+
+The functions and procedures used by the key-less commitment schemes are
+identical to the ones listed in Figure \ref{lst:commitment-procedures} for the
+key-based commitment schemes with the only difference being all references to
+the public and secret keys has been removed. Furthermore, the Committer module
+now only contains one procedure \texttt{commit}, since there is no longer a need
+to generate key pairs.
+
+Moreover, the security definitions remain the same but, again, with the key
+generation removed along with the references to the secret and public keys.
 
 \section{Alternative definitions of security}
 \label{sec:commitment:alt-sec}
@@ -129,7 +152,94 @@ The definition of binding allows us to ...
 \section{Concrete instantiation: Pedersen Commitment}
 \label{sec:label}
 
+To show the workability of the proposed formalisation we show that it can be
+used to instantiate the key-based Pedersen commitment scheme. Pedersens
+commitment scheme is based on the discrete logarithm assumption
 
+\todo{Mention DL in background?}
+
+The Pedersen commitment scheme is a protocol run between a committer C and a receiver R. Both parties have before running the protocol agreed on a group $(\mathcal{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the generator for the group.
+
+When the committer want to commit the a message $m$ he does the following:
+\begin{itemize}
+  \item Sample a key $h \in_{\text{R}} \mathbb{G}$
+  \item Sample a random opening $d \in_{\text{R}} \mathbb{Z}_{q}$ and sends the key and commitment $c = g^{d}h^{m}$ to R.
+\end{itemize}
+
+\todo{Alternatively the receiver could sample the key for better security?}
+
+At a later time, when C is ready to show the value he committed to, he sends the message and random opening, $(m',d')$ to R, when then runs the following verification steps:
+\begin{itemize}
+  \item R computes $c' = g^{d'}h^{m'}$ and checks that $c = c'$.
+\end{itemize}
+
+From this description it is clear from this description that the verification step is simply a function taking as input the key, commitment, message and opening and does a deterministic computations. This fits perfectly within our formalisation of the Receiver, we therefore instantiate our commitment scheme framework with the following:
+
+\begin{lstlisting}[mathescape,label=lst:commitment:pedersen,caption=Pedersen instantiation]
+clone export Commitment as Com with
+  type public_key <- group (* group element *)
+  type secret_key <- group
+  type commitment <- group
+  type message    <- F.t  (* Finite field element, like $\mathbb{Z}_{q}$ *)
+  type randomness <- F.t
+
+  op dm = FDistr.dt, (* Distribution of messages *)
+  op dr = FDistr.dt, (* Distribution of randomness *)
+  op verify pk (m : message) c (r : randomness) = g^r * pk^m = c,
+  op valid_key (sk : secret_key) (pk : public_key) = (sk = pk).
+
+module Pedersen : Committer = {
+  proc key_gen() : secret_key * public_key = {
+    a <$\$$ dr;
+    $h = g ^ a$;
+
+    return (h, h);
+  }
+
+  proc commit(sk : secret_key, m : message) = {
+    r <$\$$ dr;
+    $c = g^r * (sk^m)$;
+
+    return (c, r);
+  }
+}.
+
+\end{lstlisting}
+
+Here we use the Cyclic Group theory from EC to generate the agreed upon group
+and model uniform distributions of messages and randomness by...
+
+Proofs are handled by the ambient logics implementation of group operations.
+
+To prove security of the protocol we should that the previous definitions of
+correctness, hiding and binding can be proven true.
+
+\begin{lemma}[Pedersen correctness]
+  We must prove that the game outputs true.
+\end{lemma}
+\begin{proof}
+trivial.
+\end{proof}
+
+\begin{lemma}[Pedersen hiding]
+  We show that Pedersen has perfect hiding by definition
+  \ref{def:commitment:hiding}.
+\end{lemma}
+\begin{proof}
+  Program is indistinguishable from game committing to random choice of message.
+  No adversary can guess a random bit better than $\frac{1}{2}$.
+\end{proof}
+
+\begin{lemma}[Pedersen Binding]
+  We show computation binding under definition \ref{def:commitment:binding} by
+  showing that an adversary winning the binding game can be used to break the
+  discrete logarithm.
+\end{lemma}
+\begin{proof}
+  Define DLog game.
+\end{proof}
+
+In this section we have seen ...
 
 %%% Local Variables:
 %%% mode: latex

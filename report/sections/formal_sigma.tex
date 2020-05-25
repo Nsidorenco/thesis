@@ -18,14 +18,14 @@ assumed honest.
 
 This abstraction is provided by \easycrypt's abstract theories, where we let
 $\Sigma$-Protocol be quantified over the following types:
-\begin{itemize}
-  \item input
-  \item witness
-  \item message
-  \item challenge
-  \item response
-  \item randomness
-\end{itemize}
+\begin{align*}
+  \textbf{type: } &\text{input} \\
+                  &\text{witness} \\
+                  &\text{message} \\
+                  &\text{challenge} \\
+                  &\text{response} \\
+                  &\text{randomness}
+\end{align*}
 
 And a relation $R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$.
 
@@ -201,7 +201,7 @@ this only hold if both inputs are in the domain of R.}
 \label{sec:sigma_comp}
 Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
 composes is various ways. More specially it is possible to prove knowledge of
-relations compounded by the logical operators ``and'' and ``or''.
+relations compounded by the logical operators ``AND'' and ``OR''.
 The benefit of this is...
 
 \subsection{AND}
@@ -216,7 +216,7 @@ definition \ref{def:sigma-protocol}.
 
 \begin{lemma}[AND completeness]
   \begin{align*}
-    R h w \land
+    \text{R } h \, w \land
     \Pr{Completeness.main(S_{1})} = 1 \land \Pr{Completeness.main(S_{2})} = 1 \\
     \implies \Pr{Completeness.main(AND(S_{1}, S_{2}))} = 1
   \end{align*}
@@ -252,14 +252,50 @@ definition \ref{def:sigma-protocol}.
 \end{lemma}
 
 
-
 \subsection{OR}
 \label{subsec:sigma_OR}
 \todo{Needed to change relation}
 
-\subsection{Fiat-Shamir Heuristic}
+\subsection{Fiat-Shamir Transformation}
 \label{subsec:fiat-shamir}
+The Fiat-Shamir transformation is a technique for converting $\Sigma$-protocols
+into zero-knowledge protocols. $\Sigma$-Protocols almost satisfy the definition
+of zero-knowledge, the only problem is that $\Sigma$-Protocols only guarantee
+zero-knowledge given the verifier is honest. This is stated by the Special
+Honest Verifier Zero-Knowledge property. However, if we can alter the protocol
+to force the verifier to always be honest, then the protocol, by definition,
+must be zero-knowledge.
+The Fiat-Shamir transformation achieves this by removing the verifier from the
+protocol and thus making it non-interactive. The verifier is then replaced by an
+random oracle, which generates a random challenge based on the first message of
+the prover, thus it works exactly like an honest verifier in the interactive
+protocol. However, since the random oracle is a sub-procedure of the prover he
+is allowed to make polynomially many call to the oracle in the hopes of getting
+a good challenge.
 
+\subsubsection{Oracles}
+\label{subsec:sigma:fiat:oracle}
+
+
+To formalise this transformation we first formalise what we expect a random
+oracle to do...
+
+\subsubsection{Non-interactive $\Sigma$-Protocol}
+\label{subsec:sigma:fiat:protocol}
+
+We can define the non-interactive version of the protocol as:
+
+\subsubsection{Security}
+\label{subsec:sigma:fiat:security}
+
+And we can then prove completeness ans zero-knowledge of the protocol by...
+
+Soundness, however, cannot be proven by the definition of special soundness from
+$\Sigma$-Protocols, since the Prover has gained more possibilities of cheating
+the verifier. We could prove some arbitrary bounds, but to get a meaningful
+proof of soundness for the Fiat-Shamir transformation we would need the
+rewinding lemma, which is yet unclear how to do in proof assistants
+\todo{reference proving/disproving this}.
 
 \subsection{Concrete Example: Schnorr protocol}
 \label{subsec:schnorr}
