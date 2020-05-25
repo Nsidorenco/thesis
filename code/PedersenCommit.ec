@@ -4,7 +4,7 @@ require import Real.
 require import Distr.
 require import CyclicGroup.
 
-require CommitmentScheme.
+require Commitment.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
@@ -17,19 +17,22 @@ theory Types.
 end Types.
 export Types.
 
-clone import CommitmentScheme as Com with
-  type CommitmentScheme.public_key <- public_key,
-  type CommitmentScheme.secret_key <- secret_key,
-  type CommitmentScheme.commitment <- commitment,
-  type CommitmentScheme.message    <- message,
-  type CommitmentScheme.randomness <- randomness,
+clone export Commitment as Com with
+  type public_key <- Types.public_key,
+  type secret_key <- Types.secret_key,
+  type commitment <- Types.commitment,
+  type message    <- Types.message,
+  type randomness <- Types.randomness,
 
 
-  op CommitmentScheme.dm = FDistr.dt,
-  op CommitmentScheme.dr = FDistr.dt.
-export CommitmentScheme.
+  op dm = FDistr.dt,
+  op dr = FDistr.dt,
+  op verify pk (m : message) c (r : randomness) = g^r * pk^m = c,
+  op valid_key (sk : secret_key) (pk : public_key) = (sk = pk).
 
-module Pedersen : Protocol = {
+
+
+module Pedersen : Committer = {
   proc key_gen() : secret_key * public_key = {
     var a, h;
     a <$ dr;
@@ -45,14 +48,6 @@ module Pedersen : Protocol = {
 
     return (c, r);
   }
-
-  proc verify(pk : public_key, m : message, c : commitment, r : randomness) : bool = {
-    var c';
-    c' = g^r * pk^m;
-
-    return (c = c');
-  }
-
 }.
 
 section DLog.
@@ -148,8 +143,8 @@ section Security.
     proc guess(h : group) = {
       var w, c, m, m', r, r', v, v';
       (c, m, m', r, r') = B.bind(h, h);
-      v = Pedersen.verify(h, m, c, r);
-      v' = Pedersen.verify(h, m', c, r');
+      v = verify h m c r;
+      v' = verify h m' c r';
       if ((v /\ v') /\ (m <> m')) {
         w = Some( (r - r') * inv(m' - m) );
       } else {

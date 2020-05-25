@@ -12,8 +12,7 @@ type randomness.
 op dm : {message distr | is_lossless dm} as dm_ll.
 op dr : {randomness distr | is_lossless dr} as dr_ll.
 
-
-op valid_key (key : secret_key * public_key) : bool.
+op valid_key (sk : secret_key) (pk : public_key) : bool.
 op verify (pk : public_key) (m : message) (c : commitment) (d : randomness) : bool.
 
 module type Committer = {
@@ -56,8 +55,8 @@ proof.
 qed.
 
 lemma key_fixed_correct (C <: Committer) m'  &m:
-    phoare[C.key_gen : true ==> valid_key res] = 1%r =>
-    (phoare[Correctness(C).key_fixed : valid_key (sk, pk) ==> res] = 1%r)
+    phoare[C.key_gen : true ==> let (sk, pk) = res in valid_key sk pk] = 1%r =>
+    (phoare[Correctness(C).key_fixed : valid_key sk pk ==> res] = 1%r)
     => Pr[Correctness(C).main(m') @ &m : res] = 1%r.
 proof.
   move => key_gen_valid H.
@@ -104,7 +103,7 @@ module BindingGame(C : Committer, B : BindingAdv) = {
     (sk, pk) = C.key_gen();
     (c, m, m', r, r') = B.bind(sk, pk);
     v =  verify pk m c r;
-    v' = verify pk m c r';
+    v' = verify pk m' c r';
     return (v /\ v') /\ (m <> m');
   }
 }.
