@@ -13,7 +13,7 @@ gather insight into how \easycrypt\ can help in formalising protocols larger
 than the usual toy examples like El-Gamal and Schnorr.
 
 \paragraph{Outline}
-First, in section \ref{sec:arith_circuits} we find workable formalisation of
+First, in section \ref{sec:arith_circuits} we find develop a formalisation of
 arithmetic circuits within \easycrypt\ , which allows us the reason about
 evaluating the circuit to a value and guide the formalisation of the
 decompostion. Next, in section \ref{sec:decomposition} we formalise the
@@ -38,35 +38,48 @@ instantiate ZKBoo as a $\Sigma$-Protocol and then prove its security.
   \caption{\label{fig:outline_zkboo} Outline of ZKBoo formalisation}
 \end{figure}
 
-\todo{Thought out this section we assume that all challenges are sampled within the
-set of $\{1,2,3\}$ and define that $3+1 = 1$.}
-
-\todo{François et al. formalised Yao's protocol with a circuit representation
-  similar to mine}
+\paragraph{Preliminary notation}
+Throughout this chapter use the letter $e$ to denote an integer in \{1,2,3\}.
+Moreover, we define arithmetic on $e$ such that $3+1 = 1$.
 
 \section{Formalising Arithmetic circuits}
 \label{sec:arith_circuits}
-\todo{This section ...}
-% We start by stating some of the restriction we have on arithmetic
-% circuits. First, arithmetic circuits are only allowed to perform deterministic
-We start by stating a number of simplifying assumptions about our arithmetic
-circuits. First, we only allow the circuit to have one input value and one
-output value.
-This assumption could be alleviated by change the definition slightly and
-letting the circuit perform operations on tuples of integers rather than just
-integers.
+In this section we will introduce the concept of arithmetic circuits and how they
+can be represented. Primarily we recall the usual definition of circuits as
+graph and discuss how to evaluate circuits programmatically. From this we
+introduce a number of restrictions to our formalisation which makes their easier
+to work with, whilst still being expressive enough to use in the ZKBoo protocol.
+Based on these restrictions we then formulate an alternative representation for
+arithmetic circuits and give a number of key definitions, which are needed for
+reasoning about the structure of a circuit and the evaluation of circuits.
 
-To express arbitrary (Arithmetic) computations in a ring of finite integer we
+\subsection{Representing an arithmetic circuit}
+\label{subsec:arith-representation}
+An arithmetic circuit is in its most general form express a function $\phi$ over some
+arbitrary field $\mathbb{Z}_{q}$, where $\phi : \mathbb{Z}_{q}^{k} \rightarrow \mathbb{Z}_{q}^{l}$
+
+To express arbitrary (Arithmetic) computations in a ring of finite field we
 use the following four gates, Add to constant (ADDC), multiply by constant
 (MULTC), addition of two wires (ADD), and multiplication of two wires (MULT).
 
-For an arithmetic circuit consisting of the aforementioned four gates we recall
-the standard definition of circuits as graphs, but accounting for out simplifying alterations:
+The goal of this section is to formulate a representation of the function
+$\phi$, which only depends on the aforementioned gate types to perform
+computations. Before doing so, however, we start by stating a number of
+simplifying assumptions about our arithmetic circuits. First, we only allow the
+circuit to have one input value and one output value, in other words:
+$k = l = 1$ in the definition of $\phi$.
+This assumption exists pure to make it easier to reason about the inputs and
+output of the function. The formalisation in this section could be altered to
+allow for arbitrary inputs with minor alterations, which we will discuss later.
+\todo{Discuss this later}
+
+Based on these simplifying assumptions we can now recall the graph
+representation of a circuit:
 \begin{definition}[Arithmetic Circuit]
   \label{def:arith_circuit}
-  An Arithmetic circuit is a graph C = (W, G, I, o) where W is the internal
+  An Arithmetic circuit is a graph C = (W, G) where W is the internal
   wires between the gates and G is the set of gates within the circuit. Then,
-  i is a designated first gate of the circuit and o is the designated output
+  we let $i \in G$ be first gate of the circuit, i.e. its only input and $o \in G$ be the output
   gate, for which there must exists a path from i to o in W.
   Specifically, o is a gate with only one in-going wire and no out-going wire.
   The means that the value of the circuit can be read by reading the value of
@@ -88,7 +101,7 @@ be computed if all in-wires of g has already been computed to a value. It is
 clear from this that we need to define an order of evaluation, such that we only
 try to compute the out-wire of a gate if we know that all in-wires has been computed.
 
-To define the order of evaluation we start by introducing an alternative
+To define the order of evaluation we follow the work of \cite{Yao} and introducing an alternative
 representation of Arithmetic circuits, which naturally gives us a well-defined
 evaluation order:
 
@@ -99,7 +112,7 @@ evaluation order:
   \todo{Why do we remove i and o?}
   We then let the list representation $C_{L}$ be defined as:
   \[
-    C_{L}[i] = Enc(O( G \setminus \{i,o\})[i], W)
+    C_{L}[i] = Enc(O( G \setminus \{i\})[i], W)
   \]
 
   Where $Enc : gate \implies W \implies \text{encoded gate}$, is a function
@@ -116,19 +129,23 @@ evaluation order:
 \todo{This representation does not allows for optimisations like parallel computations}
 
 \paragraph{Linear ordering}
-We simplify our notion of the computation order and remove all parallel
-computations. To achieve this we define a linear order on the gates by perform a
-breadth-first numbering of the nodes starting from the input gate i and ending
-at o.
+A linear ordering O is a function that when applied to G assigns a unique
+index to each gate in G.
+One example of such function defining a linear ordering is a breadth-first
+search, where each gate in the circuit graph is labelled according to at which
+time the BFS reached the gate.
+This labelling would start at gate $i$ and end at $o$.
 
-By performing this we are ensure that no nodes are computed before their parent nodes have been computed.
+A special property of the linear ordering induced by a BFS labelling is that a
+gate can only be visited when all nodes that the gates computation can depend on
+has already been visited. This ensure that for a node indexed $i$ it only
+depends on out-wires of nodes with index less-than $i$.
 
 This ordering allows us to convert the graph representation into a list
-representation, where the gate at index $i$ is the node with index $i$ in the
-BFS numbering of the graph.
-But we need to encode W into this list. To do this we encode the information
-about input wires into the types of the gates themselves, as seen in figure
-\ref{lst:gate_types}.
+representation, where the gate at index $i$ is the node with index $i$ by the
+linear ordering. However, since the gates $i$ performs no computation and only
+exists to add the input value to the graph we exclude it from the list
+representation, and shift every index one down.
 
 \paragraph{Encoded gates}
 A gate is then a type, which defined its operation along
@@ -137,6 +154,9 @@ index of the right input wire. In the case of unary gates like ADDC and MULTC
 the tuple is $(l, c)$ where l is the input wire and $c$ is the constant used in
 the computation.
 
+But we need to encode W into this list. To do this we encode the information
+about input wires into the types of the gates themselves, as seen in figure
+\ref{lst:gate_types}.
 
 \begin{lstlisting}[float,label=lst:gate_types,caption=Type declaration of gates]
 type encoded_gate = [
@@ -146,8 +166,9 @@ type encoded_gate = [
   | ADD of (int * int)
 ].
 \end{lstlisting}
-
-One important aspect of the list representation of circuits, is that it allows
+\vspace{2mm}
+\noindent
+One important aspect of the list representation of circuits is that it allows
 us to easily define an evaluation order, where we are ensure that we are not
 computing the value of a gate before the previous gates has been computed. To
 capture this notion of a valid evaluation order we give the following definition:
@@ -156,15 +177,13 @@ capture this notion of a valid evaluation order we give the following definition
 
 \begin{definition}[Valid circuit]
   \label{def:decomp:valid_circuit}
-  An arithmetic circuit in list representation $C_{L}$ is valid if:
-  \begin{itemize}
-    \item For every entry $i$ in the list it holds that
-      \begin{itemize}
-        \item C[i] is a gate type
-        \item the input wires of C[i] have index less than $i$.
-        \item the input wires of C[i] have index greater than or equals to $0$.
-      \end{itemize}
-  \end{itemize}
+  An arithmetic circuit in list representation $C_{L}$ is valid if for every
+  entry $i$ in the list it holds that:
+    \begin{itemize}
+      \item C[i] is a gate type
+      \item the input wires of C[i] have index less than $i$.
+      \item the input wires of C[i] have index greater than or equals to $0$.
+    \end{itemize}
 \end{definition}
 
 \begin{lstlisting}[float,label=lst:circuit_eval,caption=Circuit evaluation function]
@@ -190,22 +209,21 @@ op eval_circuit (c : circuit, s : state) : output =
     last 0 (eval_circuit_aux c s).
 \end{lstlisting}
 
-By representing gates as types encoding wire information we can use \easycrypt's
-type system to pattern matching system to perform computations relevant to the
-gate type, as seen in \ref{lst:circuit_eval}.
-
 From this representation of circuits as a list of gates, where gates are types,
 it is possible to define the semantic meaning of this representation, by
 defining the evaluation function, which can be seen in figure \ref{lst:circuit_eval}.
-The evaluation is broken into two parts: one for evaluation one gate, and one
-for evaluating the entire circuits, based on the former.
-To evaluate one gate, we first need to determine which gate it is. This is done
-by matching on the type of the gate.
-Then, by the circuit being valid and the execution order follows the ordering of
-indexes, we know that if we are computing index $i$ of the circuit, then indices
-$[0 \dots i-1]$ have already been computed to an value representing the result
-of computing the gate. Perform the appropriate function then simply reduces to
-looking the values of the incoming wires and computing the function.
+The evaluation is broken into two parts: First we have a function for evaluating
+one gate to an intermediate values. Second, we have a procedure for evaluating
+the entire circuits which calls the former function.
+To evaluate a single gate, we first need to determine which gate it is. This can
+be done by utilizing the power of the \easycrypt\ type system, which allows us
+to pattern match on the type of the gate as seen in listing \ref{lst:circuit_eval}.
+
+Then, if the circuit is valid the evaluation order is the indexes of the list representation.
+We know that if we are computing index $i$ of the circuit, then indices
+$[0 \dots i-1]$ have already been computed. Perform the appropriate function
+then reduces to looking up the values of the previously computed gates and
+applying them to the function appropriate for the type of the gate.
 
 Computing the entire circuit then follows from the same fact, that gates are always
 evaluated in the order the appear in the list, and the no gate can depend on
@@ -217,11 +235,21 @@ first entry removed, then the output of the gate will be in the last entry of
 the state, when there are no more gates to compute. Assuming that there is only
 one output gate.
 
-``state'' can then be defined as
-\begin{align*}
-  \text{state}_{0} &= \text{input value} \\
-  \text{state}_{i>0} &= \dots
-\end{align*}
+\begin{definition}[State of list representation]
+  For a list representation of a circuit $C_{L}$ we give the following recursive
+  definition of the state:
+  \begin{align*}
+    \text{state}[0] &= \text{input value} \\
+    \text{state}[i>0] &= \texttt{eval\_{gate} } C_{L}[i-1] \; state[i-1]
+  \end{align*}
+
+  Here we recall that input gate has been removed from the list representation
+  and $C_{L}$[0] is the first non-input gate in the circuit. From this it also
+  follows that
+  \begin{equation}
+    \text{size } \text{state} = \text{size } C_{L} + 1
+  \end{equation}
+\end{definition}
 
 We then have that any valid circuit c can be compute to a value y as
 \texttt{eval\_circuit(c, [input]) = y}. This can also be stated as a probabilistic
@@ -286,7 +314,6 @@ The output of the decomposition can then be defined as summing the last share fr
   Additionally a share is only valid, if it has been produced by functions used
   by the decomposition.
 
-  \todo{Explain that w[0] is the input}
   \begin{equation}
     \label{eq:decomp:valid}
       \forall 0 \leq i < \text{size
@@ -800,6 +827,7 @@ proc ideal(h, e) = {
 
 \end{proof}
 
+\todo{Change order so this lemma comes last}
 \begin{lemma}
   Given a commitment scheme, where an adversary can produce three pairs
   commitments, where at least one pair has different openings with probability
@@ -816,16 +844,63 @@ proc ideal(h, e) = {
   Ultimately, we show that Special Soundness game can be won with probability $(1-p)$
 
   \paragraph{Consistent views}
-  For any one of the openings only the view corresponding to the challenge needs
-  to be provably constructed by the decomposition. This means that we need all
-  three openings to conclude that the views has all been produced by the
-  decomposition. However, by breaking the binding property it is possible to
-  provide an opening, which might not have been produced by the same call to
-  \texttt{compute}. For example, z1 reveals $w^{1}_{1}, w^{1}_{2}$ whilst z2
-  reveals $w^{2}_{2}, w^{2}_{3}$, but if the binding property is broken, then
-  $w^{2}_{2}$ might be a valid view, but it has been produced with randomness
-  that is different from $w^{1}_{2}$. The probability of breaking the binding property is $p$,
-  hence the probability of all openings being to the same views is $1-p$.
+  To check if the views are valid we use the \texttt{verify} procure, which
+  check that \texttt{valid\_view\_op} return true. By lemma
+  \ref{lem:func/proc-equiv} we know that this is equivalent to equation
+  \ref{eq:decomp:valid}. From this we can define the following procedure for
+  checking validity and consistency of the openings:
+
+\begin{lstlisting}[label=lst:zkboo:consistency,caption=Consistency procedure]
+proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
+
+  v1 = verify(h, m, 1, z1);
+  v2 = verify(h, m, 2, z2);
+  v3 = verify(h, m, 3, z3);
+
+  (w1, w2) = z1;
+  (w2', w3) = z2;
+  (w3', w1') = z3;
+  (y1, y2, y3, c1, c2, c3) = m;
+  cons = bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
+
+  return v1 /\ v2 /\ v3;
+}
+\end{lstlisting}
+
+  Here we are given two potential openings for each view, namely $w_{e}$
+  and $w'_{e}$. Ideally $w_{e} = w'_{e}$ but if it is possible for the adversary
+  to win the binding game for three commitments then the openings might be
+  inconsistent. We therefore let the procedure call \texttt{bind\_three}, which
+  returns true if the adversary has broken the binding game. This is bound to a
+  variable cons, which is not returned. This allows us to encode the consistency
+  check as auxiliary information such that the return value of the procedure is
+  still equivalent to only calling \texttt{verify} on the three responses.
+
+
+  From this we can state the following:
+  \begin{lemma}
+    \label{lem:consistent-views}
+    $\Pr{\texttt{extract\_views}(h, m, z_1, z_2, z_3) : v_1 \land v_2 \land v_3 \land w_{i} =
+      w'_{i}} = (1-binding\_prob)$
+  \end{lemma}
+  \begin{proof}
+    Special soundness assumes that all transcripts are accepting, we can
+    therefore conclude that $v_{1} \land v_{2} \land v_{3}$ must hold.
+    We are then left with showing that \texttt{bind\_three} proves that the
+    views are consistent with probability $(1-binding\_prob)$. This is true by
+    our assumption of Com having binding.
+  \end{proof}
+
+  % For any one of the openings only the view corresponding to the challenge needs
+  % to be provably constructed by the decomposition. This means that we need all
+  % three openings to conclude that the views has all been produced by the
+  % decomposition. However, by breaking the binding property it is possible to
+  % provide an opening, which might not have been produced by the same call to
+  % \texttt{compute}. For example, z1 reveals $w^{1}_{1}, w^{1}_{2}$ whilst z2
+  % reveals $w^{2}_{2}, w^{2}_{3}$, but if the binding property is broken, then
+  % $w^{2}_{2}$ might be a valid view, but it has been produced with randomness
+  % that is different from $w^{1}_{2}$. The probability of breaking the binding property is $p$,
+  % hence the probability of all openings being to the same views is $1-p$.
 
   \paragraph{Witness extraction}
   Given that all openings correspond to the same call of \texttt{compute} and
@@ -840,6 +915,14 @@ proc ideal(h, e) = {
       =& \Pr{(w'_{1}, w'_{2}, w'_{3}) \leftarrow \texttt{compute}(c, w_{1}[0], w_{2}[0], w_{3}[0]); \left(\sum_{i \in \{1,2,3\}} \text{last
          }w'_{i} \right) = y}
   \end{align*}
+
+  We then show that we can traverse the computations of the decomposition in
+  reverse:
+  \begin{lemma}
+    \label{lem:witness-extraction}
+      $\Pr{(w'_{1}, w'_{2}, w'_{3}) \leftarrow \texttt{compute}(c, w_{1}[0], w_{2}[0], w_{3}[0]); \left(\sum_{i \in \{1,2,3\}} \text{last }w'_{i} \right) = y}$
+  \end{lemma}
+
 
   Now, we can it is possible to show that for each iteration of the while-loop
   in \texttt{compute} it must preserve the property that
@@ -859,7 +942,7 @@ proc ideal(h, e) = {
   The soundness game can be restated as the following procedure returning true
   with probability $1-p$
 \begin{lstlisting}
-proc soundness(h, m, z1, z2, z3) = {
+proc alt_soundness(h, m, z1, z2, z3) = {
   v = consistent_views(h, m, z1, z2, z3);
   w = witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
 
@@ -871,9 +954,26 @@ proc soundness(h, m, z1, z2, z3) = {
   }
 }
 \end{lstlisting}
+  \begin{lemma}
+    \label{lem:soundness_alt_equiv}
+    The above procedure has output distribution indistinguishable from the
+    soundness game from definition \ref{def:sigma:soundness} instantiated with
+    ZKBoo, i.e.
+    $\Pr{\texttt{alt\_soundness}} = \Pr{\texttt{soundness(ZKBoo)}}$
+  \end{lemma}
+  \begin{proof}
+    By inlining all sub-procedure calls from both procedures we have equivalent
+    calls to \texttt{verify} and \texttt{witness\_extractor}. The only
+    differences between the two procedures is that
+    $\texttt{consistent\_{views}}$ call the binding game, but the value from the
+    binding game is never returned, so it does it affect the output distribution.
+  \end{proof}
 
-  Which follows directly.
-
+  We can then show conclude the proof of the main lemma by
+  applying lemma \ref{lem:soundness_alt_equiv}.
+  From this we need to show:
+  $\Pr{\texttt{alt\_soundness} : true} = (1- binding\_{prob})$.
+  Which follows from applying lemma \ref{lem:consistent-views} and \ref{lem:witness-extraction}.
 \end{proof}
 
 \begin{lstlisting}[float,label=lst:zbkoo_extractor,caption= ZKBoo witness extractor]
@@ -895,8 +995,10 @@ proc witness_extractor(h : statement, a : message, e : challenge list, z : respo
 
 \todo{Formal verification does not tell us about efficiency}
 
-\todo{Concluding remarks about the formalisation}
-\todo{In this section we have seen...}
+\paragraph{Conclusion}
+In this chapter we have seen how to apply our formalisations of
+$\Sigma$-Protocols and commitment schemes to a MPC based protocol...
+
 Formal proofs like these can help us gain insight into the security of the
 protocols. The security of the ZKBoo protocol is entirely dependent on the
 security properties of the underlying decomposition and commitment scheme being

@@ -12,34 +12,49 @@ We then end this section by formalising the Fiat-Shamir heuristic, which allows
 us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
 This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
 model, since Special honest verifier zero-knowledge ensure Zero-knowledge in the
-presence of an honest verifier. If we remove the verifier, then he can always be
+presence of an honest verifier. If we remove the verifier then he can always be
 assumed honest.
 
-
-This abstraction is provided by \easycrypt's abstract theories, where we let
-$\Sigma$-Protocol be quantified over the following types:
+\section{Defining $\Sigma$-Protocols}
+\label{sec:sigma:def}
+We start by defining the types for any arbitrary $\Sigma$-Protocol:
 \begin{align*}
-  \textbf{type: } &\text{input} \\
+  \textbf{type: } &\text{statement} \\
                   &\text{witness} \\
                   &\text{message} \\
                   &\text{challenge} \\
                   &\text{response} \\
-                  &\text{randomness}
 \end{align*}
+These types corresponds to the types from Figure \ref{fig:proto_sigma}.
 
-And a relation $R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$.
-
-Moreover, we require that there exists an uniform distribution, for which
-elements of type challenge can be sampled from. Now, since distribution are also
-probabilistic programs within \easycrypt\ , we require that sampling from the
-distribution is always successful. This is refereed to as the distribution being lossless.
-
-\todo{Relate to figure in background chapter?}
+Furthermore, we fix a relation
+$R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$ along with
+a distribution over challenges. This distribution is used to model a honest
+verifier which will always generate a random challenge. Since distribution are
+probabilistic programs within \easycrypt\ we require that sampling from the
+distribution is always successful. This is referred to as the distribution being lossless.
 
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
-\lstinputlisting[linerange={29-38}, label=lst:sigma_procedures]{../code/SigmaProtocols.eca}
+\begin{lstlisting}[label=lst:sigma_procedures,caption= Abstract procedures of $\Sigma$-Protocols]
+module type SProtocol = {
+  proc init(h : statement, w : witness) : message
+  proc response(h : statement, w : witness,
+                m : message, e : challenge) : response
+  proc verify(h : statement, m : message, e : challenge, z : response) : bool
+  proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness option
+  proc simulator(h : statement, e : challenge) : message * response
+}
+\end{lstlisting}
 
-\todo{Procedures are allowed to share global state - even verify. important wrt. security}
+Here all procedures are modelled into the same module. This allows the
+Verifier procedure to access the global state of the Prover. This could lead to
+invalid proofs of security. It is therefore important to not implement a
+\texttt{verify} procedure which access global state of the SProtocol module.
+This could have been alleviated by splitting the SProtocol module into multiple
+different modules with only the appropriate procedures inside. This would remove
+any potential for human error when defining a $\Sigma$-Protocol, but it makes it
+more bothersome to instantiate a $\Sigma$-Protocol in \easycrypt\ . Ultimately,
+we decided on having everything defined within the same module.
 
 \todo{Here gen is \dots}
 
@@ -56,8 +71,8 @@ module Completeness(S : SigmaProtocol) = {
 }.
 \end{lstlisting}
 
-An instantiation of a $\Sigma$-Protocol is then an implementation of the above
-procedures, which can be seen in Listing \ref{lst:sigma_completeness}.
+An instantiation of a $\Sigma$-Protocol is then an implementation of the
+procedures in Listing \ref{lst:sigma_completeness}.
 
 We then model security as a series of games:
 
@@ -67,7 +82,7 @@ We then model security as a series of games:
   \ref{lst:sigma_completeness} outputs 1 with probability 1, i.e.
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall \&m h w, R h w \implies Pr[\text{Completeness(S).main}(h,w) @ \&m : res] = 1\%r.
+    \forall h \; w, \text{R } h \; w \implies Pr[\text{Completeness(S).main}(h,w) = true] = 1.
   \end{equation}
 \end{definition}
 
@@ -85,7 +100,7 @@ problem we introduce a alternative definition of completeness:
   We say that a $\Sigma$-protocol, S, is complete if:
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall \&m h w e, R h w \implies Pr[\text{Completeness(S).special}(h,w,e) @ \&m : res] = 1\%r.
+    \forall h \; w \; e, \text{R } h \; w \implies Pr[\text{Completeness(S).special}(h,w,e) = true] = 1.
   \end{equation}
   Where the procedure ``Completeness(S).special'' is defined as
   \lstinputlisting[linerange={40-48}]{../code/SigmaProtocols.eca}
