@@ -112,10 +112,10 @@ evaluation order:
   \todo{Why do we remove i and o?}
   We then let the list representation $C_{L}$ be defined as:
   \[
-    C_{L}[i] = Enc(O( G \setminus \{i\})[i], W)
+    C_{L}[j] = Enc(O( G \setminus \{i\})[j], W)
   \]
 
-  Where $Enc : gate \implies W \implies \text{encoded gate}$, is a function
+  Where $Enc : gate \rightarrow W \rightarrow \text{encoded gate}$, is a function
   taking as input a gate and the wires of the circuit and produces an encoded
   gate.
   The encoded gate contains type information about gate but also stores the
@@ -270,6 +270,10 @@ To reason about functions and procedures about functions we have the following l
   \end{itemize}
 \end{proof}
 
+\todo{ZKBoo paper gives no notion of a valid evaluation order - needed for security}
+
+\todo{Graph representation isomorphic to list representation?}
+
 
 \section{(2,3) Decomposition of circuits}
 \label{sec:decomposition}
@@ -349,16 +353,13 @@ The output of the decomposition can then be defined as summing the last share fr
   }
 \end{lstlisting}
 
-\subsection{Randomness}
+\paragraph{Handing randomness}
 \label{subsec:decomp:randomness}
-\todo{All functions and proof quantify over random tapes but they have been
-  omitted from this write-up since they are just random values that need to be
-  return to reconstruct the results}
-Throughout the decomposition we make a series of random choices to make the
-shares random. These random choices are saved as a list, which we refer to as
-the random tape. The reason of this is to be able to reconstruct the views given
-the initial shares and the random choices. We chose to omit the details of the
-random tapes. The reason for this is...
+Looking at compute we see that compute we make three random choices for each gate and then save those choices to some random tapes. These tapes are then returned. They are used to keep track of the random choices made thoughout the protocol, such that views can be verified. For most proof the specific values contained within the random tapes are not imporant, since the random values are only there to cancel eachother out whilst making the shares look randomly distributed.
+We therefore omit the random tapes for most procedures and proofs in this section, since they are static?
+When the random tapes are imporant for the security we will mentioned how.
+
+The reason for sampling random values at each iteration of the while loop instead of all at once is to be able to reason about the specific random choices made at this time in the computation. This is especially important to be able to relate two procedures running at the same iteration of the while loop...
 
 
 \subsection{Correctness}
@@ -445,6 +446,8 @@ making the share appear random too.
 In this case the view of party $e$ can always be computationally reconstructed
 by looking at the view of party $e+1$, but the view of party $e+1$ cannot be
 verified, since the view of party $e+2$ is unknown, which makes it seem valid.
+
+\todo{Where we use that compute and simulate sample randomness at the time of computation}
 
 The procedure $\texttt{simulate}$ is simply a wrapper around
 \texttt{simulator\_eval}, which is responsible for constructing the views and
@@ -828,6 +831,7 @@ proc ideal(h, e) = {
 \end{proof}
 
 \todo{Change order so this lemma comes last}
+\todo{Problem: compute sample random values - tape is complete already in this instance}
 \begin{lemma}
   Given a commitment scheme, where an adversary can produce three pairs
   commitments, where at least one pair has different openings with probability

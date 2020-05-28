@@ -1,4 +1,4 @@
-\chapter{Formalising Sigma-Protocols}
+\chapter{Formalising $\Sigma$-Protocols}
 \label{ch:formal_sigma}
 This section will aim to formalise $\Sigma$-protocols according to the
 definitions set out in section \ref{sec:background:sigma_protocols}, with a
@@ -11,7 +11,7 @@ of a $\Sigma$-Protocol can be compounded together whilst still being secure.
 We then end this section by formalising the Fiat-Shamir heuristic, which allows
 us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
 This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
-model, since Special honest verifier zero-knowledge ensure Zero-knowledge in the
+model, since Special honest verifier zero-knowledge ensure zero-knowledge in the
 presence of an honest verifier. If we remove the verifier then he can always be
 assumed honest.
 
@@ -28,7 +28,7 @@ We start by defining the types for any arbitrary $\Sigma$-Protocol:
 These types corresponds to the types from Figure \ref{fig:proto_sigma}.
 
 Furthermore, we fix a relation
-$R : (\text{input} \times \text{witness}) \rightarrow \{0,1\}$ along with
+$R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$ along with
 a distribution over challenges. This distribution is used to model a honest
 verifier which will always generate a random challenge. Since distribution are
 probabilistic programs within \easycrypt\ we require that sampling from the
@@ -221,57 +221,126 @@ The benefit of this is...
 
 \subsection{AND}
 \label{subsec:sigma_AND}
-\todo{Needed to change definition of games to relate challenges}
+Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w_{1})$ and
+$S_{2}$ with relation $R_{2}(h_{2},w_{2})$ we define the AND construction to be a
+$\Sigma$-Protocol proving knowledge of the relation
+$R((h_{1}, h_{2}), (w_{1}, w_{2})) = R_{1}(h_{1}, w_{1}) \land R_{2}(h_{2}, w_{2})$.
 
-In this section we prove the AND construction to be a $\Sigma$-protocol by
-definition \ref{def:sigma-protocol}.
+The construction of AND protocol is then a $\Sigma$-Protocol running both
+$S_{1}$ and $S_{2}$ as sub-procedures. To formalise this we start by declaring
+the AND construction as an instantiation of a $\Sigma$-Protocol. To do this we
+first need to define the types for which the protocol works of. But before we
+can define the types of the AND construction we need to know the types of the
+underlying $\Sigma$-Protocols $S_{1}$ and $S_{2}$. To denote the types of
+$S_{i}$ we use the notation: $\text{type}_i$
+\begin{align*}
+  \textbf{Type: } &\text{statement = statement}_{1} \times \text{statement}_{2} \\
+                  &\text{witness = witness}_{1} \times \text{witness}_{2} \\
+                  &\text{message = message}_{1} \times \text{message}_{2} \\
+                  &\text{challenge = challenge}_{1} = \text{challenge}_{2} \\
+                  &\text{response = response}_{1} \times \text{response}_{2} \\
+\end{align*}
 
-\todo{Write protocol as diagram?}
-\todo{Write procedure definitions?}
+We then define the AND construction as a module parametrised by
+$\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
+can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
+since the AND construction can now only be made from $\Sigma$-Protocol with the
+specific type signature of $S_{1}$ and $S_{2}$, but recall that the entire AND
+construction is quantified over the types given in the type declaration. This
+means that the types of $S_{1}$ and $S_{2}$ can be fixed to any arbitrary types
+and therefore can express any $\Sigma$-Protocol.
+But, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
+the AND construction parametrised by $\Sigma$-Protocols satisfying the type
+signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
+construction be any two $\Sigma$-protocols? Ideally, this would how the AND
+construction is formalised, but due to how \easycrypt\ handles types we
+need to declare the types of the AND construction and ensure that the procedures
+are typeable. The only way of ensuring this is by fixing the types of the
+underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
 
-\begin{lemma}[AND completeness]
-  \begin{align*}
-    \text{R } h \, w \land
-    \Pr{Completeness.main(S_{1})} = 1 \land \Pr{Completeness.main(S_{2})} = 1 \\
-    \implies \Pr{Completeness.main(AND(S_{1}, S_{2}))} = 1
-  \end{align*}
-  % If the completeness definition (\ref{def:sigma:completeness}) is instantiated
-  % with the AND protocol, then it will succeed with probability 1, if $S_{1}$ and $S_{2}$
-  \todo{Missing parameters and quantification}
+
+\begin{lstlisting}[float,label=lst:and-procedures,caption=AND construction]
+module ANDProtocol (P1 : S1, P2 : S2) = {
+  proc init(h : statement, w : witness) = {
+    (h1, h2) = h;
+    (w1, w2) = w;
+
+    a1 = P1.init(h1, w1);
+    a2 = P2.init(h2, w2);
+    return (a1, a2);
+  }
+
+  proc response(h : statement, w : witness, m : message, e : challenge) : response = {
+    (m1, m2) = m;
+    (h1, h2) = h;
+    (w1, w2) = w;
+
+    z1 = P1.response(h1, w1, m1, e);
+    z2 = P2.response(h2, w2, m2, e);
+    return (z1, z2);
+  }
+
+  proc verify(h : statement, m : message, e : challenge, z : response) : bool = {
+    (h1, h2) = h;
+    (m1, m2) = m;
+    (z1, z2) = z;
+
+    v = P1.verify(h1, m1, e, z1);
+    v' = P2.verify(h2, m2, e, z2);
+
+    return (v /\ v');
+
+  }
+\end{lstlisting}
+
+\paragraph{Security}
+Given the AND constructions instantiation of a $\Sigma$-Protocols we simply need
+to prove the security definitions given in section \ref{sec:sigma:def} with
+regards to the module \texttt{ANDProtocol}
+
+\begin{lemma}[AND Completeness]
+  Assume $\Sigma$-Protocols $P_{1}$ and $P_{2}$ are complete then
+  Module $\texttt{ANDProtocol}(P_1, P_2)$ satisfy completeness definition \ref{def:sigma:completeness}
 \end{lemma}
 \begin{proof}
-  The proof proceeds by game-hopping to:
-  \begin{lstlisting}[mathescape]
-  proc intermediate(h : input, w : witness) = {
-    $(h_{1}, h_{2}) = h$;
-    $(w_{1}, w_{2}) = w$;
-    $v_{1} = Completeness(S_1).main(h_1, w_{1})$
-    $v_{2} = Completeness(S_2).main(h_2, w_{2})$
-
-    return $v_{1} \land v_{2}$
-  }
-  \end{lstlisting}
-
-  This intermediate game will return true with probability 1 since both
-  $v_{1}$ and $v_{2}$ will always return true by our assumption of completeness
-  for $S_{1}$ and $S_{2}$.
+  By inlining the procedures of $\texttt{ANDProtocol}(P_{1}, P_{2})$ in
+  \texttt{Completeness(ANDProtocol).special} we see that it is equivalent to:
+  \texttt{Completeness($P_{1}$).special; Completeness($P_{2}$).special}. Which is true by our
+  assumption of $P_{1}$ and $P_{2}$ being complete.
+  We need to use the \texttt{special} definition of the completeness game here,
+  since the challenge $e$ is given by a Verifier running the AND construction.
+  And the sub-protocols are, therefore, not allowed to sample their own
+  challenges and need to use the challenge from the AND construction.
 \end{proof}
+
+\todo{Write protocol as diagram?}
 
 \begin{lemma}[AND special soundness]
   \begin{align*}
     &R (h_{1}, h_{2}) (w_{1}, w_{2}) \\
-    \land &\Pr{S_{1}.verify(h_{1}, w_{1}, e, z)} = 1 \\
-    \land &\Pr{S_{2}.verify(h_{2}, w_{2}, e', z')} = 1 \\
-    &\implies \Pr{SpecialSoundness(AND(S_{1}, S_{2})).main} = 1
+    \land &\Pr{P_{1}.verify(h_{1}, w_{1}, e, z)} = 1 \\
+    \land &\Pr{P_{2}.verify(h_{2}, w_{2}, e', z')} = 1 \\
+    &\implies \Pr{SpecialSoundness(\texttt{ANDProtocol}(P_{1}, P_{2})).main} = 1
   \end{align*}
 \end{lemma}
+\begin{proof}
+  trivial by construction
+\end{proof}
 
+\begin{lemma}[AND SHVZK]
+  Given $\Sigma$-Protocols $P_{1}$ and $P_{2}$ that satisfy SHVZK then AND is SHVZK
+\end{lemma}
+\begin{proof}
+  Construction
+\end{proof}
 
 \subsection{OR}
 \label{subsec:sigma_OR}
 \todo{Needed to change relation}
 
-\subsection{Fiat-Shamir Transformation}
+\paragraph{Concluding remarks on composition protocols}
+
+\section{Fiat-Shamir Transformation}
 \label{subsec:fiat-shamir}
 The Fiat-Shamir transformation is a technique for converting $\Sigma$-protocols
 into zero-knowledge protocols. $\Sigma$-Protocols almost satisfy the definition
@@ -288,19 +357,19 @@ protocol. However, since the random oracle is a sub-procedure of the prover he
 is allowed to make polynomially many call to the oracle in the hopes of getting
 a good challenge.
 
-\subsubsection{Oracles}
+\subsection{Oracles}
 \label{subsec:sigma:fiat:oracle}
 
 
 To formalise this transformation we first formalise what we expect a random
 oracle to do...
 
-\subsubsection{Non-interactive $\Sigma$-Protocol}
+\subsection{Non-interactive $\Sigma$-Protocol}
 \label{subsec:sigma:fiat:protocol}
 
 We can define the non-interactive version of the protocol as:
 
-\subsubsection{Security}
+\subsection{Security}
 \label{subsec:sigma:fiat:security}
 
 And we can then prove completeness ans zero-knowledge of the protocol by...
@@ -312,8 +381,188 @@ proof of soundness for the Fiat-Shamir transformation we would need the
 rewinding lemma, which is yet unclear how to do in proof assistants
 \todo{reference proving/disproving this}.
 
-\subsection{Concrete Example: Schnorr protocol}
-\label{subsec:schnorr}
+\section{Concrete instantiation: Schnorr protocol}
+\label{sec:schnorr}
+To show the workability of the proposed formalisation we show that it can be
+used to instantiate Schnorr's protocol.
+The Schnorr's protocol is run between a Prover C and a
+Verifier R. Both parties have before running the protocol agreed on a group
+$(\mathcal{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
+generator for the group.
+Schnorr's protocol is a $\Sigma$-Protocol for proving knowledge of a discrete
+logarithm. Formally it is a $\Sigma$-Protocol for the relation R h w $= h = g^{w}$
+
+When the P wants to prove knowledge of the w to V he starts by
+constructing a message $a = g^{r}$ for some random value $r$. The Verifier will
+the generate a random challenge, $e$, which is a bit-string of some arbitrary length
+that defines the security of the protocol.
+Based on this challenge P then constructs a response $z = r + e * w$ and sends
+it to V.
+To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a * h^{e}$.
+
+From this general description it is clear that this protocol fits within out
+formalisation of $\Sigma$-Protocol procedures. We then define the appropriate
+types and instantiate the protocol using out $\Sigma$-Protocol formalisation:
+
+\begin{lstlisting}[mathescape,label=lst:sigma:schnorr,caption=Schnorr instantiation]
+clone export SigmaProtocols as Sigma with
+  type statement <- group, (* group element *)
+  type witness   <- F.t,   (* Finite field element, like $\mathbb{Z}_{q}$ *)
+  type message   <- group,
+  type challenge <- F.t,
+  type response  <- F.t,
+
+  op R h w =  ($h = g^w$)
+  op dchallenge = FDistr.dt (* Distribution of messages *)
+  proof *.
+  realize dchallenge_llfuni. by split; [apply FDistr.dt_ll | apply FDistr.dt_funi].
+
+module Schnorr : SProtocol = {
+  var r : F.t
+  proc init(h : statement, w : witness) : message = {
+    r <$\$$ FDistr.dt;
+    return $g^r$;
+  }
+
+  proc response(h : statement, w : witness, a : message, e : challenge) : response = {
+    return $r + e \cdot w$;
+  }
+
+  proc verify(h : statement, a : message, e : challenge, z : response) : bool = {
+    return $(g^z = a \cdot (h ^e))$;
+  }
+}
+\end{lstlisting}
+
+Here we first discharge the assumption that the challenge are lossless, uniform
+and fully distributed by using the \easycrypt\ theories about distributions and
+cyclic groups.
+
+To prove security of the protocol we show that the it satisfies the security
+definitions from section \ref{sec:sigma:def}.
+
+\begin{lemma}[Schnorr correctness]
+  R h w $\implies \Pr{\texttt{Completeness(Schnorr)}.main(h,w)} = 1$
+\end{lemma}
+\begin{proof}
+  To prove correctness we need to prove two things:
+  \begin{enumerate}
+    \item That the procedure always terminates
+    \item That it always outputs true
+  \end{enumerate}
+  \textbf{1)} Since all procedures bar the random sampling in $\texttt{Schnorr}$ are arithmetic
+  operations they can never fail. The random sampling have been proven to be
+  lossless. Therefore the procedures always terminates.
+
+  \noindent\textbf{2)} After running all sub-procedures of the correctness game
+  the output of the procedure is
+  \begin{align*}
+         &g^{r + e \cdot w} = g^{r} \cdot h^{e} \\
+    \iff &g^{r + e \cdot w} = g^{r} \cdot g^{w^{e}} && \text{R h w = ($h = g^{w}$)} \\
+    \iff &g^{r} \cdot g^{e \cdot w} = g^{r} \cdot g^{w \cdot {e}} \\
+  \end{align*}
+
+  Which is easily proven by \easycrypt\ automation tools for algebraic operations.
+\end{proof}
+
+\begin{lemma}[Schnorr soundness]
+  \begin{align*}
+    &e \neq e' \implies \\
+    &\Pr{\texttt{verify}(a, e, z)} = 1 \implies \\
+    &\Pr{\texttt{verify}(a, e', z')} = 1 \implies \\
+    &\Pr{\texttt{Soundness(Schnorr)}(a, [e; e'], [z; z'])} = 1 \\
+  \end{align*}
+\end{lemma}
+\begin{proof}
+  We start by defining the witness extractor for Schnorr's protocol:
+\begin{lstlisting}
+proc witness_extractor(h : statement, m : message, e : challenge list, z : response list) : witness= {
+  return (z[0] - z[1]) / (e[0] - e[1]);
+}
+\end{lstlisting}
+  \todo{Define list indexing in background chapter}
+  To prove that the soundness game succeeds we need the following
+  \begin{enumerate}
+    \item Both transcripts are accepting
+    \item The witness extractor produces a valid witness for the relation R
+  \end{enumerate}
+
+  \textbf{1)} By stepping though the while loop of the soundness game we can
+  show that all transcripts must be accepting by our assumptions.
+
+  \noindent \textbf{2)} Running all procedures of the soundness game we are left
+  with showing:
+  \begin{align*}
+    \text{R h } ((z - z') / (e - e')) &= (h = g ^{((z - z') / (e - e'))}) \\
+                                      &= (h = g ^{((z - z') / (e - e'))}) \\
+  \end{align*}
+  \todo{Rest like pen and paper proof but with cyclic group theory operations}
+\end{proof}
+
+\begin{lemma}[Schnorr SHVZK]
+  \[
+    equiv[\texttt{SHVZK(Schnorr)}.ideal \sim \Pr{\texttt{SHVZK(Schnorr)}.real} : =\{h, e\} \land \text{R h w}^{real} \implies =\{res\}]
+  \]
+\end{lemma}
+\begin{proof}
+  We start by defining the simulator for Schnorr's protocol:
+\begin{lstlisting}[mathescape]
+proc simulator(h : statement, e : challenge) = {
+  z <$\$$ FDistr.dt;
+  a = $g^z * h ^ (-e)$;
+  return (a, z);
+}
+\end{lstlisting}
+  To prove SHVZK be must the prove output indistinguishability of the following procedures:
+  \begin{figure}[ht]
+    \centering
+    \begin{subfigure}{0.48\textwidth }
+\begin{lstlisting}[mathescape]
+proc real(h, w, e) = {
+   r <$\$$ FDistr.dt;
+   a = $g^r$;
+   z = $r + e \cdot w$;
+   return (a, e, z);
+}
+\end{lstlisting}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth }
+\begin{lstlisting}[mathescape]
+proc ideal(h, e) = {
+  z <$\$$ FDistr.dt;
+  a = $g^z * h^{(-e)}$;
+  return (a, e, z);
+}
+\end{lstlisting}
+    \end{subfigure}
+  \end{figure}
+  To prove this we use \easycrypt\ coupling functionality to show that $r^{real} \equiv z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \equiv r^{real} + e \cdot w^{real}$.
+  This is easily prove, since the distribution is full and uniform, and the group is closed under addition and multiplication. All these facts follow directly from the cyclic group theory in \easycrypt.
+  By the coupling functionality we are then for the rest of the proof allowed to assume:
+  $r^{real} = z^{ideal} - e \cdot w^{real}$ and $z^{ideal} = r^{real} + e \cdot
+  w^{real}$. We then use this to show output indistinguishability:
+  \begin{align*}
+    (a^{real}, e, z^{real}) &= (g^{r^{real}}, e, r^{real} + e \cdot w^{real}) \\
+                          &= (g^{r^{real}}, e, z^{ideal} - e \cdot w^{real} + e \cdot w^{real}) \\
+                          &= (g^{z^{ideal} - e \cdot w^{real}}, e, z^{ideal}) \\
+                          &= (g^{z^{ideal}} \cdot g^{w^{real} - e}, e, z^{ideal}) \\
+                          &= (g^{z^{ideal}} \cdot h^{(-e)}, e, z^{ideal}) \\
+                          &= (a^{ideal}, e, z^{ideal}) \\
+  \end{align*}
+  Which is proven by \easycrypt's automation tools.
+\end{proof}
+\todo{Define generalised notation for comparing views in background chapter}
+\todo{The proofs have been relatively easy thanks to the strong support for algebraic groups in EC}
+
+
+\paragraph{Conclusion}
+In this section we have seen ...
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:
 
 
 

@@ -23,7 +23,7 @@ For Key-based commitment schemes we fix to following types:
   &\text{randomness} \\
 \end{align*}
 
-Here we specially fix a type ``randomness'', which is responsible to making two
+Here we specifically fix a type ``randomness'' which is responsible for making two
 commitments to the same message look different. Technically this randomness
 could just be part of the ``commitment'' type, which is the type defining what
 values commitments takes. The choice of separating the two types, however, makes
@@ -150,7 +150,7 @@ The definition of binding allows us to ...
 
 
 \section{Concrete instantiation: Pedersen Commitment}
-\label{sec:label}
+\label{sec:pedersen}
 
 To show the workability of the proposed formalisation we show that it can be
 used to instantiate the key-based Pedersen commitment scheme. Pedersens
@@ -173,7 +173,11 @@ At a later time, when C is ready to show the value he committed to, he sends the
   \item R computes $c' = g^{d'}h^{m'}$ and checks that $c = c'$.
 \end{itemize}
 
-From this description it is clear from this description that the verification step is simply a function taking as input the key, commitment, message and opening and does a deterministic computations. This fits perfectly within our formalisation of the Receiver, we therefore instantiate our commitment scheme framework with the following:
+From this description it is clear that the verification step is simply a
+function taking as input the key, commitment, message and opening and does a
+deterministic computations. This fits perfectly within our formalisation of the
+Receiver, we therefore instantiate our commitment scheme framework with the
+following:
 
 \begin{lstlisting}[mathescape,label=lst:commitment:pedersen,caption=Pedersen instantiation]
 clone export Commitment as Com with
