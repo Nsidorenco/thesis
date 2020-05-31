@@ -1,66 +1,158 @@
 \chapter{Introduction}
 \label{ch:intro}
-
 \todo{Maybe add database example from CertiCrypt paper?}
 
-Computer-aided cryptography is an active area of research that combines the
-fields of formal verification and cryptography to develop
-formal machine-checkable proofs approaches to cryptographic protocol design as
-well as the implementations of said protocols \cite{SOK:CAC}.
+In recent years, blockchains have been a breakthrough in the area of
+secure, decentralized, computing on an open network.  At its core, a blockchain
+provides a distributed ledger/database. Blockchain has in particular caught
+interest from the financial sector, namely from bitcoins which were the first to use
+the blockchain as a distributed ledger, where each monetary transaction is first
+publicly verified and then appended to the blockchain. This function
+is similar to how a bank would process transactions, but with two distinct differences;
+all transactions are publicly available and the transactions are verified by
+the user of the blockchain rather than a central authority, e.g. a bank
+\cite{blockchain-overview}.
 
-\todo{Formal verification is ...}
+The introduction of bitcoins has since led to a myriad of different blockchains with unique
+focal points.
+Notably Ethereum, ZCash, and Concordium. Ethereum extends the original design of
+the blockchain with a rich programming language to allow for so-called "smart
+contracts". Programs written as a smart contract can then be added to the
+blockchain and then computed by the joint computational power of the blockchain.
+A recent example of this is the *Board-room voting protocol*
+\cite{boardroom-voting}, which is a zero-knowledge based protocol that allows a
+few people to participate in an online vote where the individual votes are
+confidential but the final tally of the vote is accessible to the voters.
+Moreover, smart contracts can be used to realise multi-party computation protocols,
+which allows specific users to jointly compute on private data through the blockchain,
+whilst only learning the result of the computation, but not the private data.
 
-the field of cryptography has in recent times lend itself to ``game hopping''
-approach to design-level security of protocols. In this approach security is
-modelled as the probability of an adversary, with varying degrees of power,
-breaking the intended design of the protocol. This is done usually done by
-either proving that it is impossible for the adversary to break to protocol by
-mathematical reasoning on the possible choices the adversary can make or
-proving that breaking the protocol is computationally equivalent to
-solving a, presumably, difficult problem.
+ZCash and Concordium more predominantly deal with the privacy issues relating
+to the blockchain.
+In ZCash every transaction has the possibility of being performed completely
+anonymously. This is in contrast to bitcoins, where every transaction is
+pseudonymous, meaning that every transaction can be traced back to an
+identifier also called a pseudonym, but
+the users' real identity cannot necessarily be identified.
 
-The problem with this approach is that these game reduction are often prone to
-implicit assumptions and rely on peer-reviewing of the proof of security.
+The level of privacy ZCash provides, however, lacks compliance
+with regulations like "Know Your Customer" (KYC) and "Anti
+Money Laundering" (AML), which require financial institutions to be able to trace
+money of illicit origin. This is the problem that the Concordium
+blockchain has tried to solve with its "ID-layer", which grants its
+users total privacy under normal use but, also enables authorities to revoke the privacy of certain
+users if they deem it necessary[fn:id-layer].
 
-Finally, cryptographic design does not led it self to implementation level
-security issues, which is usually left to domain expert when implementing the
-protocols.
+Common for these three blockchains are their reliance on zero-knowledge.
+A zero-knowledge proof is a core primitive in cryptography which
+allows two parties, Alice and Bob, to share a relation R and public input x.
+Alice then knows some secret input y such that R(x, y) is true, i.e. Alice's
+secret makes the relation true.
+A zero-knowledge proof is then the result of running a protocol, which can be
+given to Bob to convince him that Alice indeed knows the value y, but without Bob
+attaining any information about the value y.
 
-Computer-aided cryptographic can help us solve these problems by making the
-assumptions more transparent, but moreover it also makes the logical reasoning
-more transparent. Since formal proofs can only proceed by applying logical
-rules, then an error can only arise from having a flaw in the core logic or in
-one of the assumptions made for the protocol.
+For ZCash and Concordium zero-knowledge protocols are deeply embedded within the
+functionality of the blockchain itself: The zero-knowledge proofs are used to
+prove ownership of an account, without revealing your personal information.
 
-% State of the art Computer-aided cryptography now allows us to build toolchains,
-% where it is possible to prove the security of a protocol within a logical
-% framework and then compiling it to efficient machine-level code, while ensure
-% that this compilation is sound, i.e. the same security guarantees provided in
-% the host language will still hold in the target language.
+For Ethereum many protocols which depends on zero-knowledge can be implemented
+as smart contracts.
+The earlier example of board-room voting is such a smart contract, but many more
+exists, for example, the Ethereum Aztec library https://www.aztecprotocol.com.
 
-Having formally verified software is especially important when it is used as a
-building block in bigger and more complex protocols.
-One such example of a fundamental building block in cryptology is Zero knowledge
-arguments, which since their introduction has been in many complex cryptographic
-protocols. Most notably they have found important use on the blockchain and in
-the  GMW compiler, which can compile any passively secure protocol into a active
-secure one.
+\vspace{3mm}
 
-One problem with Zero-knowledge arguments is that they usually fall into two
-categories: They are either efficient, but to specialised, or they are
-generalised but too inefficient. A example of the former is Schnorr protocol,
-which allows us to prove knowledge of a discrete logarithm.
+Since zero-knowledge is essential for some blockchain applications, but also
+other cryptographic protocols,
+numerous techniques exist that proving zero-knowledge for
+any arbitrary relation. These are known as
+zero-knowledge compilers[fn:zk-overview].
 
-This has led to a new class of protocols known as \textit{Succinct
-  Non-interactive ARguments of Knowledge}, also known as SNARKS, which aim to
-improve on the generalised zero knowledge protocols by reducing the size of the
-proof and moves the bulk of the work to prover, such that SNARKS can be quickly
-verified but are expensive to make.
-\todo{reference}
+A zero-knowledge compiler takes in a triplet of (relation, public input, secret
+input), where the relation is usually expressed as a computable function or
+mathematical relation.
+The triplet is then translated into an intermediate representation,
+This representation is usually either an Arithmetic/Boolean circuit or a constraint system.
+This is process is referred to as the /front end/.
 
-Since these generalised zero-knowledge compilers can be used within applications
-where security is critical it is important to that they have been rigorously
-studied and formally proven.
+The intermediate representation is then fed into the /back end/, which compiles it
+into a zero-knowledge argument that can be sent to the other parties to prove
+knowledge of the secret.
+
+Most zero-knowledge compilers differ in their combination of front end and back end.
+Different back ends usually offer significant run time differences, i.e. one back
+end might be more efficient for relations that are expressed as short functions.
+Front ends usually differ in what relation they accept. A front end like
+libsnark's[fn:libsnark] accepts relations written as c functions, while others
+target languages like Rust or JavaScript.
+
+
+Because of the many combinations of front ends and back ends, standardisation
+efforts have been commenced.
+One example of such a proposed standardisation is the zkinterface proposed by
+the https://zkproof.org community.
+This standardisation aims to allow the users to match any of the front ends to
+any of the other back ends.
+An example of this could be combining a Rust front end with the libsnark back end.
+
+This standardisation effort is two-fold: first, it allows the user to pick the
+back end that is the most efficient for their use case.
+Moreover, having a standardisation is a sign of a more maturing field.
+The protocols considered for the standardisations have proven themselves
+efficient and reliable.
+The widespread adoption of a select few zero-knowledge compilers makes them an
+ideal target for formal verification since they are generally applied to
+longer-lasting programs, where it is not always possible to change the
+underlying zero-knowledge implementation.
+
+\vspace{3mm}
+
+Formal verification of protocols like zero-knowledge compilers has recently
+become more attainable thanks to proof assistants like EasyCrypt and CryptHOL,
+which enables researchers to formally reason about cryptographic protocols using the
+"game-based" approach \cite{SOK:CAC}.
+
+In the game-based approach, security is
+modelled as a game against an adversary where the adversary's goal is to
+break the indented design of the protocol.
+This is usually done by a series of game reductions where it is proven that the
+probability of the initial game is equivalent to winning another game, which is
+easier to reason about.
+Ultimately a sequence of game reductions leads to a final game, which is either
+mathematically impossible for the adversary to win or equivalent to a
+difficult problem, like the discrete logarithm problem.
+
+The benefit of using tool supporting game-based security like EasyCrypt is that
+it becomes possible to formally verify protocols in a representation very close
+to the one in cryptographic literature. This gives a more direct connection between
+the formal proofs and how the protocols are used in practice.
+These proof assistants also open the possibility of extracting the verified
+protocol into an efficient language, which can be run on most computers.
+One example of this is EasyCrypt, where a low-level language called Jasmin has
+been successfully embedded within \cite{easycrypt-jasmin}.
+Cryptographic protocols written in a low-level machine language can
+then, through EasyCrypt, be formally proven secure and extracted to assembly code.
+
+The recent introduction of this embedding also indicates the possibility of
+exporting the high-level and formally verified implementation from
+EasyCrypt to a low-level implementation in Jasmin while still having the same
+security guarantees.
+
+This would allow researchers to take a protocol description written in a
+cryptographic paper and then, almost directly, prove its security in a tool like EasyCrypt.
+The implementation done in EasyCrypt would then ultimately be extracted to an efficient implementation.
+This creates a direct link between the protocol description, the code run in
+practice, and the proof of security.
+
+These advances in blockchain and formal verification research leaves an
+interesting gap, where it is now possible to formally verify complex
+cryptographic protocol like the ones utilised by the blockchain.
+These protocols have, thanks to the recent advances in blockchain research, seen more
+applications in the industry.
+But while showing functional correctness has proven feasible through the usage of tools like
+Coq, the research into proving cryptographic security of smart contracts using
+proof assistants has been relatively unexplored.
 
 In this paper we will therefore look at the ZKBoo protocol by \citet{zkboo},
 which can generate zero-knowledge proofs for any relation, assuming the relation

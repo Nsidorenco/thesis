@@ -4,21 +4,57 @@ This section aims to introduce some of the fundamental definitions and concepts
 used throughout this thesis. This section will foremost give a rudimentary and
 informal introduction, while the later chapters will provide more rigours
 formalisations and proofs of security.
-First, we start by describing $\Sigma$-protocols, along with its security
-definitions and extensions.
+% First, we start by describing $\Sigma$-protocols, along with its security
+% definitions and extensions.
+%
 
-\section{Zero-Knowledge}
-\label{sec:background:zk}
+\paragraph{Notations}
+
+\section{Zero-knowlege}
+\label{sec:background:zero-knowledge}
+Zero-knowledge can be separated into two categories: \textit{arguments} and
+\textit{proofs-of-knowledge}. We start by defining the former.
+
+An Zero-knowledge argument is protocol run between an probabilistic polynomial
+time (PPT) prover P and and a PPT verifier V. The prover and verifier then both
+know a relation $R \subseteq \{0,1\}^{*} \times \{0,1\}^*$, which expresses a
+computational problem. We refer to the first argument of the relation as $h$ and
+to the second argument as $w$.
+The goal of the protocol is then for P to convince V that we knows the pair
+$(h,w)$ whilst only revealing $h$. At the end of the protocol the verifier will
+then either output \textbf{accept}/\textbf{reject} based on whether P convinced
+him or not.
+We then require that the verifier following the protocol always output
+\textbf{accept} if we P knew $(h,w)$ and followed the protocol. This is known as \textit{completeness}.
+Moreover, we requires that that a cheating adversary who does not know $w$ can
+only make the verifier output \textbf{accept} with some probability $\epsilon$.
+
+The stronger variant of \textit{proofs-of-knowledge} shares the same definitions
+as above, but require that the verifier only output \textbf{accept} if the
+prover indeed knew the pair $(h,w)$.
+
+
+Common amongst both variants is that the require that verifier learns no
+information, whatsoever, about w. This is more formally defined as:
+
+\begin{definition}[Zero-knowledge from \citet{on-sigma-protocols}]
+  \label{def:zk}
+  Any proof-of-knowledge or argument with parties (P,V) is said to be
+  zero-knowledge if there for every PPT verifier V$^{*}$ there exists a
+  simulator $\text{Sim}_{V^{*}}$ running in expected polynomial time can output a
+  conversation indistinguishable from a real conversation between (P, V$^{*}$).
+\end{definition}
 
 
 \section{Sigma Protocols}
 \label{sec:background:sigma_protocols}
-Originally introduced by Cramer \todo{reference}, $\Sigma$-protocols are two-party protocols with a
-three-move-form, based on a, computationally hard, relation $R$, such that $(h, w) \in R$
-if $h$ is an instance of a computationally hard problem, and $w$ is
-the solution to $h$. $\Sigma$-protocols then allows a prover, P, who knows the
-solution $w$, to convince a verify, V, of the existence of $w$, without
-explicitly showing $w$ to him.
+Originally introduced by Cramer \todo{reference}, $\Sigma$-protocols are
+two-party protocols with a three-move-form, based on a, computationally hard,
+relation $R$, such that $(h, w) \in R$ if $h$ is an instance of a
+computationally hard problem, and $w$ is the solution to $h$. $\Sigma$-protocols
+then allows a prover, P, who knows the solution $w$, to convince a verify, V, of
+the existence of $w$, without explicitly showing $w$ to him.
+
 
 \begin{figure}[ht]
   \centering
@@ -51,13 +87,21 @@ To prove security of a $\Sigma$-protocols, we require three properties, namely,
 \textbf{Completeness}, \textbf{Special Soundness}, and \textbf{Special Honest Verifier Zero Knowledge (SHVZK)}.
 \end{definition}
 
-\paragraph{Completeness}
-Protocol should always succeed with correct output, if both parties are honest.
+\todo{define honest}
+\begin{definition}[Completeness]
+  Assuming both P and V are honest then V will always output \textbf{accept} at
+  the end of the protocol.
+\end{definition}
 
-\todo{remove paragraphs and make definitions with text below.}
-\paragraph{Special Soundness}
-Given two, accepting, transcripts, with different challenges it is possible to
-compute an accepting witness for the statement in the relation.
+\begin{definition}[Special Soundness]
+Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$
+and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
+where both transcripts have the same initial message, $a$ and $e \neq e'$.
+
+Then we say that $S$ satisfies $2$-special soundness if, there exists an
+efficient algorithm, which we call the ``witness\_extractor'',
+that given the two transcripts outputs a valid witness for the relation $R$.
+\end{definition}
 
 The special soundness property is important for ensuring that a cheating prover
 cannot succeed. Given special soundness, if the protocol is run multiple times,
@@ -71,43 +115,41 @@ times, to ensure negligible probability.
 Can also be generalised to $s$-Special Soundness, which requires that the
 witness can be constructed, given $s$ accepting conversations.
 
-\begin{definition}[Special Soundness]
-Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$
-and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
-where both transcripts have the same initial message, $a$ and $e \neq e'$.
-
-Then we say that $S$ satisfies $2$-special soundness if, there exists an
-efficient \todo{what is efficient?} algorithm, which we call the ``witness\_extractor'',
-that given the two transcripts outputs a valid witness for the relation $R$.
+\begin{definition}[SHVZK]
+  A $\Sigma$-Protocol $S$ is said to be SHVZK if there exists a polynomial time
+  simulator Sim which given instance $h$ and challenge $e$ as input produce a
+  transcript $(a,e,z)$ indistinguishable from the transcript produced by $S$
 \end{definition}
 
-\paragraph{SHVZK}
-\todo{Write zero-knowledge section and reference it}
-Zero knowledge is proven by giving a simulator. Not possible to define for
-corrupted verifier, since the challenge can become exponentially long.
-\begin{itemize}
-  \item Exists an polynomial-time simulator M.
-  \item Given statement, x, and challenge, e, output an accepting
-    conversation (a, e, z).
-  \item Conversation should have the same distribution as an conversation
-    between honest parties.
-\end{itemize}
+$\Sigma$-Protocols has the interesting property of being able to construct
+zero-knowledge protocols from any secure $\Sigma$-Protocol in the random oracle
+model with no additional computations. This effectively allows us to construct a
+secure zero-knowledge protocol whilst only having the prove that the protocol is
+zero-knowledge in the case of a honest verifier. This transformation from
+$\Sigma$-Protocol to zero-knowledge protocol is known as the ``Fiat-Shamir''
+transformation. More details about this transformation can be found in section
+\ref{subsec:fiat-shamir}.
+Moreover, it is possible to turn any $\Sigma$-Protocol into a zero-knowledge
+argument with one additional round of communication between the Prover and
+Verifier or a proof-of-knowledge with two extra rounds of communication without
+assuming access to a random oracle \cite{on-sigma-protocols}.
 
 
 \section{Commitment Schemes}
 \label{sec:background:commitment}
 Commitment schemes is another fundamental building block in cryptography, and
-has a strong connection to $\Sigma$-Protocols \todo{reference}. Commitment
-schemes facilitates an interaction between two parties, P1 and P2, where P1 can
-generate a commitment of a message, which he can send to P2, without revealing
+has a strong connection to $\Sigma$-Protocols where it is possible to construct
+commitment schemes from $\Sigma$-Protocols \cite{cryptoeprint:2019:1185}. A commitment
+schemes facilitates an interaction between two parties, P1 and P2, where P1
+generates a commitment of a message, which he then sends to P2, without revealing
 what his original message where. At a later point P1 can then send the message
 to P2, who is then able to verify that P1 has not altered his message since
 creating the commitment. More formally a commitment schemes is defined as:
 
 \begin{definition}[Commitment Schemes]
-A commitment schemes is a tuple of algorithms (KeyG, Com, Ver), where:
+A commitment schemes is a tuple of algorithms (Gen, Com, Ver), where:
 \begin{itemize}
-  \item $(ck, vk) \leftarrow KeyG()$, provides key generation.
+  \item $(ck, vk) \leftarrow Gen()$, provides key generation.
   \item $(c, d) \leftarrow Com(ck, m)$ generates a commitment $c$ of the message
     $m$ along with a opening key $d$, which can be revealed at a later time.
   \item $\{true, false\} \leftarrow Ver(vk, c, m, d)$ checked whether the
@@ -123,7 +165,7 @@ A commitment scheme is said to be correct, if a commitment $(c, d)$ made by a
 honest party will always be accepted by the verification procedure of another
 party, i.e:
 $$
-Pr[Ver(vk, c, m, d) | (c, d) = Com(ck, m) \land (ck, vk) \leftarrow KeyG()] = 1.
+Pr[Ver(vk, c, m, d) | (c, d) = Com(ck, m) \land (ck, vk) \leftarrow Gen()] = 1.
 $$
 
 \paragraph{Binding}

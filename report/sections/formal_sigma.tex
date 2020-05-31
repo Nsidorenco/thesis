@@ -15,6 +15,8 @@ model, since Special honest verifier zero-knowledge ensure zero-knowledge in the
 presence of an honest verifier. If we remove the verifier then he can always be
 assumed honest.
 
+\todo{Cite other works about $\Sigma$-Protocols}
+
 \section{Defining $\Sigma$-Protocols}
 \label{sec:sigma:def}
 We start by defining the types for any arbitrary $\Sigma$-Protocol:
@@ -27,7 +29,7 @@ We start by defining the types for any arbitrary $\Sigma$-Protocol:
 \end{align*}
 These types corresponds to the types from Figure \ref{fig:proto_sigma}.
 
-Furthermore, we fix a relation
+Furthermore, we define the relation for which the protocol operates on as a binary function mapping a statement and a witness to true/false :
 $R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$ along with
 a distribution over challenges. This distribution is used to model a honest
 verifier which will always generate a random challenge. Since distribution are
@@ -188,16 +190,36 @@ defined in Listing \ref{lst:sigma-soundness} with probability 1.
 \end{definition}
 
 \begin{definition}[Special Honest Verifier Zero-Knowledge]
+  To define SHVZK we start by defining a module SHVZK containing two procedures:
 \label{def:sigma:shvzk}
-Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$ and
-witness $w$, then $S$ is said to be Special Honest Verifier Zero-knowledge
-(SHVZK), if there exists a simulator that given input $h$ outputs a
-transcript $(a,e,z)$, which is indistinguishable from the transcript observed by
-running $S$ on input $h, w$.
-
-\todo{define indistinguishability}
-\todo{Statistical and computation indistinguishability in EC?}
-
+  \begin{figure}[ht]
+    \centering
+    \begin{subfigure}{0.48\textwidth }
+\begin{lstlisting}[mathescape]
+proc real(h, w, e) = {
+   a = init(h,w);
+   z = respose(h,w,e,a);
+   return (a, e, z);
+}
+\end{lstlisting}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth }
+\begin{lstlisting}[mathescape]
+proc ideal(h, e) = {
+  (a, z) = simulator(h, e);
+  return (a, e, z);
+}
+\end{lstlisting}
+    \end{subfigure}
+    \caption{SHVZK module}
+  \end{figure}
+  We then say a $\Sigma$-Protocol S is special honest verifier zero-knowledge
+  if:
+  \[
+    equiv[\texttt{SHVZK}.real \sim \texttt{SHVZK}.ideal :\; \indis{h, e} \land \text{R
+    h w}^{real} \implies \indis{res}]
+  \]
 \end{definition}
 
 \begin{definition}
@@ -209,6 +231,8 @@ running $S$ on input $h, w$.
 
 \todo{Argue that games corresponds to original definitions}
 
+\todo{SHVZK only captures perfect indis. Unclear how to do with equiv?}
+
 \todo{To prove composition we assume to following relations to be true \dots and
 this only hold if both inputs are in the domain of R.}
 
@@ -219,8 +243,18 @@ composes is various ways. More specially it is possible to prove knowledge of
 relations compounded by the logical operators ``AND'' and ``OR''.
 The benefit of this is...
 
+Formalisations of composite $\Sigma$-Protocols already exists for other proof
+assistants \cite{cryptoeprint:2019:1185,certicrypt_sigma}, which we will also
+use as a basis for our \easycrypt\ formalisation. By drawing on previous work we
+aim to make a formalisation that is workable and succinct within reason of what
+\easycrypt\ allows us to do. Moreover, by recreating formalisations within new
+proof assistant we can gain valuable insight into how \easycrypt\ compares to
+other proof assistant whilst reflecting on how to improve previous work.
+
 \subsection{AND}
 \label{subsec:sigma_AND}
+\todo{Based on description from \cite{on-sigma-protocols}}
+\todo{Not entirely correct. Need $h \in domain R$ to discharge axioms}
 Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w_{1})$ and
 $S_{2}$ with relation $R_{2}(h_{2},w_{2})$ we define the AND construction to be a
 $\Sigma$-Protocol proving knowledge of the relation
@@ -258,6 +292,7 @@ need to declare the types of the AND construction and ensure that the procedures
 are typeable. The only way of ensuring this is by fixing the types of the
 underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
 
+\todo{Explicitly mention axioms}
 
 \begin{lstlisting}[float,label=lst:and-procedures,caption=AND construction]
 module ANDProtocol (P1 : S1, P2 : S2) = {
@@ -317,9 +352,9 @@ regards to the module \texttt{ANDProtocol}
 
 \begin{lemma}[AND special soundness]
   \begin{align*}
-    &R (h_{1}, h_{2}) (w_{1}, w_{2}) \\
-    \land &\Pr{P_{1}.verify(h_{1}, w_{1}, e, z)} = 1 \\
-    \land &\Pr{P_{2}.verify(h_{2}, w_{2}, e', z')} = 1 \\
+    & e \neq e' \\
+    \land &\Pr{verify((h_{1}, h_{2}), (w_{1}, w_{2}), e, z)} = 1 \\
+    \land &\Pr{verify((h_{1}, h_{2}), (w_{1}, w_{2}), e', z')} = 1 \\
     &\implies \Pr{SpecialSoundness(\texttt{ANDProtocol}(P_{1}, P_{2})).main} = 1
   \end{align*}
 \end{lemma}
@@ -336,9 +371,117 @@ regards to the module \texttt{ANDProtocol}
 
 \subsection{OR}
 \label{subsec:sigma_OR}
-\todo{Needed to change relation}
+Here we use the definition of the OR construction by \cite{on-sigma-protocols},
+which states that both sub-protocols must have the same witness type.
 
-\paragraph{Concluding remarks on composition protocols}
+Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w)$ and
+$S_{2}$ with relation $R_{2}(h_{2},w)$ we define the AND construction to be a
+$\Sigma$-Protocol proving knowledge of the relation
+$R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$.
+
+The main idea behind the OR construction, is that by the SHVZK it is possible to
+construct accepting conversations for both $S_{1}$ and $S_{2}$ if the Prover is
+allowed to choose what challenge he responds to. Obviously, if the Prover is
+allowed to chose the challenge the protocol is would not be secure. Therefore,
+we limit the Prover such that he can choose the challenge for one sub-protocol,
+but must run the other sub-protocol with a challenge influenced by the Verifier.
+This is done by letting the Prover chose two challenges $e_{1}$ and $e_{2}$,
+which the Verifier will only accept, if the $e_{1} \oplus e_{2} = s$ where $s$
+is the challenge produced by the Verifier.
+By producing accepting transcripts for both sub-protocols it must be true that
+he knew the witness for at least one of the relations.
+
+To formalise this we first need a way to express that the challenge type
+supports XOR operations. To do this we add the following axioms, which will have
+to be proven true before our formalisation can be applied.
+
+\begin{gather}
+  \textbf{op } (\oplus) \; c_{1} \; c_{2} : \text{challenge} \label{def:op:xor} \\
+  \textbf{axiom xorK } x \; c : (x \oplus c) \oplus c = x \label{axiom:xorK} \\
+  \textbf{axiom xorA } x \; y : (x \oplus y) = y \oplus x \label{axiom:xorA}
+\end{gather}
+
+\todo{The protocol then proceeds as ...}
+
+We then define the OR construction as a $\Sigma$-Protocol like in section
+\ref{subsec:sigma_AND}. The procedures can be seen in listing \ref{lst:sigma:or}.
+
+\begin{lstlisting}[float, mathescape, label=lst:sigma:or,caption=OR construction]
+proc init(h : statement, w : witness) = {
+  (h1, h2) = h;
+
+  if (R1 h1 w) {
+    a1 = S1.init(h1, w);
+    e2 <$\$$ dchallenge;
+    (a2, z2) = S_{}2.simulator(h2, e2);
+  } else {
+    a2 = S2.init(h2, w);
+    e1 <$\$$ dchallenge;
+    (a1, z1) = S1.simulator(h1, e1);
+  }
+  return (a1, a2);
+}
+
+proc response(h : statement, w : witness, m : message, s : challenge) = {
+  (m1, m2) = m;
+  (h1, h2) = h;
+
+  if (R1 h1 w) {
+    e1 = s $\oplus$ e2;
+    z1 = S1.response(h1, w, m1, e1);
+  } else {
+    e2 = s $\oplus$ e1;
+    z2 = S2.response(h2, w, m2, e2);
+  }
+  return (e1, z1, e2, z2);
+}
+
+proc verify(h : statement, m : message, s : challenge, z : response) = {
+  (h1, h2) = h;
+  (m1, m2) = m;
+  (e1, z1, e2, z2) = z;
+
+  v = S1.verify(h1, m1, e1, z1);
+  v' = S2.verify(h2, m2, e2, z2);
+
+  return ((s = e1 $\oplus$ e2) /\ v /\ v');
+}
+\end{lstlisting}
+
+\todo{Write protocol as diagram?}
+
+\paragraph{Security}
+Given the OR constructions instantiation of a $\Sigma$-Protocols we simply need
+to prove the security definitions given in section \ref{sec:sigma:def} with
+regards to the module \texttt{ORProtocol}
+
+\begin{lemma}[OR Completeness]
+  Assume $\Sigma$-Protocols $P_{1}$ and $P_{2}$ are complete and shvzk then
+  Module $\texttt{ORProtocol}(P_1, P_2)$ satisfy completeness definition \ref{def:sigma:completeness}
+\end{lemma}
+\begin{proof}
+  Need to use simulator
+\end{proof}
+
+\begin{lemma}[OR special soundness]
+  \begin{align*}
+    & s \neq s' \implies
+    \land &\Pr{verify((h_{1}, h_{2}), w, s, (e_{1}, z_{1}, e_{2}, z_{2})} = 1 \\
+    \land &\Pr{verify((h_{1}, h_{2}), w, s', (e'_{1}, z'_{1}, e'_{2}, z'_{2}))} = 1 \\
+    &\implies \Pr{SpecialSoundness(\texttt{ORProtocol}(P_{1}, P_{2})).main} = 1
+  \end{align*}
+\end{lemma}
+\begin{proof}
+  Intermediate construction. need to abuse global variables to carry state
+  between sub-protocols.
+\end{proof}
+
+\begin{lemma}[OR SHVZK]
+  Given $\Sigma$-Protocols $P_{1}$ and $P_{2}$ that satisfy SHVZK then OR is SHVZK
+\end{lemma}
+\begin{proof}
+  Construction
+\end{proof}
 
 \section{Fiat-Shamir Transformation}
 \label{subsec:fiat-shamir}
@@ -501,7 +644,7 @@ proc witness_extractor(h : statement, m : message, e : challenge list, z : respo
 
 \begin{lemma}[Schnorr SHVZK]
   \[
-    equiv[\texttt{SHVZK(Schnorr)}.ideal \sim \Pr{\texttt{SHVZK(Schnorr)}.real} : =\{h, e\} \land \text{R h w}^{real} \implies =\{res\}]
+    equiv[\texttt{SHVZK(Schnorr)}.ideal \sim \Pr{\texttt{SHVZK(Schnorr)}.real} :\; \indis{h,e} \land \text{R h w}^{real} \implies \indis{res}]
   \]
 \end{lemma}
 \begin{proof}
