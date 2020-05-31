@@ -22,9 +22,7 @@ clone import SigmaProtocols as Sigma with
   op R = R_DL,
   op dchallenge = FDistr.dt
   proof *.
-  realize dchallenge_llfuni.
-      (* TODO: by [dt_ll, dt_funi] *)
-      split. apply FDistr.dt_ll. smt. qed.
+  realize dchallenge_llfuni. by split; [apply FDistr.dt_ll | apply FDistr.dt_funi].
 
 module Schnorr : SProtocol = {
   var r : F.t

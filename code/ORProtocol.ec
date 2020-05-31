@@ -1,5 +1,5 @@
 (* Formalization of Sigma Protocols *)
-require import AllCore Distr DBool.
+require import AllCore Distr DBool List.
 
 require SigmaProtocols.
 
@@ -140,7 +140,7 @@ theory ORProtocol.
 
     proc witness_extractor(h : statement, m : message,
                            e : challenge list,
-                           z : response list) : witness = {
+                           z : response list) : witness option = {
       var h1, h2, m1, m2, w, e1, e2, e1', e2', z1, z2, z1', z2';
       (h1, h2) = h;
       (m1, m2) = m;
@@ -181,41 +181,41 @@ local module SHVZK2 = S2.SHVZK(SP2).
   axiom completeness_protocol1 h w e &m : (R1 h w) => Pr[S1.Completeness(SP1).special(h, w, e) @ &m : res] = 1%r.
   axiom completeness_protocol2 h w e &m : (R2 h w) => Pr[S2.Completeness(SP2).special(h, w, e) @ &m : res] = 1%r.
 
-  axiom shvzk1_equiv h' w' e':
-    equiv[S1.SHVZK(SP1).real ~ S1.SHVZK(SP1).ideal : (={h, e} /\ e{1} = e' /\ h{2} = h' /\ w{1} = w' /\ (R1 h' w')) ==> ={res}].
-  axiom shvzk2_equiv h' w' e':
-    equiv[S2.SHVZK(SP2).real ~ S2.SHVZK(SP2).ideal : (={h, e} /\ e{1} = e' /\ h{2} = h' /\ w{1} = w' /\ (R2 h' w')) ==> ={res}].
+  axiom shvzk1_equiv:
+    equiv[S1.SHVZK(SP1).real ~ S1.SHVZK(SP1).ideal : (={h, e} /\ (R1 h{1} w{1})) ==> ={res}].
+  axiom shvzk2_equiv:
+    equiv[S2.SHVZK(SP2).real ~ S2.SHVZK(SP2).ideal : (={h, e} /\ (R2 h{1} w{1})) ==> ={res}].
 
   local lemma shvzk1_equiv_pr h' w' e' a &m:
       (R1 h' w') =>
       Pr[S1.SHVZK(SP1).real(h', w', e') @ &m : (res = a)] =
       Pr[S1.SHVZK(SP1).ideal(h', e') @ &m : (res = a)].
   proof. move=>rel.
-  by byequiv (shvzk1_equiv h' w' e'). qed.
+  by byequiv (shvzk1_equiv). qed.
 
   axiom shvzk1_ideal_never_fails_pr h' e' &m:
       Pr[S1.SHVZK(SP1).ideal(h', e') @ &m : (res <> None)] = 1%r.
   axiom shvzk2_ideal_never_fails_pr h' e' &m:
       Pr[S2.SHVZK(SP2).ideal(h', e') @ &m : (res <> None)] = 1%r.
 
-  local lemma shvzk1_ideal_never_fails h' e':
-        phoare[S1.SHVZK(SP1).ideal : (h = h' /\ e = e') ==> (res <> None)] = 1%r.
-  proof. have H := (shvzk1_ideal_never_fails_pr h' e'). bypr. progress. apply (H &m). qed.
+  local lemma shvzk1_ideal_never_fails:
+        phoare[S1.SHVZK(SP1).ideal : true ==> (res <> None)] = 1%r.
+  proof. bypr=> &m Pre. have H := (shvzk1_ideal_never_fails_pr h{m} e{m}). apply (H &m). qed.
 
-  local lemma shvzk2_ideal_never_fails h' e':
-        phoare[S2.SHVZK(SP2).ideal : (h = h' /\ e = e') ==> (res <> None)] = 1%r.
-  proof. have H := (shvzk2_ideal_never_fails_pr h' e'). bypr. progress. apply (H &m). qed.
+  local lemma shvzk2_ideal_never_fails:
+        phoare[S2.SHVZK(SP2).ideal : true ==> (res <> None)] = 1%r.
+  proof. bypr=> &m Pre. have H := (shvzk2_ideal_never_fails_pr h{m} e{m}). apply (H &m). qed.
 
-  local lemma shvzk1_real_never_fails h' w' e':
-        phoare[S1.SHVZK(SP1).real : (h = h' /\ e = e' /\ w = w' /\ (R1 h' w')) ==> (res <> None)] = 1%r.
+  local lemma shvzk1_real_never_fails:
+        phoare[S1.SHVZK(SP1).real : (R1 h w) ==> (res <> None)] = 1%r.
   proof.
   bypr. progress.
   have -> := (S1.shvzk_real_never_fail SP1 h{m} w{m} e{m} &m).
   by have := (completeness_protocol1 h{m} w{m} e{m} &m H).
   qed.
 
-  local lemma shvzk2_real_never_fails h' w' e':
-        phoare[S2.SHVZK(SP2).real : (h = h' /\ e = e' /\ w = w' /\ (R2 h' w')) ==> (res <> None)] = 1%r.
+  local lemma shvzk2_real_never_fails:
+        phoare[S2.SHVZK(SP2).real : (R2 h w) ==> (res <> None)] = 1%r.
   proof.
   bypr. progress.
   have -> := (S2.shvzk_real_never_fail SP2 h{m} w{m} e{m} &m).
@@ -223,9 +223,9 @@ local module SHVZK2 = S2.SHVZK(SP2).
   qed.
 
   (* Converting the ambient logic to the pHoare logic *)
-local lemma SP1_completeness_pr h' w' e' : phoare[C1.special : (h = h' /\ e = e' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
+local lemma SP1_completeness_pr : phoare[C1.special : (R1 h w) ==> res] = 1%r.
     proof. bypr. progress. by have := (completeness_protocol1 h{m} w{m} e{m} &m H). qed.
-local lemma SP2_completeness_pr h' w' e' : phoare[C2.special : (h = h' /\ e = e' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
+local lemma SP2_completeness_pr : phoare[C2.special : (R2 h w) ==> res] = 1%r.
     proof. bypr. progress. by have := (completeness_protocol2 h{m} w{m} e{m} &m H). qed.
 
 local module Completeness' = {
@@ -282,8 +282,8 @@ local module Completeness' = {
   }
 }.
 
-  local lemma ideal1_success h' e1':
-      phoare[Completeness'.ideal1 : (h1 = h' /\ e1 = e1') ==> res] = 1%r.
+  local lemma ideal1_success:
+      phoare[Completeness'.ideal1 : true ==> res] = 1%r.
   proof.
     bypr=> &m hrel.
     have <- := (shvzk1_ideal_never_fails_pr h1{m} e1{m} &m).
@@ -291,8 +291,8 @@ local module Completeness' = {
     by do ? call (: true).
   qed.
 
-  local lemma ideal2_success h' e2':
-      phoare[Completeness'.ideal2 : (h2 = h' /\ e2 = e2') ==> res] = 1%r.
+  local lemma ideal2_success:
+      phoare[Completeness'.ideal2 : true ==> res] = 1%r.
   proof.
     bypr=> &m hrel.
     have <- := (shvzk2_ideal_never_fails_pr h2{m} e2{m} &m).
@@ -327,20 +327,20 @@ local module Completeness' = {
     auto.
   qed.
 
-  local lemma real1_success h' w' e1':
-      phoare[Completeness'.real1 : (h1 = h' /\ e1 = e1' /\ w = w' /\ (R1 h' w')) ==> res] = 1%r.
+  local lemma real1_success:
+      phoare[Completeness'.real1 : (R1 h1 w) ==> res] = 1%r.
   proof.
-    bypr=> &m [hrel [erel [wrel rel]]].
-    have <- := (completeness_protocol1 h' w' e1' &m rel).
+    bypr=> &m Pre.
+    have <- := (completeness_protocol1 h1{m} w{m} e1{m} &m Pre).
     byequiv=> //. proc.
     by do ? call (: true).
   qed.
 
-  local lemma real2_success h' w' e2':
-      phoare[Completeness'.real2 : (h2 = h' /\ e2 = e2' /\ w = w' /\ (R2 h' w')) ==> res] = 1%r.
+  local lemma real2_success:
+      phoare[Completeness'.real2 : (R2 h2 w) ==> res] = 1%r.
   proof.
-    bypr=> &m [hrel [erel [wrel rel]]].
-    have <- := (completeness_protocol2 h' w' e2' &m rel).
+    bypr=> &m Pre.
+    have <- := (completeness_protocol2 h2{m} w{m} e2{m} &m Pre).
     byequiv=> //. proc.
     by do ? call (: true).
   qed.
@@ -352,19 +352,19 @@ local module Completeness' = {
     move=> rel.
     byphoare (: h = h' /\ e = e' /\ w = w' ==> _)=>//. proc. sp.
     if.
-    - seq 1 : (#pre /\ e2 = e2). auto. auto. progress. apply Sigma.dchallenge_ll.
-      exists* e2. elim*=> e2.
-      call (real1_success (fst h') w' (e' ^^ e2)). wp.
-      call (ideal2_success (snd h') e2). auto. progress.
+    - call real1_success.
+      wp.
+      call ideal2_success.
+      auto. progress.
+      apply Sigma.dchallenge_ll.
       by rewrite xorK.
-      hoare. auto. progress.
-    - seq 1 : (#pre /\ e1 = e1). auto. auto. progress. apply Sigma.dchallenge_ll.
-      exists* e1. elim*=> e1.
-      call (real2_success (snd h') w' (e' ^^ e1)). wp.
-      call (ideal1_success (fst h') e1). auto. progress.
+    - call real2_success.
+      wp.
+      call ideal1_success.
+      auto. progress.
+      apply Sigma.dchallenge_ll.
       smt().
       by rewrite xorA xorK.
-      hoare. auto. progress.
   qed.
 
   lemma or_completeness h' w' e' &m:
@@ -483,7 +483,7 @@ local module Completeness' = {
     inline SHVZK2.ideal. sim. sp.
     seq 1 1 : (#pre /\ e2{1} = e2{2}). auto.
     exists* e2{2}. elim*. progress.
-    call (shvzk1_equiv (fst h') w' (e' ^^ e2_R)); auto.
+    call shvzk1_equiv; auto.
 
     proc.
     auto. rcondf{1} 2. auto. sp.
@@ -500,7 +500,7 @@ local module Completeness' = {
       - by rewrite xorA.
       - by rewrite xorA.
     exists* e2{2}. elim*. progress. sp.
-    call (shvzk2_equiv (snd h') w' e2_R); auto; progress; smt().
+    call shvzk2_equiv; auto; progress; smt().
   qed.
 
   axiom special_soundness_sp1 x msg ch ch' d d' &m :
@@ -517,32 +517,44 @@ local module Completeness' = {
 
   local module SpecialSoundness' = {
       var w : witness
-      var vd : bool
-      var vd' : bool
+      var vd, vd' : bool
+      var wopt : witness option
       proc special_soundness1(h : statement, m, e, e', z, z') = {
-        var h1, h2;
+        var h1, h2, ret;
         (h1, h2) = h;
 
         vd  = SP1.verify(h1, m, e, z);
         vd' = SP1.verify(h1, m, e', z');
 
-        w = SP1.witness_extractor(h1, m, [e;e'], [z;z']);
-
-        return (e <> e' /\ (R1 h1 w) /\ vd /\ vd');
+        wopt = SP1.witness_extractor(h1, m, [e;e'], [z;z']);
+        if (wopt <> None /\ e <> e') {
+          w = oget wopt;
+          ret = (e <> e' /\ (R1 h1 w) /\ vd /\ vd');
+        }
+        else {
+          ret = false;
+        }
+        return ret;
       }
       proc special_soundness2(h : statement, m, e, e', z, z') = {
-        var h1, h2;
+        var h1, h2, ret;
         (h1, h2) = h;
 
         vd  = SP2.verify(h2, m, e, z);
         vd' = SP2.verify(h2, m, e', z');
 
-        w = SP2.witness_extractor(h2, m, [e;e'], [z;z']);
+        wopt = SP2.witness_extractor(h2, m, [e;e'], [z;z']);
+        if (wopt <> None /\ e <> e') {
+          w = oget wopt;
+          ret = (e <> e' /\ (R2 h2 w) /\ vd /\ vd');
+        } else {
+          ret = false;
+        }
+        return ret;
 
-        return (e <> e' /\ (R2 h2 w) /\ vd /\ vd');
       }
       proc main(h, m, e e' : challenge, z, z') = {
-        var e1,e1',e2,e2',z1,z1',z2,z2',h1,h2,m1,m2,v,v',ret;
+        var e1,e1',e2,e2',z1,z1',z2,z2',h1,h2,m1,m2,ret,v,v';
         (m1, m2) = m;
         (h1, h2) = h;
         (e1, z1, e2, z2) = z;
@@ -556,7 +568,7 @@ local module Completeness' = {
           v' = SP1.verify(h1, m1, e1', z1');
           ret = special_soundness2(h, m2, e2, e2', z2, z2');
         }
-        return (e <> e' /\ e = e1 ^^ e2 /\ e' = e1' ^^ e2' /\ v /\ v' /\ vd /\ vd' /\ (R h w));
+        return (e <> e' /\ e = e1 ^^ e2 /\ e' = e1' ^^ e2' /\ v /\ v' /\ vd /\ vd' /\ wopt <> None /\ R h w);
       }
     }.
 
@@ -565,29 +577,31 @@ local module Completeness' = {
       Pr[SpecialSoundness'.main(x, msg, ch, ch', (e1, z1, e2, z2), (e1', z1', e2', z2')) @ &m : res] =
       Pr[Sigma.SpecialSoundness(ORProtocol(SP1, SP2)).main(x, msg, [ch;ch'], [(e1, z1, e2, z2);(e1', z1', e2', z2')]) @ &m : res].
   proof.
-    byequiv=>//. proc. inline *. sp.
+    byequiv=>//. proc. inline *.
+    rcondt{2} 4. auto.
+    rcondt{2} 19. auto. call (:true). call (:true). auto.
+    rcondf{2} 34. move=> ?. do ? (wp; call (:true)). auto.
+    wp.
     case (e1 <> e1').
-    rcondt{1} 1. auto.
-    rcondt{2} 1. auto.
-    rcondt{2} 16. auto. call (:true). call (:true). auto.
-    rcondf{2} 31. auto. call (:true). call (:true). auto. call (:true). call (:true). auto.
-    rcondt{2} 39. move=> ?. do ? (wp; call (:true)). auto.
-    sp. wp.
-    swap{2} 16 1.
-    swap{1} 2 8.
-    swap{2} 1 1.
+    rcondt{1} 5. auto.
+    rcondt{2} 42. auto. do ? (wp; call (:true)). auto.
+    swap{2} 13 1.
+    swap{2} [14..16] 6.
+    swap{2} 29 -1.
+    swap{1} 6 8.
     do ? (wp; call (:true)).
-    skip; progress; smt().
+    auto; progress.
+    smt().
+    smt().
     (* case e2 <> e2' *)
-    rcondf{1} 1. auto.
-    rcondt{2} 1. auto.
-    rcondt{2} 16. auto. call (:true). call (:true). auto.
-    rcondf{2} 31. auto. call (:true). call (:true). auto. call (:true). call (:true). auto.
-    rcondf{2} 39. move=> ?. do ? (wp; call (:true)). auto.
-    sp.
-    swap{1} 2 8.
+    rcondf{1} 5. auto.
+    rcondf{2} 42. auto. do ? (wp; call (:true)). auto.
+    swap{2} [14..16] 6.
+    swap{1} 6 8.
     do ? (wp; call (:true)).
-    skip; progress; smt().
+    auto. progress.
+    smt().
+    smt().
   qed.
 
   local lemma special_soundness1'
@@ -596,7 +610,7 @@ local module Completeness' = {
       phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
       phoare[SP1.verify : (h = (fst x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
       phoare[SpecialSoundness'.special_soundness1 :
-        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
+        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w /\ SpecialSoundness'.wopt <> None)] = 1%r.
   proof.
     move=> ch_diff accept1 accept2.
     bypr. progress.
@@ -615,7 +629,7 @@ local module Completeness' = {
       phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch /\ z = r) ==> res] = 1%r =>
       phoare[SP2.verify : (h = (snd x) /\ m = msg /\ e = ch' /\ z = r') ==> res] = 1%r =>
       phoare[SpecialSoundness'.special_soundness2 :
-        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w)] = 1%r.
+        (h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = r /\ z' = r') ==> (res /\ SpecialSoundness'.vd /\ SpecialSoundness'.vd' /\ R x SpecialSoundness'.w /\ SpecialSoundness'.wopt <> None)] = 1%r.
   proof.
     move=> ch_diff accept1 accept2.
     bypr. progress.
@@ -646,6 +660,7 @@ local module Completeness' = {
     proc. sp. rcondt 1. auto.
     - have H1 := (special_soundness1' x (fst msg) e1 e1' z1 z1' e1_diff accept11 accept12).
       call H1. call accept22. call accept21. auto.
+      progress.
 
     have e2_diff : (e2 <> e2') by smt().
     byphoare(: h = x /\ m = msg /\ e = ch /\ e' = ch' /\ z = (e1, z1, e2, z2) /\ z' = (e1', z1', e2', z2') ==> _)=>//.
