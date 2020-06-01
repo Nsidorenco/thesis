@@ -42,6 +42,8 @@ instantiate ZKBoo as a $\Sigma$-Protocol and then prove its security.
 Throughout this chapter use the letter $e$ to denote an integer in \{1,2,3\}.
 Moreover, we define arithmetic on $e$ such that $3+1 = 1$.
 
+To refer to the i'th index of a list $w$ we use the notation $w[i]$.
+
 \section{Formalising Arithmetic circuits}
 \label{sec:arith_circuits}
 In this section we will introduce the concept of arithmetic circuits and how they
@@ -59,7 +61,7 @@ An arithmetic circuit is in its most general form express a function $\phi$ over
 arbitrary field $\mathbb{Z}_{q}$, where $\phi : \mathbb{Z}_{q}^{k} \rightarrow \mathbb{Z}_{q}^{l}$
 
 To express arbitrary (Arithmetic) computations in a ring of finite field we
-use the following four gates, Add to constant (ADDC), multiply by constant
+use the following four gates, addition by constant (ADDC), multiplication by constant
 (MULTC), addition of two wires (ADD), and multiplication of two wires (MULT).
 
 The goal of this section is to formulate a representation of the function
@@ -316,7 +318,7 @@ The output of the decomposition can then be defined as summing the last share fr
   \texttt{eval\_circuit\_aux} in figure \ref{lst:circuit_eval}.
 
   Additionally a share is only valid, if it has been produced by functions used
-  by the decomposition.
+  by the decomposition. This property also ensures that the views are consistent wrt. each other. Namely, if $p_{i}$ computes a share $s$ then $s$ is the share that the other parties received from $p_{i}$ during the execution of the protocol.
 
   \begin{equation}
     \label{eq:decomp:valid}
@@ -697,6 +699,8 @@ proc verify(h : statement, m : message, e : challenge, z : response) = {
 
 \end{lstlisting}
 
+\subsection{Security}
+\label{subsec:zkboo:sec}
 We then, automatically, by our formalisation of $\Sigma$-Protocols get
 definition of security and only need to prove them \dots \todo{wording}
 
@@ -825,9 +829,13 @@ proc ideal(h, e) = {
   the view produces by the decomposition. In the ideal case, however, it is a
   commitment to a list of random values but due out assumption of perfect hiding
   these two commitments are identically distributed.
+  To prove this formally we use perfect hiding definition
+  (\ref{def:commitment:perfect-hiding}) which states that two programs run in
+  parallel and making the same choices will be indistinguishable. Since we
+  assume perfect hiding we can then by the perfect hiding definition assume
+  $c^{real}_{e+2} = c^{ideal}_{e+2}$ for the rest of the proof.
 
-  The rest of the out values are indistinguishable by the 2-Privacy property.
-
+  The rest of the output values are then indistinguishable by the 2-Privacy property.
 \end{proof}
 
 \todo{Change order so this lemma comes last}
@@ -1014,6 +1022,8 @@ Moreover, they help us expose some of the more subtle details important for
 proving security of cryptographic protocols, like requiring certain procedures
 to be lossless since...
 
+SHVZK assumes perfect hiding... Should be able to prove it for comp hiding but
+definitions are annoying to work with.
 
 
 %%% Local Variables:

@@ -4,6 +4,10 @@
 \section{Related Work}
 \label{sec:related_work}
 
+This work exists in the field of formal verification of cryptographic protocols.
+Notably our work has been heavily influenced by similar formalisations
+\cite{cryptoeprint:2019:1185,DBLP:journals/corr/MetereD17,certicrypt_sigma,zkcrypt,Yao}
+
 Sigma protocols has been done in a lesser extend in \easycrypt. Much of the same
 work has been done in Isabelle/CryptHOL by \citeauthor{cryptoeprint:2019:1185}.
 
@@ -27,6 +31,8 @@ notable work by \citeauthor{zkcrypt} and PINOCCIO.
 
 \todo{Differences between the works}
 
+\todo{SFE in EC, YAO}
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -35,21 +41,32 @@ notable work by \citeauthor{zkcrypt} and PINOCCIO.
 \todo{Possible code extraction?}
 \todo{Schism between perfect and computation distinguishably}
 
+\todo{Adversary based games are not always ideal}
+\todo{Not possible to swap order of verify in commitment if procedure}
+
 \section{Future work}
 \label{sec:future_work}
-Thesis has created a workable formalisation, as show by the formalisation of ZKBoo. ZKBoo can be improved to make it more applicable in real applications \todo{Cite ZKBoo+ paper}
+In this thesis has created a workable formalisation, as show by the formalisation of
+ZKBoo. Various improvement has then been made to the ZKBoo protocol to mainly
+reduce to proof size but also to provide zero-knowledge in a post-quantum
+context \cite{zkb++}.
 
-\begin{itemize}
-  \item Explore rewinding in EC
-  \item Other Zero-knowledge protocols
-  \item Expand the toolchain
-    \begin{itemize}
-      \item Prove list representation equiv to graph
-      \item Conversion from function to circuit (Metaprogramming?) ASTs not available? I/O not possible
-      \item Proposed standard zk interfaces?
-    \end{itemize}
-\end{itemize}
+With our formalisation we have intentionally focused on the ZKBoo protocol in
+isolation but in real applications it would be part of a larger tool chain.
+Mainly, ZKBoo requires a circuit with a definable execution order to be secure.
+In our formalisation we have assumed the input to be a circuit and defined an
+execution order but to complete the tool chain we would need a formalisation of
+a procedure converting functions to circuits and a formal proof of the induced
+execution order in section \ref{subsec:arith-representation} being semantic preserving.
 
+Moreover we saw in section \ref{subsec:fiat-shamir} that there is a need for
+formalising the rewinding lemma to reason about soundness of the Fiat-Shamir
+transformation. Moreover, rewinding is a common technique for proving soundness
+of zero-knowledge protocols. Formalising the rewinding lemma would then allows
+us to reason about be general zero-knowledge protocols than the sub-class of
+$\Sigma$-Protocol which we have explored in this thesis.
+
+\todo{Prove connection between $\Sigma$ and pok or arg ZK}
 
 \section{Conclusion}
 \label{sec:conclusion}

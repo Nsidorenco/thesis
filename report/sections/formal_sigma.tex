@@ -117,14 +117,10 @@ a protocol to be complete we have the following lemma:
 Given that definition \ref{def:sigma:alt_completeness} then it must hold that
 definition \ref{def:sigma:completeness} holds, given the same public input and witness.
 
-This can be stated in \easycrypt as:
-\begin{lstlisting}[mathescape]
-lemma special_implies_main (S <: SProtocol) h' w':
-  ($\forall$ h' w' e',
-    phoare[special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r)
-  =>
-  phoare[Completeness(S).main : (h = h' /\ w = w') ==> res] = 1%r.
-\end{lstlisting}
+\begin{align*}
+  &\Pr{\texttt{special} : true \implies res} = 1 \implies
+    &\Pr{\texttt{Completeness(S).main} : true \implies res} = 1.
+\end{align*}
 \end{lemma}
 
 \begin{proof}
@@ -143,11 +139,10 @@ the sampling to the first line of each program. This will make the two programs
 equivalent.
 
 Now, we can prove the lemma by instead proving:
-\begin{lstlisting}
-lemma special_implies_main (S <: SProtocol) h' w':
-  (forall h' w' e', phoare[special : (h = h' /\ w = w' /\ e = e') ==> res] = 1%r) =>
-  phoare[intermediate : (h = h' /\ w = w') ==> res] = 1%r.
-\end{lstlisting}
+\begin{align*}
+  &\Pr{\texttt{special} : true \implies res} = 1 \implies
+    &\Pr{\texttt{intermediate} : true \implies res} = 1.
+\end{align*}
 
 The proof then proceeds by first sampling $e$ and then proving the following
 probabilistic Hoare triplet: $true \vdash \{\exists e', e = e'\}
@@ -158,8 +153,6 @@ from the pre-condition into the context:
 \]
 
 Which then is proven by the hypothesis of the ``special'' procedure being complete.
-
-\todo{variable declarations have been omitted}
 \end{proof}
 
 
@@ -521,8 +514,7 @@ Soundness, however, cannot be proven by the definition of special soundness from
 $\Sigma$-Protocols, since the Prover has gained more possibilities of cheating
 the verifier. We could prove some arbitrary bounds, but to get a meaningful
 proof of soundness for the Fiat-Shamir transformation we would need the
-rewinding lemma, which is yet unclear how to do in proof assistants
-\todo{reference proving/disproving this}.
+rewinding lemma, which still an open research topic to formalise within \easycrypt\ \cite{ec_intro}.
 
 \section{Concrete instantiation: Schnorr protocol}
 \label{sec:schnorr}

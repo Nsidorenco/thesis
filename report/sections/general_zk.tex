@@ -1,28 +1,39 @@
 \chapter{Generalised Zero-Knowledge compilation}
 \label{ch:general_zk}
 We have previously seen a concrete instantiation of a $\Sigma$-protocol with the
-relation being the discrete logarithm problem, namely Schnorr's protocol. We
-have also seen how it was possible to prove Schnorr's protocol to be secure in a
-formal setting though \easycrypt.
+relation being the discrete logarithm problem, namely Schnorr's protocol
+(Section \ref{sec:schnorr}).
+We have also seen how it is possible to prove the security of $\Sigma$-Protocols
+working on composite relations like AND and OR (Section \ref{sec:sigma_comp}).
+The main problem with these solutions is that they require a specialised
+$\Sigma$-Protocol for every non-composite relation. In our case we have a
+protocol we can use for proving knowledge of the discrete logarithm relation,
+but what if we also want to prove knowledge for another computational problem?
+With our current framework we would have to define a new $\Sigma$-Protocol
+exclusively for this relation.
 
-\todo{Mention zkSNARKS?}
-
-There exists an infinite set of possible relations, for which we could want to
-provide zero-knowledge proofs of. It is therefore infeasible to design a
-protocol for each relation and proving its security.
-
-An example of this is the GMW-compiler \dots, or the example system from \cite{zkcrypt}.
+The problem with this is that there exists an infinite set of possible
+relations, for which we could want to provide zero-knowledge proofs of. It is
+therefore infeasible to design a protocol for each relation and proving its
+security.
 
 We therefore need a more generalised approach, that is able to generate
 zero-knowledge proof for an entire family of relations rather than a specific relation.
 One such family of relations is the pre-image under group homomorphisms \dots
 
-Another important factor of zero-knowledge compilers is the reduce the proof
-size. ZK proofs are notoriously expensive to run.
+We will in this chapter introduce the generalized zero-knowledge compiler,
+ZKBoo, by \citet{zkboo}. When doing so we aim to provide an general overview
+of how the protocol works, whilst recalling key definitions and proofs from the paper.
 
 \section{ZKBOO}
 \label{sec:zkboo}
-The ZKBoo protocol, which was invented by \citet{zkboo}, is a zero-knowledge compiler for relations, which can be
+\todo{Based on MPC in the head}
+\todo{Needs a semi-honest MPC protocol}
+\todo{Efficient because of semi-honest requirement}
+\todo{privacy implies ZK}
+\todo{Can only cheat verifier if he is unlucky in the view he opens}
+\todo{One view needs to be inconsistent to produce valid output for invalid input}
+ZKBoo protocol is a zero-knowledge compiler for relations, which can be
 expressed as the pre-image of a group homomorphism, i.e.
 
 \[
@@ -32,15 +43,17 @@ expressed as the pre-image of a group homomorphism, i.e.
 Where $h$ is the public input and $w$ is the witness.
 
 The principle idea of this protocol is based on a technique called ``MPC in the
-head''. Recall from section \ref{sec:background:mpc}, that the theory of
-Multipart Computation allows us, for any given function taking $n$ inputs to
-securely compute output $y$ for the function. We then have by definition
-\ref{def:mpc:d-privacy} that as long as less than $d \leq n$ views are available to the adversary, then the inputs to the function are private.
+head''. Recall from section \ref{sec:background:mpc}, that
+Multipart Computations allows us to securely compute any given function taking
+$n$ inputs to an output $y$.
+We then have by definition \ref{def:mpc:d-privacy} that as long as less than
+$d \leq n$ views are available to the adversary, then the inputs to the function
+are private.
 
 Now, if we instead of proving the knowledge of a witness satisfying $\phi(w) = h$
-we revealed a run, i.e. the views, of a MPC protocol computing the above
-function, but with the witness distributed amongst all parties then we have the
-claims:
+we revealed a run, i.e. the views of a MPC protocol computing the above
+function, but with the witness distributed amongst all parties then we get the
+following:
 
 \begin{lemma}
 \label{lemma:zkboo_correctness}
@@ -81,18 +94,59 @@ head'' protocol to make a zero-knowledge protocol to and prove lemma \ref{lemma:
 
 \subsection{(2,3)-Function Decomposition}
 \label{subsec:decomposition}
-(2,3)-Function decomposition is a general technique given a function
-$f : X \rightarrow Y$ and a input value $x \in X$ to compute the value $f(x)$ by
-splitting it into three computational branches, where revealing tow of the
-branches reveals no information about the input $x$.
+(2,3)-Function decomposition is a general technique for computing the output of
+a function $f : X \rightarrow Y$ on input value $x \in X$.
+The decomposition works by splitting the function evaluation into three
+computational branches where each computation branch is a party in a MPC
+protocol. Each party is then allowed to communicate with each other, but
+observing the computation of any two of the parties will reveal no information
+about the input value $x$.
 Through-out this section we will simply refer the a (2,3)-Function decomposition
 as $\decomp$.
 
-\todo{General description}
+We refer to the three parties of the decomposition as $P_{1}, P_{2}, P_{3}$. The
+decomposition then works by converting the function $f$ into a circuit and
+giving each party a share, where the original input can be obtain if all three
+shares are acquired. Each party then evaluates the gates in the circuit to a new
+share based on the input they are given. party $P_{i}$ is allowed to communicate
+with party $P_{i+1 \mod 3}$, but since every party in run locally it effectively
+means that party $P_{i}$ has access to the entire view of $P_{i+1 \mod 3}$ for
+the entire duration of the protocol. The view of a party is then a list  of all the shares that
+the party has computed so far. The view of party $P_{i}$ is referred to as
+$w_{i}$ For the rest of this section we will omit the $\mod 3$ from the
+indexing. Moreover we assume that each party has access to a random tape $k_{i}$
+which describes what the party should do if the protocol asks for a random
+choice.
+
+\begin{definition}
+  In its most general form the decomposition is a collection of functions:
+  \[
+    \decomp = \{\text{Share}, \text{Output}, \text{Rec}, \text{Update}\}
+  \]
+
+  Where Share is a procedure for distribute an input into three shares.
+  Moreover, it should be possible to invert the share procedure such that the
+  original input can be recovered from the three input shares.
+  Output is a function returning the output share from the view of a party.
+  Rec is a function reconstructing the output of the function $f$ based on the
+  output values of the parties.
+
+  Lastly we have Update(view$^{j}_{i}$, view$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= view^{j+1}_{i}$ which
+  is the function used to evaluate the j'th gate of the circuit from the point
+  of view of $P_{i}$. Here
+  $j$ also refers to the size of the view, i.e. how many shares has been
+  computed so far.
+\end{definition}
+
+The (2,3)-Decomposition is then the three views produced by running Update on
+each party with input shares produced by Share until the entire circuit has been
+evaluated by each party.
 
 Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
 can then define the two necessary properties from \cite{zkboo} for security of
 our (2,3)-Function decomposition, namely, correctness and privacy.
+
+\todo{Copy picture from zkboo paper?}
 
 \begin{definition}[Correctness]
 \label{def:decomp_correctness}
@@ -114,20 +168,61 @@ Where $\left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2}
 \end{definition}
 
 \subsubsection{(2,3)-Function Decomposition for Arithmetic circuits}
+Based on the general description of the (2,3)-Decomposition from the previous
+section we can then define concrete procedures needed to compute the
+(2,3)-Decomposition of arithmetic circuits as in \citet{zkboo}.
 
-\todo{For the scope of this thesis we simplify this assumption, and only look at
-functions, which can be represented as a arithmetic circuit in some finite
-integer ring. If the function is represented as an integer arithmetic circuit,
-then a general technique exists for perform the (2,3)-Decomposition}
+We assume the circuit is expressed in some arbitrary finite field
+$\mathbb{Z}_{q}$ such that the circuit can be expressed by gates: addition by constant,
+multiplication by constant, binary addition, and binary multiplication.
+Assume that every gate in the circuit is labelled as $[1 \dots N]$ where $N$ is
+the total number of gates.
+We then implement $\decomp$ as:
 
-\todo{Describe technique for 2,3 decomp of arith.}
+\begin{itemize}
+  \item Share$(x, k_{1}, k_{2}, k_{3})$: Sample random values
+    $x_{1}, x_{2}, x_{3}$ such that $x = x_{1} + x_{2} + x_{3}$
+  \item Output$(w_{i}) = y_{i}$: return the share corresponding to the output wire of
+    the gate.
+  \item Rec$(y_{1}, y_{2}, y_{3}) = y_{1} + y_{2} + y_{3} = y$ where $y$ is the
+    value of evaluating the circuit normally.
+  \item Update(view$^{j}_{i}$, view$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$): Here we
+    define procedures based on what type the j'th gate is. Since update only
+    append a new share to the view of the party we only define how to compute
+    the new share, since the old shares are immutable.
+    \begin{itemize}
+      \item Addition by constant: where $a$ is the input wire to the gate
+        and $\alpha$ is the constant.
+        $$ w[j+1]_{i} =
+        \begin{cases} w_{i}[a] + \alpha & \text{if } i = 1 \\
+                      w_{i}[a]          & \text{else}       %
+        \end{cases}$$
+      \item Multiplication by constant: where $a$ is the input wire to the gate
+        and $alpha$ is the constant
+        $$ w_{i}[j+1] = w_{i}[a] \cdot \alpha$$
+      \item Binary addition: where $a, b$ are the input wires.
+        $$
+        w_{i}[j+1] = w_{i}[a] + w_{i}[b]
+        $$
+      \item Binary multiplication: where $a, b$ are the input wires.
+        $$
+        w_{i}[j+1] = w_{i}[a] \cdot w_{i}[b] + w_{i+1}[a] \cdot w_{i}[b] + w_{i}[a] \cdot w_{i+1}[b] + R_{i}(j+1) - R_{i+1}(j+1)
+        $$
+        Where $R_{i}(j+1)$ is a uniformly random function sampling values using $k_{i}$
+    \end{itemize}
+\end{itemize}
 
-\subsection{Making the protocol zero-knowledge}
-\label{subsec:zkboo_sigma}
+Here the binary multiplication gate is the most interesting since it needs the
+share from another party to compute. The random values are added to hide what
+the share of the other party where. If the random values where not added then if
+would be easy to deduce what the share of $P_{i+1}$ where given access to the
+view of party $P_{i}$.
 
+\todo{ZKBoo omits implementation detail - what is the output wire of the gate}
 
+\subsection{ZKBoo}
+\label{subsec:general:zkboo}
 
-\todo{Proof size of ZKboo}
 
 
 %%% Local Variables:

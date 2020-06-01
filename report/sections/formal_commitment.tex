@@ -133,7 +133,10 @@ intuitively capture the same aspects of security.
   committers with the same state but different messages are perfectly
   indistinguishable.
 
-  \todo{equiv statement here}
+  \[
+    equiv[commit \sim commit :\; \indis{sk, m, \textbf{glob } Committer} \implies \indis{res, \textbf{glob } Committer} ]
+  \]
+
 \end{definition}
 
 \begin{definition}[Alternative Binding]
@@ -156,19 +159,22 @@ To show the workability of the proposed formalisation we show that it can be
 used to instantiate the key-based Pedersen commitment scheme. Pedersens
 commitment scheme is based on the discrete logarithm assumption
 
-\todo{Mention DL in background?}
 
-The Pedersen commitment scheme is a protocol run between a committer C and a receiver R. Both parties have before running the protocol agreed on a group $(\mathcal{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the generator for the group.
+The Pedersen commitment scheme is a protocol run between a committer C and a
+receiver R. Both parties have before running the protocol agreed on a group
+$(\mathcal{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
+generator for the group.
 
 When the committer want to commit the a message $m$ he does the following:
 \begin{itemize}
-  \item Sample a key $h \in_{\text{R}} \mathbb{G}$
-  \item Sample a random opening $d \in_{\text{R}} \mathbb{Z}_{q}$ and sends the key and commitment $c = g^{d}h^{m}$ to R.
+  \item He lets R sample a key $h \in_{\text{R}} \mathbb{G}$ and send it to him
+  \item Sample a random opening $d \in_{\text{R}} \mathbb{Z}_{q}$ and sends the
+    key and commitment $c = g^{d}h^{m}$ to R.
 \end{itemize}
 
-\todo{Alternatively the receiver could sample the key for better security?}
-
-At a later time, when C is ready to show the value he committed to, he sends the message and random opening, $(m',d')$ to R, when then runs the following verification steps:
+At a later time, when C is ready to show the value he committed to, he sends the
+message and random opening, $(m',d')$ to R, when then runs the following
+verification steps:
 \begin{itemize}
   \item R computes $c' = g^{d'}h^{m'}$ and checks that $c = c'$.
 \end{itemize}
@@ -210,6 +216,9 @@ module Pedersen : Committer = {
 
 \end{lstlisting}
 
+Here our formalisation assumes that the Committer samples the keys but as we
+will see in the following section we are still able to prove security of the
+scheme regardless of who generates the keys.
 Here we use the Cyclic Group theory from EC to generate the agreed upon group
 and model uniform distributions of messages and randomness by...
 
