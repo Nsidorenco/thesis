@@ -361,7 +361,11 @@ Looking at compute we see that compute we make three random choices for each gat
 We therefore omit the random tapes for most procedures and proofs in this section, since they are static?
 When the random tapes are imporant for the security we will mentioned how.
 
-The reason for sampling random values at each iteration of the while loop instead of all at once is to be able to reason about the specific random choices made at this time in the computation. This is especially important to be able to relate two procedures running at the same iteration of the while loop...
+The reason for sampling random values at each iteration of the while loop
+instead of all at once is to be able to reason about the specific random choices
+made at this time in the computation. This is especially important to be able to
+relate two procedures running at the same iteration of the while loop...
+\todo{Show this in section about privacy}
 
 
 \subsection{Correctness}
@@ -762,6 +766,8 @@ The other cases are the same.
   Assuming perfect hiding from definition \ref{def:commitment:perfect-hiding} then ZKBoo satisfy Special Honest Verifier Zero-knowledge definition \ref{def:sigma:shvzk}
 \end{lemma}
 \begin{proof}
+  \todo{Would have to be expressed as an adversary game if we used original
+    definitions from commitment schemes}
   To prove shvzk we show that running the \texttt{real} and the \texttt{ideal}
   procedures with the same inputs and identical random choices produces
   indistinguishable output values. The proof the proceeded by casing on the
@@ -1022,7 +1028,7 @@ Moreover, they help us expose some of the more subtle details important for
 proving security of cryptographic protocols, like requiring certain procedures
 to be lossless since...
 
-SHVZK assumes perfect hiding... Should be able to prove it for comp hiding but
+
 definitions are annoying to work with.
 
 

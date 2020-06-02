@@ -160,29 +160,39 @@ A commitment schemes is a tuple of algorithms (Gen, Com, Ver), where:
 For a commitment schemes to be secure it is required to satisfy three
 properties: \textbf{Correctness}, \textbf{Binding}, and \textbf{Hiding}.
 
-\paragraph{Correctness}
+\begin{definition}[Informal correctness]
 A commitment scheme is said to be correct, if a commitment $(c, d)$ made by a
 honest party will always be accepted by the verification procedure of another
 party, i.e:
 $$
 Pr[Ver(vk, c, m, d) | (c, d) = Com(ck, m) \land (ck, vk) \leftarrow Gen()] = 1.
 $$
+\end{definition}
 
-\paragraph{Binding}
+\begin{definition}[Informal binding]
 The binding property states that a party committing to a message will not be
-able to successfully convince another party, that he has committed to another
-message, i.e. $(c, d) \leftarrow Com(ck, m)$, will not be able to find an alternative opening key $d'$
-and message $m'$ such that $(c, d') \leftarrow Com(ck, m')$.
+able to successfully convince another party, that he has committed to different
+from the original message, i.e. $(c, d) \leftarrow Com(ck, m)$, will not be able
+to find an alternative opening key $d'$ and message $m'$ such that
+$(c, d') \leftarrow Com(ck, m')$.
 
-\todo{write binding game}
+The scheme is said to have \textit{perfect binding} if it impossible to change the
+opening, \textit{statistical binding} if there is a negligible probability of changing
+the opening and \textit{computation binding} if producing a different opening is
+equivalent to a hard computation problem.
+\end{definition}
 
-\todo{Stat, perfect, comp variants}
-
-\todo{All games parametrised by security param. Not used in formal definition}
-
-\paragraph{Hiding}
+\begin{definition}[Informal hiding]
 The Hiding property states that a party given a commitment $c$, will not be able
-to extract the message $m$, which the commitment was based on.
+to guess the message $m$, which the commitment was based on.
+
+The scheme is said to have \textit{perfect hiding} if it is impossible to
+distinguish two commitment of different messages from each other,
+\textit{statistical hiding} if there is a negligible probability of
+distinguishing the commitments and \textit{computational hiding} if
+distinguishing the commitments is equivalent to a hard computational problem.
+\end{definition}
+
 
 \section{Multi-Part Computation (MPC)}
 \label{sec:background:mpc}
@@ -195,14 +205,20 @@ every party agrees on the same output $y$, such that $y = f(\textbf{x})$, but no
 
 This is the exact problem that MPC aims to solve.
 
-\begin{definition}[Correctness]
-\label{def:mpc:correctness}
-
+\begin{definition}[informal correctness]
+  \label{def:mpc:correctness}
+  A MPC protocol $\Phi_{f}$ computing a function $f$ is said to have perfect
+  correctness if $f(x) = \Phi_{f}(x)$ for all x.
 \end{definition}
 
 \begin{definition}[d-Privacy]
 \label{def:mpc:d-privacy}
+  A MPC protocol $Phi_{f}$ is said to have $d$-privacy if revealing $d$ of the
+  views does not revealing any information about the input.
 
+  More formally, the protocol has $d$-privacy if it is possible to define a
+  simulator $S_{A}$ producing $d$ views that are indistinguishable from the
+  views of the protocol.
 \end{definition}
 
 %%% Local Variables:

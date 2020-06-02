@@ -66,24 +66,8 @@ commitment schemes in larger protocols (Section \ref{sec:formal_zkboo}).
 \todo{Rewrite in sec \ref{sec:formal_zkboo} that it is needed to swap the order
   of verifying commitments}
 
-We then attain the following definitions of security:
+We define a commitment scheme C to be an implementation of the functions and procedures in listing \ref{lst:commitment-procedures}.
 
-\begin{definition}[Correctness]
-  \label{def:commitment:correctness}
-  A commitment scheme C is correct if the following procedures always succeeds.
-\end{definition}
-
-\begin{definition}[Hiding]
-  \label{def:commitment:hiding}
-  A commitment scheme C is ...
-  \todo{Explain how the adversary can express multiple levels of hiding.}
-\end{definition}
-
-\begin{definition}[Binding]
-  \label{def:commitment:binding}
-  A commitment scheme C is ...
-  \todo{Explain how the adversary can express multiple levels of binding.}
-\end{definition}
 
 \todo{Mention randomness distributions?}
 
@@ -111,6 +95,90 @@ to generate key pairs.
 Moreover, the security definitions remain the same but, again, with the key
 generation removed along with the references to the secret and public keys.
 
+\section{Security}
+\label{sec:commitment:sec}
+For both the key-based and key-less variant of the give the same definitions of security, which is based on the work of \citet{DBLP:journals/corr/MetereD17}.
+
+\begin{definition}[Correctness]
+  \label{def:commitment:correctness}
+  A commitment scheme C is correct if:
+  \[
+    \forall m. \Pr{ Correctness(C).main(m) = true } = 1.
+  \]
+
+  where Correctness(C) is defined as:
+
+\begin{lstlisting}
+module Correctness(C : Committer) = {
+  main(m : message) = {
+    (sk, pk) = C.key_gen(); (* Omitted in the key-less case *)
+    (c, d) = C.commit(sk, m);
+    valid = verify pk m c d;
+    return valid;
+  }
+}.
+\end{lstlisting}
+
+
+\end{definition}
+
+\begin{definition}[Hiding]
+  A Commitment scheme C can have to following degrees of hiding
+  \label{def:commitment:hiding}
+  \textit{perfect hiding:} $\forall Adv. \Pr{HidingGame(C,Adv).main() = true} = \frac{1}{2}$
+  \textit{computation hiding:} $\forall Adv. \Pr{HidingGame(C,Adv).main() = true} = \frac{1}{2} + \epsilon$
+
+  Where we define the adversary Adv and HidingGame as follows:
+\begin{lstlisting}
+module type HidingAdv = {
+  proc * get() : message * message
+  proc check(c : commitment) : bool
+}.
+
+module HidingGame(C : Committer, A : HidingAdv) = {
+  proc main() = {
+    (sk, pk) = C.key_gen();
+    (m, m') = A.get();
+    b <$ {0,1};
+    if (b) {
+      (c, r) = C.commit(sk, m);
+    } else {
+      (c, r) = C.commit(sk, m');
+    }
+    b' = A.check(c);
+    return b = b';
+  }
+}.
+\end{lstlisting}
+\end{definition}
+
+\begin{definition}[Binding]
+  \label{def:commitment:binding}
+  A commitment scheme C can have to following degrees of binding:
+  \textit{perfect binding:} $\forall Adv. \Pr{BindingGame(C, Adv).main() = true} = 0$
+  \textit{computational binding:} $\forall Adv. \Pr{BindingGame(C, Adv).main() = true} = \epsilon$
+
+  Where we define the adversary Adv and BindingGame as:
+\begin{lstlisting}
+module type BindingAdv = {
+  proc bind(sk : secret_key, pk : public_key) : commitment * message * message * randomness * randomness
+}.
+
+module BindingGame(C : Committer, B : BindingAdv) = {
+  proc main() = {
+    (sk, pk) = C.key_gen();
+    (c, m, m', r, r') = B.bind(sk, pk);
+    v =  verify pk m c r;
+    v' = verify pk m' c r';
+    return (v /\ v') /\ (m <> m');
+  }
+}.
+
+\end{lstlisting}
+\end{definition}
+
+In our definitions of hiding and binding we do not have a formalisation of the statistical variant, since it is still unclear how to express those in EC \todo{reference}
+
 \section{Alternative definitions of security}
 \label{sec:commitment:alt-sec}
 Based on the previously defining notions of security we also introduce a number
@@ -119,12 +187,48 @@ original definitions, whilst the others does not offer an easy reduction but
 intuitively capture the same aspects of security.
 
 \begin{lemma}[Alternative correctness]
-  A commitment scheme C is correct if given as input a valid key pairs
-  $(sk, pk)$ then the verifier with public key $pk$ will always accept
-  commitments made by the committer using secret key $sk$.
+  A commitment scheme C is correct if:
+
+  \begin{align*}
+    \forall m,sk,pk.& \\
+    &\text{validate\_key } sk \; pk \land \Pr{\texttt{key\_{fixed}}(m, sk, pk) = true} = 1 \\
+    & \implies \Pr{\texttt{Completeness(C).main(m)}} = 1.
+  \end{align*}
+
+  Where \texttt{key\_fixed} is given by the following procedure:
+
+\begin{lstlisting}
+proc key_fixed(m : message, sk : secret_key, pk : public_key)  = {
+  (c, d)   = C.commit(sk, m);
+  b        = verify pk m c d;
+  return b;
+}
+\end{lstlisting}
 \end{lemma}
 \begin{proof}
+  We start by introducing an intermediate game:
+\begin{lstlisting}
+proc intermediate(m : message) = {
+  (sk, pk) = C.key_gen();
+  b = key_fixed(m, sk, pk);
+  return b;
+}
+\end{lstlisting}
+  We then prove that \texttt{intermediate} is equivalent to
+  \texttt{Completeness(C).main} by inlining all procedures and observing that
+  both procedures are equal in structure.
 
+  We are then left with showing:
+  \begin{align*}
+    \forall m,sk,pk.& \\
+    &\text{validate\_key } sk \; pk \land \Pr{\texttt{key\_{fixed}}(m, sk, pk) = true} = 1 \\
+    & \implies \Pr{\texttt{intermediate}(m)} = 1.
+  \end{align*}
+
+  We then use the assumption that \texttt{key\_fixed} is correct to prove that
+  it returns true when called as a sub-procedure in \texttt{intermediate}. Last
+  we have to prove that $(sk, pk)$ are a valid key pair, but since they are
+  generated by \texttt{C.key\_gen} they must be valid.
 \end{proof}
 
 \begin{definition}[Perfect Hiding]
@@ -141,24 +245,42 @@ intuitively capture the same aspects of security.
 
 \begin{definition}[Alternative Binding]
   \label{def:commitment:alt-binding}
-  A commitment scheme C offers binding...
+  A commitment scheme C offers binding with probability $p$ if:
+  $\Pr{alt\_{binding}(c, m, m') = true} = p$
+
+  for procedure \texttt{binding} given by:
+\begin{lstlisting}[mathescape]
+proc alt_binding(c : commitment, m m' : message) = {
+  v1 = verify m c;
+  v2 = verify m' c;
+  return v1 /\ v2 /\ (m $\neq$ m');
+}
+\end{lstlisting}
+
+  The commitment schemes offers \textit{perfect binding} if $p = 0$
 \end{definition}
 
-The definition of hiding only works in the perfect case, but it is much easier
+The alternative definition of hiding only works in the perfect case, but it is much easier
 to work with within \easycrypt\  when this is the case. This is due to most
 proofs being stated is indistinguishability proofs, which are bothersome to
-convert to adversarial proofs.
+convert to adversarial proofs. \todo{rewrite this}
 
-The definition of binding allows us to ...
+The alternative definition of binding allows us to use the ambient logic to
+reason about the probability of breaking the binding property instead of the
+Hoare logics by the way of an adversary. The benefit of reasoning about
+statement in the ambient logic is that they are usually easier to reason about
+while offering better modularity since we can use ambient logic to
+reason about probabilities of different procedures.
+Additionally, computational binding can be shown by proving equality between two
+procedures rather than constructing an adversary.
 
 
 \section{Concrete instantiation: Pedersen Commitment}
 \label{sec:pedersen}
 
 To show the workability of the proposed formalisation we show that it can be
-used to instantiate the key-based Pedersen commitment scheme. Pedersens
+used replicate the results of \citet{DBLP:journals/corr/MetereD17}. Pedersens
 commitment scheme is based on the discrete logarithm assumption
-
 
 The Pedersen commitment scheme is a protocol run between a committer C and a
 receiver R. Both parties have before running the protocol agreed on a group
@@ -208,7 +330,7 @@ module Pedersen : Committer = {
 
   proc commit(sk : secret_key, m : message) = {
     r <$\$$ dr;
-    $c = g^r * (sk^m)$;
+    $c = g^r \cdot (sk^m)$;
 
     return (c, r);
   }
@@ -222,16 +344,15 @@ scheme regardless of who generates the keys.
 Here we use the Cyclic Group theory from EC to generate the agreed upon group
 and model uniform distributions of messages and randomness by...
 
-Proofs are handled by the ambient logics implementation of group operations.
-
+\paragraph{Security}
 To prove security of the protocol we should that the previous definitions of
 correctness, hiding and binding can be proven true.
 
 \begin{lemma}[Pedersen correctness]
-  We must prove that the game outputs true.
+  $\forall m.\Pr{\texttt{Correctness(Pedersen).main}(m) = true} = 1$
 \end{lemma}
 \begin{proof}
-trivial.
+  correctness follows directly by running the procedure and observing the output.
 \end{proof}
 
 \begin{lemma}[Pedersen hiding]
@@ -239,20 +360,91 @@ trivial.
   \ref{def:commitment:hiding}.
 \end{lemma}
 \begin{proof}
-  Program is indistinguishable from game committing to random choice of message.
-  No adversary can guess a random bit better than $\frac{1}{2}$.
+  To prove hiding we start by introducing an intermediate hiding game where we
+  commit to a random message instead of one of the messages chosen by the adversary:
+\begin{lstlisting}[mathescape]
+module HidingIdeal(A : HidingAdv) = {
+  proc main() = {
+    (sk, pk) = Pedersen.key_gen();
+    (m, m') = A.get();
+    b <$ DBool.dbool;
+    r <$\$$ dr;
+    c = $g^r$;
+    b' = A.check(c);
+    return b = b';
+  }
+}.
+\end{lstlisting}
+  We then split the proof into two parts:
+
+  \noindent\textbf{1) }
+  $\forall Adv. \Pr{\texttt{HidingGame(Pedersen, Adv)}.main = true} = \Pr{\texttt{HidingIdeal(Adv)}.main = true}$
+  Where we prove that for any choice of $b$ the two procedures and
+  indistinguishable. We start by prove indistinguishability with $b = 0$.
+  To prove this we have to prove that $g^{r} \sim g^{r'} \cdot \text{sk}^{m}$
+  Here we can use \easycrypt's coupling functionality to prove that
+  $r \sim r' \cdot \text{sk}^{m}$ since both $r, r'$ and sk$^{m}$ are all group
+  elements and the distribution of $r$ is full and uniform.
+
+  The proof of $b = 1$ is equivalent.
+
+  \noindent \textbf{2)}
+  $\forall Adv. \Pr{\texttt{HidingIdeal(Adv)}.main = true} = \frac{1}{2}$
+
+  Since $c = g^{r}$ is completely random the adversary has no better strategy
+  than to guess at random.
+
+
+  By the facts \textbf{1)} and \textbf{2)} we can conclude that Pedersen
+  commitment scheme has perfect hiding.
 \end{proof}
 
 \begin{lemma}[Pedersen Binding]
-  We show computation binding under definition \ref{def:commitment:binding} by
-  showing that an adversary winning the binding game can be used to break the
-  discrete logarithm.
+  We show computation binding under definition \ref{def:commitment:binding}
 \end{lemma}
 \begin{proof}
-  Define DLog game.
-\end{proof}
+  We prove computation binding of Pedersen commitment by showing that an
+  adversary breaking binding can be used to construct a adversary solving the discrete logarithm.
 
-In this section we have seen ...
+\begin{lstlisting}
+module DLogPedersen(B : BindingAdv) : Adversary = {
+  proc guess(h : group) = {
+    (c, m, m', r, r') = B.bind(h, h);
+    v = verify h m c r;
+    v' = verify h m' c r';
+    if ((v /\ v') /\ (m <> m')) {
+      w = Some( (r - r') * inv(m' - m) );
+    } else {
+      w = None;
+    }
+    return w;
+  }
+}.
+\end{lstlisting}
+
+  We then prove:
+  \begin{align*}
+    \forall Adv.& \\
+    &\Pr{\texttt{BindingGame(Pedersen, Adv)}.main() = true} \\
+    = &\Pr{\texttt{DLogGame(Pedersen, Adv)}.main() = true}.
+  \end{align*}
+
+  Fist we show that if \texttt{DLogPedersen} if given one commitment with two
+  openings then the discrete logarithm can be solved. This is given by:
+  \begin{align}
+    &m \neq m' \label{eq:pedersen:dif}\\
+    &\implies c = g^{r} \cdot g^{a^{m}} \land c = g^{r'} \cdot g^{a^{m'}} \label{eq:pedersen:com}\\
+    &\implies a = (r - r') \cdot (m' - m)^{-1}
+  \end{align}
+  Which is easily proven by \easycrypt's automation tools.
+
+  Next we show that the two procedures are equivalent. Which follows by inlining
+  all procedures and observing the output.
+  Procedure \texttt{DLogPedersen.main} can only output true if equations
+  \ref{eq:pedersen:dif} and \ref{eq:pedersen:com} holds, which is what procedure
+  \texttt{BindingGame(Pedersen, Adv).main} needs to satisfy to output true. We
+  can therefore conclude that two procedures imply each other.
+\end{proof}
 
 %%% Local Variables:
 %%% mode: latex
