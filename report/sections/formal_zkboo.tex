@@ -355,7 +355,7 @@ The output of the decomposition can then be defined as summing the last share fr
   }
 \end{lstlisting}
 
-\paragraph{Handing randomness}
+\paragraph{Handling randomness}
 \label{subsec:decomp:randomness}
 Looking at compute we see that compute we make three random choices for each gate and then save those choices to some random tapes. These tapes are then returned. They are used to keep track of the random choices made thoughout the protocol, such that views can be verified. For most proof the specific values contained within the random tapes are not imporant, since the random values are only there to cancel eachother out whilst making the shares look randomly distributed.
 We therefore omit the random tapes for most procedures and proofs in this section, since they are static?
@@ -658,8 +658,9 @@ This function allows us to computationally validate the property from equation
 to reason about every computational step of the function before we can verify
 the property holds. We would therefore want our function to use our function in
 the implementation of ZKBoo, but use the predicate whenever we need to reason
-about the security of the protocol. To achieve this we introduce the following
-lemma, which allows us to use the predicate over the function when applicable:
+about the security of the protocol.
+To achieve this use introduce the following lemma by \citet{Yao},
+which allows us to replace the result of the function with the predicate:
 \begin{lemma}[valid\_view predicate/op equivalence]
   $\forall$ p, w1, w2, c, k1, k2:
   valid\_view p w1 w2 c k1 k2 $\iff$ valid\_view\_op p w1 w2 c k1 k2

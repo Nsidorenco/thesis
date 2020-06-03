@@ -81,7 +81,7 @@ We then model security as a series of games:
 \begin{definition}[Completeness]
 \label{def:sigma:completeness}
   We say that a $\Sigma$-protocol, S, is complete, if the probabilistic procedure in
-  \ref{lst:sigma_completeness} outputs 1 with probability 1, i.e.
+  \ref{lst:sigma_completeness} outputs 1 with probability 1, \ie
   \begin{equation}
     \label{eq:sigma_completeness}
     \forall h \; w, \text{R } h \; w \implies Pr[\text{Completeness(S).main}(h,w) = true] = 1.
@@ -114,6 +114,7 @@ but to show that this alternative definition is still captures what is means for
 a protocol to be complete we have the following lemma:
 
 \begin{lemma}
+  \label{lem:sigma:alt:completeness}
 Given that definition \ref{def:sigma:alt_completeness} then it must hold that
 definition \ref{def:sigma:completeness} holds, given the same public input and witness.
 
@@ -345,22 +346,41 @@ regards to the module \texttt{ANDProtocol}
   since the challenge $e$ is given by a Verifier running the AND construction.
   And the sub-protocols are, therefore, not allowed to sample their own
   challenges and need to use the challenge from the AND construction.
+
+  Then by lemma \ref{lem:sigma:alt:completeness} we get that
+  $\Pr{\texttt{Completeness(AND($P_{1}, P_{2}$)}.main} = 1$
 \end{proof}
 
 \todo{Write protocol as diagram?}
 
 \begin{lemma}[AND special soundness]
-  The AND construction satisfy definition \ref{def:sigma:soundness}
+  Given secure $\Sigma$-Protocols P1 and P2
+  the AND construction AND(P1, P2) satisfy definition \ref{def:sigma:soundness}
 \end{lemma}
 \begin{proof}
-  trivial by construction
+  Since a transcript of AND(P1, P2) is the transcripts of running P1 and P2
+  combined simulating a transcript for AND(P1, P2) is equivalent to simulating
+  transcripts for P1 and P2 and combining them. By SHVZK of P1 and P2 this will
+  always succeed.
 \end{proof}
 
 \begin{lemma}[AND SHVZK]
-  Given $\Sigma$-Protocols $P_{1}$ and $P_{2}$ that satisfy SHVZK then AND is SHVZK
+  Given secure $\Sigma$-Protocols $P_{1}$ and $P_{2}$ then AND(P1, P2) satisfy
+  definition \ref{def:sigma:shvzk}.
 \end{lemma}
 \begin{proof}
-  Construction
+  We start by showing:
+  \begin{align}
+    \label{eq:sigma:or:verify}
+    &verify((h1, h2), (a1, a2), s, (e1, z1, e2, z2) \iff  \\
+    &P1.verify(h1, a1, e1, z1) \land P2.verify(h2, a2, e2, z2)
+  \end{align}
+
+  Since the relation
+  $R \; (h1, h2) \; (w1, w2) = R1 \; h1 \; w1 /land R2 \; h2 \; w2$ we need to
+  produce valid witnesses for the protocol P1 and P2. Since both protocols have
+  special soundness we can use equation \ref{eq:sigma:or:verify} to apply the
+  special soundness property of both P1 and P2, which completes the proof.
 \end{proof}
 
 \subsection{OR}
@@ -451,7 +471,7 @@ regards to the module \texttt{ORProtocol}
 
 \begin{lemma}[OR Completeness]
   Assume $\Sigma$-Protocols $P_{1}$ and $P_{2}$ are complete and shvzk then
-  Module $\texttt{ORProtocol}(P_1, P_2)$ satisfy completeness definition \ref{def:sigma:completeness}
+  $\texttt{ORProtocol}(P_1, P_2)$ satisfy completeness definition \ref{def:sigma:completeness}
 \end{lemma}
 \begin{proof}
   To prove completeness we branch depending on which relation holds. If R1 $h1$
@@ -486,7 +506,9 @@ proc simulator(h : statement, s : challenge) : message * response = {
 \end{lemma}
 \begin{proof}
   We again split the proof based on which relation holds.
-  \textbf{case (R1 h1 w)} for this case we have to show the following.
+
+  \noindent\textbf{case (R1 h1 w): } for this case we have to show the following.
+
   \noindent\textbf{1)} that $e1$ and $e2$ are indistinguishable. This follows
   trivially since we assume both procedures make the same random choices and
   since the order in which the challenges are sampled they must be equal.
@@ -501,22 +523,20 @@ proc simulator(h : statement, s : challenge) : message * response = {
   case, since if the challenges are indistinguishable then the sub-procedures in
   both procedures are effectively called on the same inputs.
 
-  \noindent\textbf{case (R2 h2 w)} This proof follows the same steps as the
+  \noindent\textbf{case (R2 h2 w): } This proof follows the same steps as the
   other case with the only exception being step \textbf{1)}. In this step, since
   the challenges are sampled in a different order, we cannot assume them to be
   equal since they are sampled with different randomness. Instead we use
   \easycrypt's coupling functionality to prove that
   $e_{1}^{ideal} \sim e_{1}^{real} \oplus s$ and
-  $e_{1}^{real} \sim e_{1}^{ideal} \oplus s$ which allows us to assume
-  $e_{1}^{ideal} = e_{2}^{real} \oplus s$ and
-  $e_{2}^{real} = e_{1}^{ideal} \oplus s$ for the rest of the proof.
+  $e_{1}^{real} \sim e_{1}^{ideal} \oplus s$
   The indistinguishability follows trivially since the challenge distribution is
   assumed full and uniform.
 
   From this we are left with showing:
   \begin{align*}
     e_{1}^{real} &= s \oplus e_{2}^{real} && \text{eq. \ref{axiom:xorK} and \ref{axiom:xorA}} \\
-                &= s \oplus e_{1}^{ideal} \oplus s && \text{Coupling} \\
+                &\sim s \oplus e_{1}^{ideal} \oplus s && \text{Coupling} \\
                 &= e_{1}^{ideal} && \text{eq. \ref{axiom:xorK} and \ref{axiom:xorA}}
   \end{align*}
 
@@ -524,18 +544,19 @@ proc simulator(h : statement, s : challenge) : message * response = {
 \end{proof}
 
 \begin{lemma}[OR special soundness]
-  The OR construction satisfy definition \ref{def:sigma:soundness} with the
+  Given secure $\Sigma$-Protocols P1 P2 then
+  The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness} with the
   witness extractor for the OR construction defined as:
 \begin{lstlisting}[mathescape]
 proc witness_extractor(h, a, s : challenge list, z : response list) = {
   (h1, h2) = h;
-  (m1, m2) = m;
+  (a1, a2) = m;
   (e1, z1, e2, z2) = z[0];
   (e1', z1', e2', z2') = z[1];
   if (e1 $\neq$ e1') {
-    w = P1.witness_extractor(h1, m1, [e1;e1'], [z1;z1']);
+    w = P1.witness_extractor(h1, a1, [e1;e1'], [z1;z1']);
   } else {
-    w = P2.witness_extractor(h2, m2, [e2;e2'], [z2;z2']);
+    w = P2.witness_extractor(h2, a2, [e2;e2'], [z2;z2']);
   }
   return w;
 }
@@ -543,7 +564,17 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
 
 \end{lemma}
 \begin{proof}
-  Construction
+  We split the proof into two parts:
+  \begin{itemize}
+    \item $(e1 \neq e1')$: Here we must prove that \texttt{P1.witness\_extractor} produce a valid witness for R.
+
+      Here we use equation \ref{eq:sigma:or:verify} from the special soundness
+      proof of AND which lets us apply the
+      special soundness property of P1, which gives us that
+      $R1 \; h1 \; w \implies R1 \; h1 \; w \lor R2 \; h2 \; w = R \; (h1, h2) \; w$
+    \item $\neg(e1 \neq e1')$ Here we prove the same, but with the special
+      soundness property of P2 instead.
+  \end{itemize}
 \end{proof}
 
 \section{Fiat-Shamir Transformation}
@@ -565,20 +596,91 @@ a good challenge.
 
 \subsection{Oracles}
 \label{subsec:sigma:fiat:oracle}
+To formalise this transformation we first need a clear description of what a
+random oracle is.
 
+To capture the functionality of a random oracle we define the following abstract
+module:
+\begin{lstlisting}
+module type Oracle = {
+  proc * init() : unit
+  proc sample (m : message) : challenge
+}.
+\end{lstlisting}
 
-To formalise this transformation we first formalise what we expect a random
-oracle to do...
+In essence, an oracle should be able to initialise its state, which used to
+determine the random choices made by the oracle. Moreover, it exposes the
+procedure $\texttt{sample}$ which maps messages to challenges.
+
+In the case of a random oracle we require that oracle responds with the same
+challenge if sample is queried with the same message multiple times. This is
+implemented by the following module:
+
+\begin{lstlisting}[mathescape]
+module RealOracle : Oracle = {
+  global variable : h = (message $\mapsto$ challenge)
+
+  proc init() = {
+    h = empty map;
+  }
+
+  proc sample (m : message) : challenge = {
+    if ($m \not\in \textbf{Domain}(h)$) {
+      h[m] $<\$$ dchallenge; (* Sample random value in entry m *)
+      }
+    return h[m];
+    }
+  }.
+\end{lstlisting}
 
 \subsection{Non-interactive $\Sigma$-Protocol}
 \label{subsec:sigma:fiat:protocol}
+We can define the non-interactive version of the protocol as the following procedure:
+\begin{lstlisting}
+module FiatShamir(S : SProtocol, O : Oracle) = {
+  proc main(h : statement, w : witness) : transcript = {
+    O.init();
+    a = S.init(h, w);
+    e = O.sample(a);
+    z = S.response(h, w, a, e);
 
-We can define the non-interactive version of the protocol as:
+    return (a, e, z);
+  }
+}.
+\end{lstlisting}
 
-\subsection{Security}
-\label{subsec:sigma:fiat:security}
+Here, a non-interactive version of a $\Sigma$-Protocol is a procedure producing
+a transcript by first initialising the oracle and then sampling a challenge from it.
 
-And we can then prove completeness ans zero-knowledge of the protocol by...
+\paragraph{Security}
+To prove security of the Fiat-Shamir transformation we need to use the security
+definition of a zero-knowledge protocol.
+
+\begin{lemma}
+  If the underlying $\Sigma$-Protocol S is secure and the random Oracle O is
+  lossless then the Fiat-Shamir transformation is correct.
+\end{lemma}
+\begin{proof}
+  By comparing the completeness from the underling $\Sigma$-protocol to the
+  transformation we see that the only different is that underlying protocol
+  waits for the verifier to sample a challenge for him. Since a honest verifier
+  will never fail to send the challenge (\ie he is lossless) and it will always
+  be uniformly chosen the two procedures are equivalent.
+\end{proof}
+
+\begin{lemma}
+  If the underlying $\Sigma$-Protocol S is secure and the random Oracle O is
+  lossless then the Fiat-Shamir transformation is zero-knowledge
+\end{lemma}
+\begin{proof}
+  To prove zero-knowledge in the random oracle model we must define a simulator
+  producing indistinguishable output from the real procedure. Moreover, the
+  simulator is allowed to choose the choices made by the oracle for the real
+  protocol.
+
+  From the correctness proof we know that the random oracle acts as a honest
+  verifier. Therefore the SHVZK simulator for S proves zero-knowledge for the transformation.
+\end{proof}
 
 Soundness, however, cannot be proven by the definition of special soundness from
 $\Sigma$-Protocols, since the Prover has gained more possibilities of cheating
@@ -592,18 +694,18 @@ To show the workability of the proposed formalisation we show that it can be
 used to instantiate Schnorr's protocol.
 The Schnorr's protocol is run between a Prover C and a
 Verifier R. Both parties have before running the protocol agreed on a group
-$(\mathcal{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
+$(\mathbb{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
 generator for the group.
 Schnorr's protocol is a $\Sigma$-Protocol for proving knowledge of a discrete
-logarithm. Formally it is a $\Sigma$-Protocol for the relation R h w $= h = g^{w}$
+logarithm. Formally it is a $\Sigma$-Protocol for the relation R h w $= (h = g^{w})$
 
 When the P wants to prove knowledge of the w to V he starts by
 constructing a message $a = g^{r}$ for some random value $r$. The Verifier will
 the generate a random challenge, $e$, which is a bit-string of some arbitrary length
 that defines the security of the protocol.
-Based on this challenge P then constructs a response $z = r + e * w$ and sends
+Based on this challenge P then constructs a response $z = r + e \cdot w$ and sends
 it to V.
-To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a * h^{e}$.
+To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a \cdot h^{e}$.
 
 From this general description it is clear that this protocol fits within out
 formalisation of $\Sigma$-Protocol procedures. We then define the appropriate
@@ -697,11 +799,11 @@ proc witness_extractor(h : statement, m : message, e : challenge list, z : respo
 
   \noindent \textbf{2)} Running all procedures of the soundness game we are left
   with showing:
-  \begin{align*}
-    \text{R h } ((z - z') / (e - e')) &= (h = g ^{((z - z') / (e - e'))}) \\
-                                      &= (h = g ^{((z - z') / (e - e'))}) \\
-  \end{align*}
-  \todo{Rest like pen and paper proof but with cyclic group theory operations}
+  \begin{equation*}
+    \text{R h } ((z - z') / (e - e'))
+  \end{equation*}
+  Which follows by unfolding the definition of $z$ and $z'$ and using the
+  automation tools of \easycrypt\  to solve algebraic operations.
 \end{proof}
 
 \begin{lemma}[Schnorr SHVZK]
@@ -759,10 +861,6 @@ proc ideal(h, e) = {
 \end{proof}
 \todo{Define generalised notation for comparing views in background chapter}
 \todo{The proofs have been relatively easy thanks to the strong support for algebraic groups in EC}
-
-
-\paragraph{Conclusion}
-In this section we have seen ...
 
 %%% Local Variables:
 %%% mode: latex
