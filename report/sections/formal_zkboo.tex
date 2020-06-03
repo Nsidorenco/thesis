@@ -1,5 +1,6 @@
 \chapter{Formalising ZKBoo}
 \label{ch:formal_zkboo}
+\todo{Mention first to formalise this?}
 In this chapter we show how to use our previous formalisations of
 $\Sigma$-Protocols and commitment schemes to formalise the ZKBoo protocol
 introduced in the previous chapter.
@@ -853,6 +854,7 @@ proc ideal(h, e) = {
   $p$, then ZKBoo satisfy the 3-Special Soundness property with probability $p$.
 \end{lemma}
 \begin{proof}
+  \todo{If we had used to original definition of hiding for Com then this lemma would have to be restated}
   The proof has three distinct steps.
   First, we show that the inputs z1, z2, z3 to \texttt{witness\_extractor}
   procedure will be valid and consistent openings revealing the views

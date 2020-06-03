@@ -35,16 +35,59 @@ notable work by \citeauthor{zkcrypt} and PINOCCIO.
 
 \section{Discussion}
 \label{sec:discussion}
+For all of the work laid out in this thesis we have used the \easycrypt\ proof
+assistant to formally verify all the proofs shown. By using \easycrypt\ we have
+had to formulate our proofs ...
+
+\easycrypt\ tries to capture the models in which cryptographers create and prove
+protocols. For the most part we feel like \easycrypt has managed to capture
+these models quite well both in its \textit{pWhile} language for implementing
+protocols and its different logics for proving properties about programs.
+
+The benefit of using an imperative language like \textit{pWhile} over a functional
+language used by cryptographic proof assistants like Isabelle/CryptHOL is that most
+cryptographic protocols are described in a pseudo-code mimicking imperative
+languages. This makes it relatively easy to convert protocols described in
+papers into \easycrypt\ implementations. This is clear from the code examples
+provided in this thesis, which closely resemble the actual \easycrypt\
+implementations whilst being relatively similar to the protocol descriptions
+seen in cryptographic papers.
+
+Ultimately, the tool offers the possibility of writing programs both in a
+functional style and in an imperative style. It is, however, only programs
+written in the imperative style that is allowed to make random choices.
+
+We feel...
+
+Our main problems with using this tool has been the schism between computation
+and perfect indistinguishability and the tools steep learning curve.
+
+In particular \easycrypt\ offers its rPHL for proving procedures to be perfect
+indistinguishable. If, however, computational indistinguishability is need then
+the rPHL logic cannot directly be used, and we instead have to deal with
+adversaries comparing procedures. This is a completely sound method for dealing
+with indistinguishability of procedures. In \easycrypt\ , however, the technique
+of using an adversary to compare procedures then none of the tactics for dealing
+with procedures provided by \easycrypt\ can be used, unless all proofs are
+converted into adversarial games. \todo{rewrite}
+
+The steep leaning curve is primarily caused by the lack of documentation of new
+tactics. At the time of writing this thesis the last update to the \easycrypt\
+reference manual \cite{ec_refman} was in 2018. Moreover, the deduction rules by
+the different logics that \easycrypt\ provides are not documented anywhere, but
+instead have to be found in the papers describing \textbf{CertiCrypt} which is
+the Coq-based proof assistant antecedent to \easycrypt.
 
 \todo{How has EC been to work with}
 \todo{What is the future for cryptographers using EC}
+% \todo{Documentation is lacking}
 \todo{Possible code extraction?}
-\todo{Schism between perfect and computation distinguishably}
+% \todo{Schism between perfect and computation distinguishably}
 
-\todo{Adversary based games are not always ideal}
-\todo{Not possible to swap order of verify in commitment if procedure}
+% \todo{Adversary based games are not always ideal}
+% \todo{Not possible to swap order of verify in commitment if procedure}
 
-\todo{Functional vs imperative language for proof assistant?}
+% \todo{Functional vs imperative language for proof assistant?}
 \todo{functions in EC are bound to theories not modules}
 
 \section{Future work}

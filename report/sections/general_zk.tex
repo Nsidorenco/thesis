@@ -46,7 +46,7 @@ The principle idea of this protocol is based on a technique called ``MPC in the
 head''. Recall from section \ref{sec:background:mpc}, that
 Multipart Computations allows us to securely compute any given function taking
 $n$ inputs to an output $y$.
-We then have by definition \ref{def:mpc:d-privacy} that as long as less than
+We then have by definition \ref{def:mpc:d-privacy} that as long as only
 $d \leq n$ views are available to the adversary, then the inputs to the function
 are private.
 
@@ -64,7 +64,7 @@ witness, then we can conclude that the witness is the pre-image of the public in
 
 \begin{lemma}
 \label{lemma:zkboo_privacy}
-By d-privacy (definition \ref{def:mpc:d-privacy}) if less than $d$ views are
+By d-privacy (definition \ref{def:mpc:d-privacy}) if $d \leq n$ views are
 revealed, then the witness is not revealed.
 \end{lemma}
 
@@ -73,7 +73,7 @@ Which ultimately gives us:
 \begin{lemma}
 \label{lemma:zkboo_secure}
 From lemma \ref{lemma:zkboo_correctness} and lemma \ref{lemma:zkboo_privacy} it
-follows that MPC can be used to create an zero-knowledge protocol for the
+follows that MPC can be used to create an $\Sigma$-Protocol for the
 pre-image of a group homomorphism.
 \end{lemma}
 
@@ -220,10 +220,48 @@ view of party $P_{i}$.
 
 \todo{ZKBoo omits implementation detail - what is the output wire of the gate}
 
+\todo{Replace $\phi$ with f?}
 \subsection{ZKBoo}
 \label{subsec:general:zkboo}
+Based on the (2,3)-Decomposition we are now ready to describe the
+$\Sigma$-Protocol for the relation R x y = $f(x) = y$.
 
+The protocol proceeds as follows:
+\begin{itemize}
+  \item The Prover run obtains the circuit representation $C_{f}$ of f and uses
+    $\decomp$ to produce three views $w_{1}, w_{2},$ and $w_{3}$.
+    The Prover then commits to all random choices and the views and sends the
+    output shares $y_{1}, y_{2}, y_{3}$ of the decomposition and the commitments to the Verifier
+  \item The verifier pick a number $e \in \{1,2,3\}$
+  \item The Prover sends views $w_{e}, w_{e+1}$ to the Verifier
+  \item The Verifier checks
+    \begin{itemize}
+      \item The commitments corresponds to the views
+      \item The view $w_{e}$ has been constructed by $\decomp$
+      \item Rec$(y_{1}, y_{2}, y_{3}) = y$
+    \end{itemize}
+\end{itemize}
 
+From this protocol we can see that if $\decomp$ is correct and we get access to
+all three views then we would be able to extract the witness of the relation,
+since the output of decomposition is equivalent to the result of the function it decomposes.
+By only revealing 2 of the three views we are ensured by the 2-privacy property
+of $\decomp$ that the protocol is zero-knowledge. This
+property is stronger than the one given by $\Sigma$-protocols, which only offers
+zero-knowledge if the verifier is honest. The problem, however, is that the
+Prover gives the Verifier access to the commitment of the last view, so if the
+view can be determined based on the commitment then the zero-knowledge property
+does not hold.
+
+Lastly, if the Prover is to cheat the Verifier he must produce three views where
+the output is $y$. The only way for the Prover to do this is to change some of
+the shares in one of the views to coerce the output. By doing so one of the
+views will deviate from the procedures of $\decomp$, which the prove can easily
+check if the pick the correct challenge.
+
+To prove that the above claims holds and that the ZKBoo protocol is secure we will
+in the following chapter use the work laid out in this thesis to develop a
+formalisation of the ZKBoo protocol that captures the aforementioned security aspects.
 
 %%% Local Variables:
 %%% mode: latex

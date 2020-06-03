@@ -1,5 +1,6 @@
 \chapter{Formalising $\Sigma$-Protocols}
 \label{ch:formal_sigma}
+\todo{Aim to port results from Isabelle to EC}
 This section will aim to formalise $\Sigma$-protocols according to the
 definitions set out in section \ref{sec:background:sigma_protocols}, with a
 sufficiently general set-up to allows easy instantiation of arbitrary concrete
@@ -84,7 +85,7 @@ We then model security as a series of games:
   \ref{lst:sigma_completeness} outputs 1 with probability 1, \ie
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall h \; w, \text{R } h \; w \implies Pr[\text{Completeness(S).main}(h,w) = true] = 1.
+    \forall h \; w, \text{R } h \; w \implies \Pr{ \text{Completeness(S).main}(h,w) = true } = 1.
   \end{equation}
 \end{definition}
 
@@ -102,7 +103,7 @@ problem we introduce a alternative definition of completeness:
   We say that a $\Sigma$-protocol, S, is complete if:
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall h \; w \; e, \text{R } h \; w \implies Pr[\text{Completeness(S).special}(h,w,e) = true] = 1.
+    \forall h \; w \; e, \text{R } h \; w \implies \Pr{\text{Completeness(S).special}(h,w,e) = true} = 1.
   \end{equation}
   Where the procedure ``Completeness(S).special'' is defined as
   \lstinputlisting[linerange={40-48}]{../code/SigmaProtocols.eca}
