@@ -92,10 +92,11 @@ the Coq-based proof assistant antecedent to \easycrypt.
 
 \section{Future work}
 \label{sec:future_work}
-In this thesis has created a workable formalisation, as show by the formalisation of
-ZKBoo. Various improvement has then been made to the ZKBoo protocol to mainly
-reduce to proof size but also to provide zero-knowledge in a post-quantum
-context \cite{zkb++}.
+In this thesis we has created a formalisation and $\Sigma$-Protocols and
+commitment schemes that is applicable to larger cryptographic protocols, as show
+by our formalisation of ZKBoo. Various improvement has then been made to the
+ZKBoo protocol to mainly reduce to proof size but also to provide zero-knowledge
+in a post-quantum context \cite{zkb++}.
 
 With our formalisation we have intentionally focused on the ZKBoo protocol in
 isolation but in real applications it would be part of a larger tool chain.
@@ -117,7 +118,29 @@ $\Sigma$-Protocol which we have explored in this thesis.
 \section{Conclusion}
 \label{sec:conclusion}
 
-\todo{conclude on the problem statement from the introduction}
+In this thesis we have successfully managed to develop a rich formalisation of
+$\Sigma$-Protocols and commitment schemes, whilst reproducing some of the key results of
+formalisation done in other proof assistant \cite{cryptoeprint:2019:1185,certicrypt_sigma}.
+From this formalisation we have managed to take MPC-based zero-knowledge
+compiler for general relations and managed to prove it to be secure in a formal
+setting by using our formalisations of both $\Sigma$-Protocols and commitments
+schemes. In doing so we showed how important details for achieving security is
+often glossed over in cryptographic literature...
+
+The main contributions of this work has been recreating key results form other
+proof assistants and showing the workability of \easycrypt, whilst also showing
+how our formalisation can be used to fuel future work by showing how it is
+possible to prove security of a more complex cryptographic protocol.
+Moreover, we have gained key insights into how \easycrypt works and how to
+develop workable formalisations
+
+Particular we have seen in section \ref{subsec:zkboo:sec} how important small
+assumption are for security of implementations of cryptographic protocols. If
+one procedures is allowed to observe the state of another running on the system
+all proofs in the aforementioned section would not hold. These assumption are
+often left out when discussing cryptographic protocol design, but are important
+when reasoning about the security of the protocols when implemented in a
+programming language.
 
 %%% Local Variables:
 %%% mode: latex

@@ -9,6 +9,10 @@ formalisations and proofs of security.
 %
 
 \paragraph{Notations}
+\todo{List indexes}
+\todo{cons}
+\todo{cat}
+\todo{Maps}
 
 \section{Zero-knowlege}
 \label{sec:background:zero-knowledge}
@@ -25,7 +29,7 @@ $(h,w)$ whilst only revealing $h$. At the end of the protocol the verifier will
 then either output \textbf{accept}/\textbf{reject} based on whether P convinced
 him or not.
 We then require that the verifier following the protocol always output
-\textbf{accept} if we P knew $(h,w)$ and followed the protocol. This is known as \textit{completeness}.
+\textbf{accept} if we P knew $(h,w)$ and followed the protocol. This is known as \textit{correctness}.
 Moreover, we requires that that a cheating adversary who does not know $w$ can
 only make the verifier output \textbf{accept} with some probability $\epsilon$.
 

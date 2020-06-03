@@ -90,10 +90,10 @@ the procedures. A procedure without an implementation is called abstract, while
 a implemented one (The ones provided by modules) are called concrete.
 
 An important distinction between abstract and non-abstract modules is that,
-while non-abstract modules define a global state, in the sense of global
-variables, for the procedures to work within, the abstract counter-part does
-not. This has two important implications, first it means that defining abstract
-modules does not affect the global variables/state of non-abstract modules.
+while non-abstract modules define a global state for the procedures to work
+within, the abstract counter-part does not. This has two important implications,
+first it means that defining abstract modules does not affect the global
+variables/state of non-abstract modules.
 \begin{draft}
 Moreover, it is also not possible to prove properties of abstract modules, since
 there is no context to prove properties within.
@@ -112,96 +112,121 @@ makes during execution, he will not be able to break the security of the procedu
 
 \section{Probabilistic Hoare Logic}
 \label{sec:pHL}
-To formally prove security of a cryptographic protocol we commonly do we in the
-way of so-called game-based proofs, we define a game against a malicious
-adversary, and say that the protocol is secure, if the adversary cannot win said
-game. An common example of this is IND-CPA security, where an probabilistic
-polynomial time adversary is given access to an PKE-oracle and is allowed to
-send two messages to the oracle, namely $m_{0}, m_{1}$. The oracle then chooses
-a random bit, $b$, and sends the encryption of $m_{b}$ back to the adversary.
-Then, if the adversary can guess which of the two messages where encrypted we
-wins.
-To reason about such within \easycrypt we first describe the game within a
-module:
+\todo{programs are distribution transformers}
+To formally prove security of a cryptographic protocol we commonly have to argue
+that some procedure perform random choices will terminate with a certain event
+with some probability, regardless of the random choices made during execution.
 
-\begin{lstlisting}[float,label=lst:IND_CPA,caption=nextHopInfo: IND-CPA Game]
-  module IND-CPA(A : Adversary) = {
-    proc main() : bool = {
-      var m0, m1, b, b', sk, pk;
+To this end pHL logic, which helps us express precisely this.
+A pHL statement in \easycrypt\ is commonly seen in the following form:
+\[
+  phoare[P :\; \Psi \implies \Phi] = p
+\]
 
-      (sk, pk) = key_gen();
+Which informally corresponds to: If the procedure is executed with any
+memory/state which satisfy the precondition $\Psi$ then the result execution P
+will satisfy $P$ with probability $p$.
 
-      (m0, m1) = A.choose(pk);
+Alternatively this can be stated as:
+\[
+  \Psi \implies \Pr{P : \Phi} = p
+\]
 
-      b <\$ dbool;
+To understand how the pHL logic works we adopt the notions by \citet{ec_intro},
+which states that procedures are ``distribution transformers''.
+This means...
 
-      b' = A.guess(enc(sk, m_b));
-
-      return b == b'
-    }
-  }
-\end{lstlisting}
-
-\todo{Problems with game: A should know what PKE schemes is used. A bit too
-  psuedo-code-ish}
-
-Now, to prove security we would like to show that the adversary cannot win this
-game with probability better than randomly guessing values of $b'$, i.e. $\frac{1}{2}$.
-
-This formulated in one of two ways:
-
-\begin{equation}
-forall (Adv <: Adversaries) \&m, Pr[IND-CPA(Adv).main() @ \&m : res] = 1\%r/2\%r
-\end{equation}
-
-\begin{equation}
-forall (Adv <: Adversaries), phoare[IND-CPA(Adv).main : true ==> res] = 1\%r/2\%r
-\end{equation}
-
-Both are equivalent representations, but the former is in the ambient logic of
-\easycrypt, whilst the latter is in the pHL logic.
-
-To prove this, we step though the game using the logic rules of the pHL logic.
-But, how can we guarantee that there does not exists any possible implementation
-of the adversary, such that we he is able to succeed? To prove this we either
-have to somehow prove, that such an adversary cannot exists within the current
-game, or we can relate this game to another one, where adversary can only
-perform random guesses. To do this we need to utilise the pRHL logic.
+The deduction rules for pHL...
+Reasoning about adversarial code...
 
 \section{Probabilistic Relational Hoare Logic}
 \label{sec:pRHL}
-the pRHL logic allows us to reason about the join outcome distribution of two
-programs. This allows us to reason about equality of games.
+The pRHL logic allows us to reason about indistinguishability between two
+procedures under a specific pre- and postcondition. More formally the pRHL logic
+allows us to determine if two procedures are perfectly indistinguishability wrt.
+to the given pre- and postcondition.
 
-To bing it back to the game of IND-CPA, we could define an alternative game,
-where the Oracle always sends back a random element from the ciphertext space.
-This is often referred to as the ideal case, where as the oracle previously
-introduced is referred to as the real one.
+We recall from section \ref{sec:pHL} that procedures can be seen as distribution
+transformers. By observing procedures as distribution transformers
+indistinguishability between procedures equates to arguing that both procedures
+transform their output distributions in a way that makes the post condition
+true.
 
-We can then formulate equality between the two games as:
+In \easycrypt we have the following notation for comparing two procedures:
+\[
+  equiv[P \sim Q :\; \Psi \implies \Phi ]
+\]
 
-\begin{equation}
-forall (Adv <: Adversary) \&m, Pr[IND-CPA(Adv).main() @ \&m : res] =
-Pr[IND-CPA(Adv).real() @ \&m :res]
-\end{equation}
-\begin{equation}
-forall (Adv <: Adversary) , equiv[IND-CPA(Adv).main ~ IND-CPA(Adv).real : true
-==> =\{res\}]
-\end{equation}
+Where $\Psi$ is the precondition and $\Phi$ is the post condition.
 
-where $=\{res\}$ is notation for the outcome distributions begin equal.
+Formally we say that two procedures are indistinguishability if:
 
-\todo{When referring to indistinguishability we are referring to the notion given by EC}
+\[
+  \Pr{P @ m_{1} : A} = \Pr{Q @ m_{2} : B} \land \Psi \implies (A \iff B) \land m_{1} \Psi m_{2}
+\]
+
+More informally this can be understood as: The procedures P and Q running in
+respective memories $m_{1}$ and $m_{2}$ are indistinguishability wrt. to
+precondition $\Psi$ and postcondition $\Phi$, if the both memories satisfy the
+precondition. Moreover, if we can run procedure P and get event A and
+procedure Q to get event B then the procedures are indistinguishable if the
+postcondition implies that the two events are isomorphic.
+
+
+When dealing with pRHL statement we have two types deduction rules; they are
+either one-sided or two-sided.
+The one-sided rules allow us to use the pHL deduction rules on either one of the
+two programs we are comparing in isolated. We refer to the two programs by their
+side of the $\sim$ operator. In the above example P is the left side and Q is
+the right.
+These one-sided rules allows us to step one of the side forward without
+reasoning about the other size. By doing this we alter all the term relating to
+which side we called the rule on.
+
+The two-sided rules allow us to step both sides, if they are both about to call
+the a command of the same shape. In this sense the two-sided rules are much more
+restrictive, since we can only use them if the programs are similar in structure.
+
+In particular the two-sided rules allows us to reason about random assignments
+and adversarial calls.
+Since random assignment and adversarial call are inherently indeterminable and can
+possible not terminate there it is not possible for our one-sided rules to
+step the programs forward. By using the two-sided rules this is not an issues,
+since if both procedures performs the indeterminable choice then it does not
+matter what the choice where, or if it terminated, just that both procedures
+performed the same choice.
+
+This allows us to step both procedures forward under the assumption that both
+procedures transformed their output distribution in exactly the same way for the
+computation step.
 
 \section{Distribution and dealing with randomness}
 \label{sec:easycrypt:distributions}
+\todo{lossless, full, uniform}
+\todo{Coupling}
 
 \section{Easycrypt notation}
 \label{sec:label}
 
-While this thesis has been performed entirely in easycrypt the code in this thesis will be given in a more pseudo-code style to make it more general. For the most party we will avoid easycrypt specific notation when writing procedures and solely focus on what tools easycrypt provides us with for proving procedures.
+We use notation $\Pr{P = b} = p$ to express that procedure P can be run with
+output value $b$ with probability $p$
+We use notation $\Pr{P : A} = p$ to express that the output distribution of
+procedure P will satisfy $A$ with probability $p$.
 
+
+While this thesis has been performed entirely in easycrypt the code in this
+thesis will be given in a more pseudo-code style to make it more general. For
+the most party we will avoid easycrypt specific notation when writing procedures
+and solely focus on what tools easycrypt provides us with for proving
+procedures.
+
+\todo{When referring to indistinguishability we are referring to the notion given by EC}
 Moreover we introduce to follow notation to describe Hoare related statements...
+
+\todo{We omit quantification over input when they can be directly inferred}
+\todo{We omit quantification over memory when they can be directly inferred}
+
+\paragraph{Easycrypt is a frontend?}
 
 
 

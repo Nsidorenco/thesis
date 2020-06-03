@@ -710,6 +710,22 @@ proc verify(h : statement, m : message, e : challenge, z : response) = {
 We then, automatically, by our formalisation of $\Sigma$-Protocols get
 definition of security and only need to prove them \dots \todo{wording}
 
+\paragraph{Assumptions}
+We assume that ZKBoo is given access to a secure key-less commitment scheme Com
+which is not allowed to alter the global state of the ZKBoo module. Moreover we
+assume that that Com satisfy the perfect hiding definition
+\ref{def:commitment:perfect-hiding} and can win the alternative binding game
+given in definition \ref{def:commitment:alt-binding} with probability
+$binding\_{prob}$ and that the commit to a message using Com can never fail.
+
+The requirement of Com not being able to access the global state of ZKBoo is an
+important one, since it none of the below proofs would be true without it. This
+assumption for security is especially important to remember when implementing
+the protocol in a programming language where all variables are stored in a
+global state like Python.
+
+Furthermore, we assume that ZKBoo is given access to a secure (2,3)-Decomposition of the circuit.
+
 \begin{lemma}
   \label{lem:zkboo:correctness}
   ZKBoo satisfy $\Sigma$-Protocol completeness definition \ref{def:sigma:completeness}.
@@ -749,19 +765,14 @@ the procedure returns true for any $e \in \{1,2,3\}$.
 \vspace{3mm}
 \noindent
 \textbf{Case} $e = 1$:
-For the procedure to return true we need to following to hold:
+By our assumption of the committing to a message never failing we can remove the
+line committing to view $w_{e+2}$ since it does not influence the output of the procedure.
+Next, since the commitment scheme and the decomposition are correct are we left
+with showing that \texttt{valid\_view\_op} return true. To reason about this we
+use lemma \ref{lem:func/proc-equiv}. From this it follows that the predicate
+must be true by correctness of the decomposition.
 
-\begin{itemize}
-  \item All variables must be true
-  \item commit must be lossless such that procedure always terminates
-    \begin{itemize}
-      \item commit must be lossless by completeness of commitment scheme
-      \item formalise this?
-    \end{itemize}
-\end{itemize}
-
-The other cases are the same.
-
+\noindent\textbf{case} $e = 2 \land e = 3$ follow the same steps as above.
 \end{proof}
 
 \begin{lemma}
@@ -896,6 +907,9 @@ proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
   variable cons, which is not returned. This allows us to encode the consistency
   check as auxiliary information such that the return value of the procedure is
   still equivalent to only calling \texttt{verify} on the three responses.
+
+  \todo{bind\_three => (a = a') and valid views}
+  \todo{Proven by phoare split}
 
 
   From this we can state the following:
