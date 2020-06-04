@@ -358,9 +358,17 @@ The output of the decomposition can then be defined as summing the last share fr
 
 \paragraph{Handling randomness}
 \label{subsec:decomp:randomness}
-Looking at compute we see that compute we make three random choices for each gate and then save those choices to some random tapes. These tapes are then returned. They are used to keep track of the random choices made thoughout the protocol, such that views can be verified. For most proof the specific values contained within the random tapes are not imporant, since the random values are only there to cancel eachother out whilst making the shares look randomly distributed.
-We therefore omit the random tapes for most procedures and proofs in this section, since they are static?
-When the random tapes are imporant for the security we will mentioned how.
+
+Looking at compute we see that compute we make three random choices for each
+gate and then save those choices to some random tapes. These tapes are then
+returned. They are used to keep track of the random choices made thoughout the
+protocol, such that views can be verified. For most proof the specific values
+contained within the random tapes are not imporant, since the random values are
+only there to cancel eachother out whilst making the shares look randomly
+distributed.
+We therefore omit the random tapes for most procedures and proofs in this
+section, since they are static? When the random tapes are imporant for the
+security we will mentioned how.
 
 The reason for sampling random values at each iteration of the while loop
 instead of all at once is to be able to reason about the specific random choices
@@ -368,6 +376,8 @@ made at this time in the computation. This is especially important to be able to
 relate two procedures running at the same iteration of the while loop...
 \todo{Show this in section about privacy}
 
+\paragraph{Security}
+To prove security we...
 
 \subsection{Correctness}
 \label{sec:decomp_correct}
@@ -376,11 +386,15 @@ Ultimately want to prove:
   \label{lem:decomposition_correctness}
 
   \[
+    \text{Valid circuit } c \implies
     \Pr{\texttt{eval\_circuit(c, [input])} = y} =
     \Pr{\texttt{decomposition(c, [input])} = y}
   \]
 
-  i.e. The output distribution of the two programs are perfectly indistinguishable. From lemma \ref{lem:func/proc-equiv} we have that circuit evaluation always succeeds. This lemma, therefore, also implies that the decomposition always succeeds.
+  i.e. The output distribution of the two programs are perfectly
+  indistinguishable. From lemma \ref{lem:func/proc-equiv} we have that circuit
+  evaluation always succeeds. This lemma, therefore, also implies that the
+  decomposition always succeeds.
 \end{lemma}
 
 To prove the above lemma we first introduce a helper lemma:
@@ -574,6 +588,9 @@ This is stated as the following lemma:
       \begin{align*}
         compute(g::gs, w_{1}, w_{2}, w_{3}) \sim simulate(g::gs, w'_{1}, w'_{2}, w'_{3} )
       \end{align*}
+    \item Possible due to inlined randomness sampling
+    \item If tape has been sampled before the run we cannot use EC's coupling
+      functionality to reason about the random choices.
   \end{itemize}
 
 \end{proof}
@@ -581,18 +598,18 @@ This is stated as the following lemma:
 \begin{proof}[Proof of lemma \ref{lem:zkboo:decomposition:privacy}]
   By applying lemma \ref{lem:zkboo:decomposition:privacy_aux} we have that the
   views output by both procedures are indistinguishable. All we have left to prove
-  is that $y^{real}_{e+2} \equiv y^{simulated}_{e+2}$. To prove this we use the
+  is that $y^{real}_{e+2} \sim y^{simulated}_{e+2}$. To prove this we use the
   equation \ref{eq:decomp:view:sum}, which states that the shares of the real views always sum to
   the intermediate values of computing the circuit to conlude
   \[
   y = y^{real}_{1} + y^{real}_{2} + y^{real}_{3} \iff y^{real}_{e+2} = y - (y^{real}_{e} + y^{real}_{e+1})
   \]
   Then by
-  $(y^{real}_{e} + y^{real}_{e+1}) \equiv (y^{real}_{e} + y^{real}_{e+1})$ it
+  $(y^{real}_{e} + y^{real}_{e+1}) \sim (y^{real}_{e} + y^{real}_{e+1})$ it
   follows that
   \begin{align*}
     y^{real}_{e+2} &= y - (y^{real}_{e} + y^{real}_{e+1}) \\
-                      &\equiv y - (y^{simulated}_{e} + y^{simulated}_{e+1}) \\
+                      &\sim y - (y^{simulated}_{e} + y^{simulated}_{e+1}) \\
                       &= y^{simulated}_{e+2}
   \end{align*}
 \end{proof}
@@ -1047,6 +1064,8 @@ to be lossless since...
 
 
 definitions are annoying to work with.
+
+\todo{Have to take care to ensure that the decomposition can be backtraced}
 
 
 %%% Local Variables:

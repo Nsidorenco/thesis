@@ -1,16 +1,16 @@
 \chapter{EasyCrypt}
 \label{ch:EasyCrypt}
 
-It this chapter we introduce the \easycrypt proof assistant \dots
-
-\easycrypt provides us with three important logics: a relational probabilistic
+In this chapter we introduce the \easycrypt proof assistant for proving security
+of cryptographic protocols.
+To do so \easycrypt provides us with three important logics: a relational probabilistic
 Hoare logic (\textbf{rPHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
 Hoare logic.
 Furthermore, \easycrypt also has an Higher-order ambient logic, in which the three
 previous logics are encoded within. This Higher-order logic allows us to reason
 about mathematical constructs, which in turn lets us reason about them within
 the different Hoare logics. The ambient logic also allows us to relate
-judgement the three different types of Hoare logics, since they all have an
+judgement of the three different types of Hoare logics, since they all have an
 equivalent representation in the ambient logic.
 
 \section{Types and Operators}
@@ -84,6 +84,7 @@ in object-oriented programming languages.
 
 \paragraph{Modules Types}
 \label{sec:ec_module_types}
+\todo{Like interfaces from OO}
 Modules types is another features of \easycrypt modelling system, which
 enables us to define general structures of modules, without having to implement
 the procedures. A procedure without an implementation is called abstract, while
@@ -118,19 +119,25 @@ that some procedure perform random choices will terminate with a certain event
 with some probability, regardless of the random choices made during execution.
 
 To this end pHL logic, which helps us express precisely this.
-A pHL statement in \easycrypt\ is commonly seen in the following form:
+To express running procedure $p(x)$ which is part of a module $M$ we can use the
+following \easycrypt\ notation:
 \[
-  phoare[P :\; \Psi \implies \Phi] = p
+  phoare[M.q :\; \Psi \implies \Phi] = p
 \]
 
-Which informally corresponds to: If the procedure is executed with any
-memory/state which satisfy the precondition $\Psi$ then the result execution P
-will satisfy $P$ with probability $p$.
+Which informally corresponds to: If the procedure with global variables from $M$
+is executed with any memory/state which satisfy the precondition $\Psi$ then the
+result of execution will satisfy $\Phi$ with probability $p$.
 
 Alternatively this can be stated as:
-\[
-  \Psi \implies \Pr{P : \Phi} = p
-\]
+\begin{equation}
+  \label{eq:proc_pr}
+  \Psi \implies \forall x, \&m.\Pr{M.q(x) @ \&m : \Phi} = p
+\end{equation}
+
+Where we note that the first representation implicitly quantifies over all
+arguments to the procedure $q$ and memories while the latter requires us to explicitly
+quantify over them.
 
 To understand how the pHL logic works we adopt the notions by \citet{ec_intro},
 which states that procedures are ``distribution transformers''.
@@ -200,10 +207,46 @@ This allows us to step both procedures forward under the assumption that both
 procedures transformed their output distribution in exactly the same way for the
 computation step.
 
-\section{Distribution and dealing with randomness}
+\section{Distributions and dealing with randomness}
 \label{sec:easycrypt:distributions}
-\todo{lossless, full, uniform}
-\todo{Coupling}
+To introduce randomness/non-determinism to procedures \easycrypt\ allows
+random assignments from distributions. \easycrypt\ support this functionality in
+two way: sampling from a distribution and calling an adversary.
+
+In \easycrypt\ distribution are themselves procedures with a fixed output
+distribution. More formally a distribution in easycrypt\ is a monad converting a
+\textit{discrete} set of events into a sub-probability mass function over said events.
+\todo{reference?}
+
+When dealing with distribution we have three important characteristics:
+
+\noindent \textbf{Lossness :} A procedure (or distribution) is said to be
+lossless if it always produces an output. More formally this means that the
+probabilistic mass functions sums to one.
+\noindent \textbf{Full :} A distribution is said to be full if it is
+possible to sample every element of the type the distribution is defined on from
+the distribution
+\noindent \textbf{Uniform: } A distribution is uniform if every event is equally
+likely to be sampled.
+
+As an example a distribution over a type $t$ can be defined as follows:
+\begin{lstlisting}[frame=none]
+op dt : challenge distr.
+\end{lstlisting}
+Furthermore, we specify the distribution to be lossless, full and uniform as:
+\begin{gather*}
+  \textbf{axiom: } \text{is\_lossless dt}.
+  \textbf{axiom: } \text{is\_funiform dt}.
+\end{gather*}
+
+We can then express a random assignment form the distribution as $x \text{ <\$} \text{ dt}$
+
+
+By introducing random assignments in our procedures we change
+the output of the procedure from a value to a distribution over possible output values.
+
+Moreover, with distributions it is possible to reason about indistinguishability
+with the use of \easycrypt's coupling functionality...
 
 \section{Easycrypt notation}
 \label{sec:label}
@@ -213,23 +256,19 @@ output value $b$ with probability $p$
 We use notation $\Pr{P : A} = p$ to express that the output distribution of
 procedure P will satisfy $A$ with probability $p$.
 
+When comparing two procedures P and Q in the relational logic, i.e:
+\[
+  equiv[P \sim Q :\; \Psi \implies \Phi]
+\]
 
-While this thesis has been performed entirely in easycrypt the code in this
-thesis will be given in a more pseudo-code style to make it more general. For
-the most party we will avoid easycrypt specific notation when writing procedures
-and solely focus on what tools easycrypt provides us with for proving
-procedures.
+We use the notation $x^{P}$ to denote the value variable $x$ wrt. procedure P.
+Likewise, we let $x^{Q}$ denote the value of $x$ when observing the run of
+procedure Q.
 
-\todo{When referring to indistinguishability we are referring to the notion given by EC}
-Moreover we introduce to follow notation to describe Hoare related statements...
-
-\todo{We omit quantification over input when they can be directly inferred}
-\todo{We omit quantification over memory when they can be directly inferred}
-
-\paragraph{Easycrypt is a frontend?}
-
-
-
+When stating probabilistic Hoare statements on the form of equation
+\ref{eq:proc_pr} we omit the quantification of the arguments when the
+quantification can be inferred from the context. Furthermore, we also omit
+quantification over initial memory configurations.
 
 %%% Local Variables:
 %%% mode: latex

@@ -9,12 +9,22 @@ formalisations and proofs of security.
 %
 
 \paragraph{Notations}
-\todo{List indexes}
-\todo{cons}
-\todo{cat}
-\todo{Maps}
+While this thesis has been performed entirely in easycrypt the code in this
+thesis will be given in a more pseudo-code style to make it more general. For
+the most party we will avoid easycrypt specific notation when writing procedures
+and solely focus on what tools easycrypt provides us with for proving
+procedures.
 
-\section{Zero-knowlege}
+Most notably we adopt the list indexing notation of $l[0]$ to mean the 0'th
+index of the list $l$. Formally this notation is not sound, since it does not
+specify what will happen if the index not exists. The is solved in \easycrypt\
+by declaring a default element to return, should the indexing fail. We omit omit
+default value form our code examples.
+
+Moreover, when referring to indistinguishability we are referring the perfect
+indistinguishability unless stated otherwise.
+
+\section{Zero-knowledge}
 \label{sec:background:zero-knowledge}
 Zero-knowledge can be separated into two categories: \textit{arguments} and
 \textit{proofs-of-knowledge}. We start by defining the former.
@@ -201,13 +211,24 @@ distinguishing the commitments is equivalent to a hard computational problem.
 \section{Multi-Part Computation (MPC)}
 \label{sec:background:mpc}
 Consider the problem, where $n$ parties, called $P_{1}, \dots, p_{n}$, with
-corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ want to compute a commonly
-known function, $f : (\text{input})^{n} \rightarrow \text{output}$, such that
-every party agrees on the same output $y$, such that $y = f(\textbf{x})$, but none of them learns the inputs to function, barring their own.
+corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ where the parties
+are allowed to free communicate with each other over a secure channel.
+The parties then want to compute a public function,
+$f : (\text{input})^{n} \rightarrow \text{output}$, where each party contribute
+with their own input to the function and every party agrees on the same output
+$y$, such that $y = f(\textbf{x})$, but none of them learns the inputs to
+function, barring their own.
 
-\todo{Different notions of security. We need passive.}
+To achieve this the parties jointly run a MPC protocol $\Phi_{f}$. This protocol
+is defined in the term of rounds. In each round each party $P_{i}$ computes a
+value dictated  by the protocol $\Phi_{f}$ and sends it to another party, or
+broadcasts it to all parties. This value is computed by a deterministic
+function of the private input $x_{i}$ and all previously computed values by
+$P_{i}$ along with all messages sent to $P_{i}$. We define the collection of
+computed values and received values as $\text{view}_{i}$.
 
-This is the exact problem that MPC aims to solve.
+Once all rounds of the protocol has been completed the output values $y$ can be
+directly computed based on $\text{view}_{i}$.
 
 \begin{definition}[informal correctness]
   \label{def:mpc:correctness}
@@ -217,12 +238,12 @@ This is the exact problem that MPC aims to solve.
 
 \begin{definition}[d-Privacy]
 \label{def:mpc:d-privacy}
-  A MPC protocol $Phi_{f}$ is said to have $d$-privacy if revealing $d$ of the
-  views does not revealing any information about the input.
+  A MPC protocol $Phi_{f}$ is said to have $d$-privacy if $d$ parties colluding
+  cannot about information about any of other $n-d$ private inputs.
 
   More formally, the protocol has $d$-privacy if it is possible to define a
-  simulator $S_{A}$ producing $d$ views that are indistinguishable from the
-  views of the protocol.
+  simulator $S_{A}$ producing views that are indistinguishable from the
+  views of the $d$ colluding parties.
 \end{definition}
 
 %%% Local Variables:

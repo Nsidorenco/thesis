@@ -1,37 +1,49 @@
 \chapter{Reflections and Conclusion}
 \label{sec:reflection_conclusion}
 
-\section{Related Work}
-\label{sec:related_work}
-
+\section{Related Works}
+\label{sec:related_works}
 This work exists in the field of formal verification of cryptographic protocols.
 Notably our work has been heavily influenced by similar formalisations
 \cite{cryptoeprint:2019:1185,DBLP:journals/corr/MetereD17,certicrypt_sigma,zkcrypt,Yao}
 
-Sigma protocols has been done in a lesser extend in \easycrypt. Much of the same
-work has been done in Isabelle/CryptHOL by \citeauthor{cryptoeprint:2019:1185}.
+\citet{cryptoeprint:2019:1185} managed to formalise both $\Sigma$-Protocols and
+commitment schemes within Isabelle/CryptoHOL. Additionally, they have managed to
+prove that commitment schemes can be build directly from $\Sigma$-Protocols.
+Their formalisation of $\Sigma$-Protocols also include various concrete
+instantiations.
+The main difference between the results obtained in their work compared to our
+has been the tool usage. Isabelle/CryptHOL is a tool similar to \easycrypt\ that
+offers a higher-order logic for dealing with cryptographic game-based proofs.
+The fundamental difference between the two tools is that Isabelle/CryptHOL
+programs are written in a functional style, where as \easycrypt\ allows the user
+to write programs in an imperative style. This ultimately leads to the same
+understanding of programs as distribution transformers as discussed in chapter \ref{ch:EasyCrypt}.
 
-\citeauthor{certicrypt_sigma} formalised $\Sigma$-Protocols within CertiCrypt,
-and proved the security of the $\Sigma^{\phi}$-Protocol, which proves knowledge
-of the pre-image of a group homomorphism. ZKBoo protocol described in section
-\ref{sec:zkboo} and the $\Sigma^{\phi}$-Protocol prove knowledge of the same
-relation, but ZKBoo has reduced proof size? \todo{Examine differences}.
+Other formalisations of $\Sigma$-Protocols also exists. \citet{certicrypt_sigma}
+successfully formalised $\Sigma$-Protocols with CertiCrypt. They work includes a
+formalisation of $\Sigma$-Protocols where the relation is the pre-image of a
+homomorphism with certain restrictions or a claw-free permutation. This has
+allowed them to define and prove the security for a whole class of
+$\Sigma$-Protocols. This result is similar to the one we achieved with out
+formalisation of ZKBoo. ZKBoo, however, defines a more general class of
+$\Sigma$-Protocols than the one defined in the paper.
 
-phi assumes the group homomorphism to be special?
+Moreover, commitment schemes has been formalised in \easycrypt\ by
+\citet{DBLP:journals/corr/MetereD17}. Their work differs from our by offering
+less definitions of security, which we described the need for in chapter \ref{ch:formal_commitment}
 
-\todo{Differences between the works}
+Notable work also exists for formalising generalised zero-knowledge compilers.
+\citet{zkcrypt} developed a fully verified zero-knowledge compiler in CertiCrypt
+which uses the generalised Schnorr protocol to produce zero-knowledge proofs of
+any relation defined by the pre-image of a group homomorphism, just like ZKBoo.
+The generalised Schnorr protocol, however, is a fundamentally different protocol
+than ZKBoo, in the sense that it does not use MPC or commitment scheme.
 
-Commitment schemes has been formalized in \easycrypt by
-\citeauthor{DBLP:journals/corr/MetereD17}.
+Last, secure function evaluation has been studied by \citet{Yao}, which
+formalised Yao protocol in \easycrypt. This work also included a formalisation
+of circuits.
 
-\todo{Differences between the works}
-
-formalised general zero knowledge compilers have been explored, with some
-notable work by \citeauthor{zkcrypt} and PINOCCIO.
-
-\todo{Differences between the works}
-
-\todo{SFE in EC, YAO}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -40,7 +52,7 @@ assistant to formally verify all the proofs shown. By using \easycrypt\ we have
 had to formulate our proofs ...
 
 \easycrypt\ tries to capture the models in which cryptographers create and prove
-protocols. For the most part we feel like \easycrypt has managed to capture
+protocols. For the most part we feel like \easycrypt\ has managed to capture
 these models quite well both in its \textit{pWhile} language for implementing
 protocols and its different logics for proving properties about programs.
 
@@ -66,7 +78,7 @@ In particular \easycrypt\ offers its rPHL for proving procedures to be perfect
 indistinguishable. If, however, computational indistinguishability is need then
 the rPHL logic cannot directly be used, and we instead have to deal with
 adversaries comparing procedures. This is a completely sound method for dealing
-with indistinguishability of procedures. In \easycrypt\ , however, the technique
+with indistinguishability of procedures. In \easycrypt, however, the technique
 of using an adversary to compare procedures then none of the tactics for dealing
 with procedures provided by \easycrypt\ can be used, unless all proofs are
 converted into adversarial games. \todo{rewrite}
@@ -82,6 +94,8 @@ the Coq-based proof assistant antecedent to \easycrypt.
 \todo{What is the future for cryptographers using EC}
 % \todo{Documentation is lacking}
 \todo{Possible code extraction?}
+\todo{Two styles of proof: adversary as indis}
+\todo{Differences?}
 % \todo{Schism between perfect and computation distinguishably}
 
 % \todo{Adversary based games are not always ideal}
@@ -114,6 +128,7 @@ us to reason about be general zero-knowledge protocols than the sub-class of
 $\Sigma$-Protocol which we have explored in this thesis.
 
 \todo{Prove connection between $\Sigma$ and pok or arg ZK}
+\todo{Commitment: connection between original and alternative definitions}
 
 \section{Conclusion}
 \label{sec:conclusion}

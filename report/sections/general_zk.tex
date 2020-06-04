@@ -42,6 +42,8 @@ expressed as the pre-image of a group homomorphism, i.e.
 
 Where $h$ is the public input and $w$ is the witness.
 
+\todo{define view. different from normal MPC definition}
+
 The principle idea of this protocol is based on a technique called ``MPC in the
 head''. Recall from section \ref{sec:background:mpc}, that
 Multipart Computations allows us to securely compute any given function taking
@@ -94,6 +96,7 @@ head'' protocol to make a zero-knowledge protocol to and prove lemma \ref{lemma:
 
 \subsection{(2,3)-Function Decomposition}
 \label{subsec:decomposition}
+\todo{MPC protocol but local}
 (2,3)-Function decomposition is a general technique for computing the output of
 a function $f : X \rightarrow Y$ on input value $x \in X$.
 The decomposition works by splitting the function evaluation into three
@@ -101,8 +104,8 @@ computational branches where each computation branch is a party in a MPC
 protocol. Each party is then allowed to communicate with each other, but
 observing the computation of any two of the parties will reveal no information
 about the input value $x$.
-Through-out this section we will simply refer the a (2,3)-Function decomposition
-as $\decomp$.
+Through-out this section we will simply refer the (2,3)-Function decomposition
+of a function $f$ as $\decomp_{f}$.
 
 We refer to the three parties of the decomposition as $P_{1}, P_{2}, P_{3}$. The
 decomposition then works by converting the function $f$ into a circuit and
@@ -146,17 +149,16 @@ Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
 can then define the two necessary properties from \cite{zkboo} for security of
 our (2,3)-Function decomposition, namely, correctness and privacy.
 
-\todo{Copy picture from zkboo paper?}
-
 \begin{definition}[Correctness]
 \label{def:decomp_correctness}
-A (2,3)-decomposition $\decomp$ is correct if $\forall x \in X, \Pr{\phi(x) = \Phi_{\phi}^{*}(x)} = 1$.
+A (2,3)-decomposition $\decomp_{f}$ is correct if
+$\forall x \in X, \Pr{f(x) = \decomp_{f}(x)} = 1$.
 \todo{Change notation to account for randomness}
 \end{definition}
 
 \begin{definition}[Privacy]
 \label{def:decomp_privacy}
-A (2,3)-decomposition $\decomp$ is 2-private if it is correct and for all challenges
+A (2,3)-decomposition $\decomp_{f}$ is 2-private if it is correct and for all challenges
 $e \in \{1,2,3\}$ there exists a probabilistic polynomial time simulator $S_{e}$
 such that:
 \[
@@ -177,7 +179,7 @@ $\mathbb{Z}_{q}$ such that the circuit can be expressed by gates: addition by co
 multiplication by constant, binary addition, and binary multiplication.
 Assume that every gate in the circuit is labelled as $[1 \dots N]$ where $N$ is
 the total number of gates.
-We then implement $\decomp$ as:
+We then implement $\decomp_{\text{ARITH}}$ as:
 
 \begin{itemize}
   \item Share$(x, k_{1}, k_{2}, k_{3})$: Sample random values
@@ -242,7 +244,7 @@ The protocol proceeds as follows:
     \end{itemize}
 \end{itemize}
 
-From this protocol we can see that if $\decomp$ is correct and we get access to
+From this protocol we can see that if $\decomp_{f}$ is correct and we get access to
 all three views then we would be able to extract the witness of the relation,
 since the output of decomposition is equivalent to the result of the function it decomposes.
 By only revealing 2 of the three views we are ensured by the 2-privacy property
@@ -256,7 +258,7 @@ does not hold.
 Lastly, if the Prover is to cheat the Verifier he must produce three views where
 the output is $y$. The only way for the Prover to do this is to change some of
 the shares in one of the views to coerce the output. By doing so one of the
-views will deviate from the procedures of $\decomp$, which the prove can easily
+views will deviate from the procedures of $\decomp_{f}$, which the prove can easily
 check if the pick the correct challenge.
 
 To prove that the above claims holds and that the ZKBoo protocol is secure we will
