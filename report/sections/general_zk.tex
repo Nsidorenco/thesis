@@ -13,9 +13,9 @@ With our current framework we would have to define a new $\Sigma$-Protocol
 exclusively for this relation.
 
 The problem with this is that there exists an infinite set of possible
-relations, for which we could want to provide zero-knowledge proofs of. It is
-therefore infeasible to design a protocol for each relation and proving its
-security.
+relations, for which we could want to provide zero-knowledge proofs. It is
+therefore infeasible to design a protocol for each relation and proving it to be
+secure.
 
 We therefore need a more generalised approach, that is able to generate
 zero-knowledge proof for an entire family of relations rather than a specific relation.
@@ -33,7 +33,7 @@ of how the protocol works, whilst recalling key definitions and proofs from the 
 \todo{privacy implies ZK}
 \todo{Can only cheat verifier if he is unlucky in the view he opens}
 \todo{One view needs to be inconsistent to produce valid output for invalid input}
-ZKBoo protocol is a zero-knowledge compiler for relations, which can be
+ZKBoo protocol is a generalised $\Sigma$-Protocol for the class of relations that can be
 expressed as the pre-image of a group homomorphism, i.e.
 
 \[
@@ -109,8 +109,9 @@ of a function $f$ as $\decomp_{f}$.
 
 We refer to the three parties of the decomposition as $P_{1}, P_{2}, P_{3}$. The
 decomposition then works by converting the function $f$ into a circuit and
-giving each party a share, where the original input can be obtain if all three
-shares are acquired. Each party then evaluates the gates in the circuit to a new
+computing a input share for each party, where the original input can be obtain
+if all three input shares are acquired.
+Each party then evaluates the gates in the circuit to a new
 share based on the input they are given. party $P_{i}$ is allowed to communicate
 with party $P_{i+1 \mod 3}$, but since every party in run locally it effectively
 means that party $P_{i}$ has access to the entire view of $P_{i+1 \mod 3}$ for
@@ -127,14 +128,15 @@ choice.
     \decomp = \{\text{Share}, \text{Output}, \text{Rec}, \text{Update}\}
   \]
 
-  Where Share is a procedure for distribute an input into three shares.
+  Where Share is a procedure for compute the three inputs shares based on a
+  input to $f$.
   Moreover, it should be possible to invert the share procedure such that the
   original input can be recovered from the three input shares.
   Output is a function returning the output share from the view of a party.
   Rec is a function reconstructing the output of the function $f$ based on the
   output values of the parties.
 
-  Lastly we have Update(view$^{j}_{i}$, view$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= view^{j+1}_{i}$ which
+  Lastly we have Update(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
   is the function used to evaluate the j'th gate of the circuit from the point
   of view of $P_{i}$. Here
   $j$ also refers to the size of the view, i.e. how many shares has been
@@ -145,6 +147,7 @@ The (2,3)-Decomposition is then the three views produced by running Update on
 each party with input shares produced by Share until the entire circuit has been
 evaluated by each party.
 
+\paragraph{Security}
 Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
 can then define the two necessary properties from \cite{zkboo} for security of
 our (2,3)-Function decomposition, namely, correctness and privacy.
@@ -170,9 +173,10 @@ Where $\left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2}
 \end{definition}
 
 \subsubsection{(2,3)-Function Decomposition for Arithmetic circuits}
+\label{subsec:general:arith}
 Based on the general description of the (2,3)-Decomposition from the previous
-section we can then define concrete procedures needed to compute the
-(2,3)-Decomposition of arithmetic circuits as in \citet{zkboo}.
+section we can now define a concrete (2,3)-Decomposition of arithmetic circuits
+as in \citet{zkboo}.
 
 We assume the circuit is expressed in some arbitrary finite field
 $\mathbb{Z}_{q}$ such that the circuit can be expressed by gates: addition by constant,
@@ -184,8 +188,7 @@ We then implement $\decomp_{\text{ARITH}}$ as:
 \begin{itemize}
   \item Share$(x, k_{1}, k_{2}, k_{3})$: Sample random values
     $x_{1}, x_{2}, x_{3}$ such that $x = x_{1} + x_{2} + x_{3}$
-  \item Output$(w_{i}) = y_{i}$: return the share corresponding to the output wire of
-    the gate.
+  \item Output$(w_{i}) = y_{i}$: return the output share of party i.
   \item Rec$(y_{1}, y_{2}, y_{3}) = y_{1} + y_{2} + y_{3} = y$ where $y$ is the
     value of evaluating the circuit normally.
   \item Update(view$^{j}_{i}$, view$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$): Here we

@@ -48,8 +48,7 @@ of circuits.
 \section{Discussion}
 \label{sec:discussion}
 For all of the work laid out in this thesis we have used the \easycrypt\ proof
-assistant to formally verify all the proofs shown. By using \easycrypt\ we have
-had to formulate our proofs ...
+assistant to formally verify all the proofs shown.
 
 \easycrypt\ tries to capture the models in which cryptographers create and prove
 protocols. For the most part we feel like \easycrypt\ has managed to capture
@@ -69,19 +68,31 @@ Ultimately, the tool offers the possibility of writing programs both in a
 functional style and in an imperative style. It is, however, only programs
 written in the imperative style that is allowed to make random choices.
 
-We feel...
-
 Our main problems with using this tool has been the schism between computation
 and perfect indistinguishability and the tools steep learning curve.
 
 In particular \easycrypt\ offers its rPHL for proving procedures to be perfect
-indistinguishable. If, however, computational indistinguishability is need then
+indistinguishable. If, however, computational indistinguishability is needed then
 the rPHL logic cannot directly be used, and we instead have to deal with
-adversaries comparing procedures. This is a completely sound method for dealing
-with indistinguishability of procedures. In \easycrypt, however, the technique
-of using an adversary to compare procedures then none of the tactics for dealing
-with procedures provided by \easycrypt\ can be used, unless all proofs are
-converted into adversarial games. \todo{rewrite}
+adversaries comparing procedures.
+% This is a completely sound method for dealing
+% with indistinguishability of procedures. In \easycrypt, however, the technique
+% of using an adversary to compare procedures then none of the tactics for dealing
+% with procedures provided by \easycrypt\ can be used, unless all proofs are
+% converted into adversarial games.
+
+This problem is part of a more general problem where \easycrypt\ in essence
+offers two techniques for dealing with cryptographic proofs. The first is the
+traditional adversaries game-hopping technique where we reason about an
+adversary being able to break to security of the protocol. These adversaries can
+then be used to construct new adversaries that can break the security of other protocols.
+The other techniques observably indistinguishability with \easycrypt's rPHL
+logic.
+Both of these techniques are perfectly valid for proving security of
+cryptographic protocols. However, \easycrypt\ offers no support for relating the
+two techniques. This became apparent in chapter \ref{ch:formal_zkboo} where the
+adversarial-based security definitions of our commitment schemes did not conform
+to our the goals needed to prove security in our $\Sigma$-Protocol formalisation.
 
 The steep leaning curve is primarily caused by the lack of documentation of new
 tactics. At the time of writing this thesis the last update to the \easycrypt\
@@ -90,19 +101,7 @@ the different logics that \easycrypt\ provides are not documented anywhere, but
 instead have to be found in the papers describing \textbf{CertiCrypt} which is
 the Coq-based proof assistant antecedent to \easycrypt.
 
-\todo{How has EC been to work with}
-\todo{What is the future for cryptographers using EC}
-% \todo{Documentation is lacking}
-\todo{Possible code extraction?}
-\todo{Two styles of proof: adversary as indis}
-\todo{Differences?}
-% \todo{Schism between perfect and computation distinguishably}
-
-% \todo{Adversary based games are not always ideal}
-% \todo{Not possible to swap order of verify in commitment if procedure}
-
-% \todo{Functional vs imperative language for proof assistant?}
-\todo{functions in EC are bound to theories not modules}
+Overall, we believe that ...
 
 \section{Future work}
 \label{sec:future_work}
@@ -127,8 +126,8 @@ of zero-knowledge protocols. Formalising the rewinding lemma would then allows
 us to reason about be general zero-knowledge protocols than the sub-class of
 $\Sigma$-Protocol which we have explored in this thesis.
 
-\todo{Prove connection between $\Sigma$ and pok or arg ZK}
-\todo{Commitment: connection between original and alternative definitions}
+% \todo{Prove connection between $\Sigma$ and pok or arg ZK}
+% \todo{Commitment: connection between original and alternative definitions}
 
 \section{Conclusion}
 \label{sec:conclusion}

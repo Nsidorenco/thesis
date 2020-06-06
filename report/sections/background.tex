@@ -1,12 +1,39 @@
 \chapter{Background}
 \label{ch:background}
-This section aims to introduce some of the fundamental definitions and concepts
-used throughout this thesis. This section will foremost give a rudimentary and
-informal introduction, while the later chapters will provide more rigours
-formalisations and proofs of security.
+This chapter we aim to introduce the fields of cryptography needed for this
+thesis.
+Most of these fields have very intricate security definitions depending on the
+context in which they are applied.
+We, therefore, limit our introduction of these field to the specific definitions
+relevant to this thesis, rather than try to give complete introduce to these fields.
+
+Particularly, the section about multi-part computations (MPC) is intentionally left brief. The
+cryptographic field of MPC has of a lot of intricate security definitions
+depends on who is allowed to participate in to protocols. For our purposes we
+only need a very specific definition of security since we assume all parties to
+adhere to the protocol description.
+
+Additionally, in cryptography it is common practice to quantify every security
+definition over a ``security parameter''. This parameter exists to define how
+hard certain computation problems should be. Consider for example the discrete
+logarithm problem for a cyclic. Naturally, the larger the group is,
+the harder to problem is to solve, since there are more potential solutions. The
+security parameter would in this case be the size of the group.
+The existence of the security parameter usually offers a trade-off between
+security and efficient. Considering the previous example for the discrete
+logarithm; any protocol operating on a group will have arithmetic operation
+with running time proportion to the size of the group. Therefore, the smaller
+the group is the faster the protocol is to run in practice.
+
+The security parameter, however, is usually left implicit which we have also
+done in the definitions below. The security parameter is less important in the
+formal setting, since we ...
+
+
 % First, we start by describing $\Sigma$-protocols, along with its security
 % definitions and extensions.
-%
+
+\todo{remark on implicit security parameter}
 
 \paragraph{Notations}
 While this thesis has been performed entirely in easycrypt the code in this
@@ -20,6 +47,8 @@ index of the list $l$. Formally this notation is not sound, since it does not
 specify what will happen if the index not exists. The is solved in \easycrypt\
 by declaring a default element to return, should the indexing fail. We omit omit
 default value form our code examples.
+
+\todo{cons and cat on lists.}
 
 Moreover, when referring to indistinguishability we are referring the perfect
 indistinguishability unless stated otherwise.
@@ -230,6 +259,8 @@ computed values and received values as $\text{view}_{i}$.
 Once all rounds of the protocol has been completed the output values $y$ can be
 directly computed based on $\text{view}_{i}$.
 
+\todo{Yao's millionaire problem as primer?}
+
 \begin{definition}[informal correctness]
   \label{def:mpc:correctness}
   A MPC protocol $\Phi_{f}$ computing a function $f$ is said to have perfect
@@ -242,8 +273,9 @@ directly computed based on $\text{view}_{i}$.
   cannot about information about any of other $n-d$ private inputs.
 
   More formally, the protocol has $d$-privacy if it is possible to define a
-  simulator $S_{A}$ producing views that are indistinguishable from the
-  views of the $d$ colluding parties.
+  simulator $S_{A}$ which is given access to the output of the protocol,
+  producing views that are indistinguishable from the views of the $d$ colluding
+  parties.
 \end{definition}
 
 %%% Local Variables:

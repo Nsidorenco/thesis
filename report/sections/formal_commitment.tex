@@ -43,16 +43,18 @@ module type Committer = {
 }.
 \end{lstlisting}
 Here verification of commitments and key pairs are modelled as function, since
-we assume these function to always be deterministic and lossless. There should
-be need to sample additional randomness to verify these. Mo rover, if the
+we assume these function to always be deterministic and lossless.
+When verifying a commitment, for example, there should be no need to sample
+additional randomness. A simple deterministic function on the commitment and its
+opening should suffice. Moreover, if the
 verification algorithms cannot terminate within a reasonable amount of time,
 then it is probably not wroth studying the commitment scheme further.
 
 The committer is modelled as a module with two procedures. One for generating
-key pairs and one for committing to messages. This models the fact that a commit
+key pairs and one for committing to messages. This models the fact that the Committer
 is able to hold state and make random choice, while the commitments he makes
 should be easily verifiable by anyone knowing the public key, without having to
-keep state about the committer.
+keep any additional state about the committer.
 
 By separating the verification functions from the committers procedures we get a
 formalisation closer to the real world, where verification functions should not
@@ -75,15 +77,15 @@ We define a commitment scheme C to be an implementation of the functions and pro
 \label{sec:commitment:key-less}
 \todo{Is this section necessary?}
 We furthermore formalise a variant of commitment schemes that we key-less. This
-is formalised independently from the key-based commitment schemes, since the
-change is function signatures makes it incompatible with the key-based
-formalisation, they would potentially be merged into one formalisation, which
+is formalised separately from the key-based commitment schemes, since the
+change in function/procedure signatures makes it incompatible with the key-based
+formalisation. They could potentially be merged into one formalisation, which
 allows for both to be used whenever a commitment scheme is required. The main
 reason for not doing this is that proofs of protocols depending on commitment
-schemes can become easier when it is not necessary to quantify over keys (See
-section \ref{sec:formal_zkboo} for an example of this). Ideally it should be
+schemes can become easier when it is not necessary to reason about the sampling
+and distribution of the keys. Ideally it should be
 proven that the two formalisation are compatible wrt. security, and one can be
-used in place of the other, but this has been beyond the scope of this thesis.
+used in place of the other, but this is beyond the scope of this thesis.
 
 The functions and procedures used by the key-less commitment schemes are
 identical to the ones listed in Figure \ref{lst:commitment-procedures} for the
@@ -181,9 +183,9 @@ In our definitions of hiding and binding we do not have a formalisation of the s
 
 \section{Alternative definitions of security}
 \label{sec:commitment:alt-sec}
-Based on the previously defining notions of security we also introduce a number
-of alternative definitions, some which can be directly derivable from our
-original definitions, whilst the others does not offer an easy reduction but
+Based on the previously defined notions of security we also introduce a number
+of alternative definitions, some of which can be directly derivable from our
+original definitions. The other definitions does not offer an easy reduction but
 intuitively capture the same aspects of security.
 
 \begin{lemma}[Alternative correctness]
@@ -295,14 +297,14 @@ When the committer want to commit the a message $m$ he does the following:
 \end{itemize}
 
 At a later time, when C is ready to show the value he committed to, he sends the
-message and random opening, $(m',d')$ to R, when then runs the following
+message and randomness, $(m',d')$ to R, when then runs the following
 verification steps:
 \begin{itemize}
   \item R computes $c' = g^{d'}h^{m'}$ and checks that $c = c'$.
 \end{itemize}
 
 From this description it is clear that the verification step is simply a
-function taking as input the key, commitment, message and opening and does a
+function taking as input the key, commitment, message and opening and then performs a
 deterministic computations. This fits perfectly within our formalisation of the
 Receiver, we therefore instantiate our commitment scheme framework with the
 following:
@@ -345,7 +347,7 @@ Here we use the Cyclic Group theory from EC to generate the agreed upon group
 and model uniform distributions of messages and randomness by...
 
 \paragraph{Security}
-To prove security of the protocol we should that the previous definitions of
+To prove security of the protocol we show that the previous definitions of
 correctness, hiding and binding can be proven true.
 
 \begin{lemma}[Pedersen correctness]

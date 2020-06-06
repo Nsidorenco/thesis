@@ -1,17 +1,23 @@
 \chapter{Formalising ZKBoo}
 \label{ch:formal_zkboo}
-\todo{Mention first to formalise this?}
-In this chapter we show how to use our previous formalisations of
-$\Sigma$-Protocols and commitment schemes to formalise the ZKBoo protocol
-introduced in the previous chapter.
-Here we will shown how to instantiate ZKBoo with our $\Sigma$-Protocol
-formalisation and then show how we can use our formalisation of commitment
-protocols to prove the security of ZKBoo.
+In this chapter we formalise the ZKBoo protocol and the security proofs by
+\citet{zkboo}. To formalise this we utilise our formalisations of
+$\Sigma$-Protocols and commitment schemes. ZKBoo is a $\Sigma$-Protocol so we
+use our formalisation to instantiate this, the formalisation of commitment
+schemes can then be used to prove the security definition for ZKBoo.
+The definitions and proofs formalised in the chapter all come from
+\citet{zkboo}, but to formalise these we have had to make significant changes to
+the definitions and prove certain predicates about the different procedures of
+the protocol to prove it secure. These changes have been necessary since many
+important assumptions have been kept implicit in the original paper. By
+making these assumptions clear by our formalisation wee can improve the
+implementation-level security by exposing edge-cases where the security
+definitions breaks down.
 
 The goal of formalising ZKBoo is two-fold. First, we show that our previous
 formalisations are indeed applicable to larger protocols. Second, we aim to
-gather insight into how \easycrypt\ can help in formalising protocols larger
-than the usual toy examples like El-Gamal and Schnorr.
+gather insight into the security of the ZKBoo protocol itself, and how formal
+verification can help us find pitfalls in informal proofs.
 
 \paragraph{Outline}
 First, in section \ref{sec:arith_circuits} we find develop a formalisation of
@@ -40,41 +46,43 @@ instantiate ZKBoo as a $\Sigma$-Protocol and then prove its security.
 \end{figure}
 
 \paragraph{Preliminary notation}
-Throughout this chapter use the letter $e$ to denote an integer in \{1,2,3\}.
-Moreover, we define arithmetic on $e$ such that $3+1 = 1$.
-
-To refer to the i'th index of a list $w$ we use the notation $w[i]$.
+Throughout this chapter use the letter $e$ to denote a challenge expressed as a integer in \{1,2,3\}.
+Moreover, we define arithmetic on challenges such that $3+1 = 1$.
 
 \section{Formalising Arithmetic circuits}
 \label{sec:arith_circuits}
 In this section we will introduce the concept of arithmetic circuits and how they
-can be represented. Primarily we recall the usual definition of circuits as
-graph and discuss how to evaluate circuits programmatically. From this we
-introduce a number of restrictions to our formalisation which makes their easier
-to work with, whilst still being expressive enough to use in the ZKBoo protocol.
-Based on these restrictions we then formulate an alternative representation for
-arithmetic circuits and give a number of key definitions, which are needed for
-reasoning about the structure of a circuit and the evaluation of circuits.
+can be represented. Primarily we recall the definition of circuits as
+graph which is also used in the original paper by \citet{zkboo} and discuss how
+to evaluate circuits programmatically. From this we introduce a number of
+restrictions to our formalisation which makes their easier to work with, whilst
+still being expressive enough to use in the ZKBoo protocol. Based on these
+restrictions we then formulate an alternative representation for arithmetic
+circuits and give a number of key definitions, which are needed for reasoning
+about the structure of a circuit and the evaluation of circuits.
 
 \subsection{Representing an arithmetic circuit}
 \label{subsec:arith-representation}
 An arithmetic circuit is in its most general form express a function $\phi$ over some
-arbitrary field $\mathbb{Z}_{q}$, where $\phi : \mathbb{Z}_{q}^{k} \rightarrow \mathbb{Z}_{q}^{l}$
+arbitrary field $\mathbb{Z}_{q}$, where $f : \mathbb{Z}_{q}^{k} \rightarrow \mathbb{Z}_{q}^{l}$
 
-To express arbitrary (Arithmetic) computations in a ring of finite field we
+To express arbitrary (arithmetic) computations in a finite field we
 use the following four gates, addition by constant (ADDC), multiplication by constant
 (MULTC), addition of two wires (ADD), and multiplication of two wires (MULT).
 
 The goal of this section is to formulate a representation of the function
-$\phi$, which only depends on the aforementioned gate types to perform
+$f$, which only depends on the aforementioned gate types to perform
 computations. Before doing so, however, we start by stating a number of
 simplifying assumptions about our arithmetic circuits. First, we only allow the
 circuit to have one input value and one output value, in other words:
-$k = l = 1$ in the definition of $\phi$.
-This assumption exists pure to make it easier to reason about the inputs and
-output of the function. The formalisation in this section could be altered to
-allow for arbitrary inputs with minor alterations, which we will discuss later.
-\todo{Discuss this later}
+$k = l = 1$ in the definition of $f$.
+This assumption exists to make simplify reasoning about the inputs and
+outputs of the function, whilst still capturing the essence of the original
+relation. The reason for this is that \easycrypt\ allows for tuple types, which can
+encode multiple inputs into the single input gate.
+% The results obtain in this section could be altered to
+% allow for arbitrary inputs with minor alterations, but we will not go into more
+% details o
 
 Based on these simplifying assumptions we can now recall the graph
 representation of a circuit:
@@ -82,13 +90,11 @@ representation of a circuit:
   \label{def:arith_circuit}
   An Arithmetic circuit is a graph C = (W, G) where W is the internal
   wires between the gates and G is the set of gates within the circuit. Then,
-  we let $i \in G$ be first gate of the circuit, i.e. its only input and $o \in G$ be the output
-  gate, for which there must exists a path from i to o in W.
-  Specifically, o is a gate with only one in-going wire and no out-going wire.
-  The means that the value of the circuit can be read by reading the value of
-  the in-going wire to o.
-
-  \todo{Define in- and out-wires?}
+  we let $i \in G$ be first gate of the circuit, i.e. the input and $o \in G$ be the final
+  gate of the circuit, for which there must exists a path from i to o in W.
+  Specifically, o is a gate with only in-going wires and no out-going wire.
+  The means that the value of the circuit can be obtain by computing the value
+  of $o$.
 
   Finally, for all gates $g \in G$ there must exists path in W from i to o going
   through g,
@@ -112,7 +118,6 @@ evaluation order:
   Given an arithmetic circuit C as defined by definition \ref{def:arith_circuit}
   we define the list representation of C as computing a linear ordering, O, of
   G, which gives each gate in G an unique index.
-  \todo{Why do we remove i and o?}
   We then let the list representation $C_{L}$ be defined as:
   \[
     C_{L}[j] = Enc(O( G \setminus \{i\})[j], W)
@@ -127,9 +132,40 @@ evaluation order:
   The type declaration of the encoded gates can be seen in figure \ref{lst:gate_types}.
 \end{definition}
 
-\todo{Tikz example showing the two representations}
-
-\todo{This representation does not allows for optimisations like parallel computations}
+\begin{figure}[ht]
+  \centering
+  \begin{subfigure}{ 0.48\textwidth }
+  \begin{tikzpicture}[scale=1]
+      \node[circle, thick, draw=black, minimum size=3pt] at (0,0) (c1) {Input};
+      \node[circle, thick, draw=black, minimum size=3pt] at (0,-2) (c2) {$\cdot 2$};
+      \node[circle, thick, draw=black, minimum size=3pt] at (0,-4) (c3) {$+$};
+      \draw[->] (c1) -- (c2) node [midway, left] {x};
+      \draw[->] (c2) -- (c3) node [midway, left] {$\cdot \; 2 \; x$};
+      \draw[->] (c1) to[bend left=40] (c3);
+      \node at (1.3, -2) {x};
+  \end{tikzpicture}
+  \caption{Graph representation of circuit}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{ 0.48\textwidth }
+  \begin{tikzpicture}[scale=1]
+\matrix (m) [matrix of nodes,
+             nodes={draw, minimum size=14mm,anchor=center},
+             nodes in empty cells, minimum height = 1cm,
+             row 1/.style={nodes={draw=none}},
+             row 3/.style={nodes={draw=none}},]
+{
+  0 & 1 \\
+  $(\cdot 2)$ 0 & $(+)$ 0 1 \\
+  0 & 1 & 2 \\
+  x & $(\cdot \; 2 \; x)$ & $(+ \; x \; (\cdot \; 2 \; x))$ \\
+};
+\node at (1.0,0.7) {$= C_{L}$};
+\node at (3.2,-2.1) {$= \text{state}$};
+\end{tikzpicture}
+  \caption{List representation of circuit}
+  \end{subfigure}
+\end{figure}
 
 \paragraph{Linear ordering}
 A linear ordering O is a function that when applied to G assigns a unique
@@ -175,8 +211,6 @@ One important aspect of the list representation of circuits is that it allows
 us to easily define an evaluation order, where we are ensure that we are not
 computing the value of a gate before the previous gates has been computed. To
 capture this notion of a valid evaluation order we give the following definition:
-
-\todo{Define notation for list indexing?}
 
 \begin{definition}[Valid circuit]
   \label{def:decomp:valid_circuit}
@@ -266,10 +300,18 @@ To reason about functions and procedures about functions we have the following l
 \begin{proof}
   \hspace{2mm}
   \begin{itemize}
-    \item  ``$\Rightarrow$'':
-      Trivial
+    \item  ``$\Rightarrow$'': trivial
     \item  ``$\Leftarrow$'':
-      by contradiction?
+      We split the prove into two parts:
+
+      \noindent $output = f(inputs)$: trivial.
+
+      \noindent $output \neq f(inputs)$: Here we prove that
+      \[
+        output \neq f(inputs) \implies \Pr{f(inputs) = output} = 0.
+      \]
+      Which is trivially true. We then use this to derive a contradiction in our
+      assumptions, thus completing the proof.
   \end{itemize}
 \end{proof}
 
@@ -280,29 +322,38 @@ To reason about functions and procedures about functions we have the following l
 
 \section{(2,3) Decomposition of circuits}
 \label{sec:decomposition}
-In this section we ... formalisation based on the description of arithmetic circuits...
-\todo{mention MPC}
+In this section we give a formalisation of the (2,3)-Decomposition of arithmetic
+circuits based on the description given in section \ref{subsec:general:arith}.
 
-In its most general form, we can define the decomposition as a procedure taking
+In the most general form, we can define the decomposition as a procedure taking
 as input three views and random tapes, and a circuit and produces three new
-views. \todo{rewrite? - Random tapes = set of random choices}
+views.
 More specifically the decomposition work by incrementally evaluating a gate based on
 previously compute views, which yield new shares that can be appended to the
 view. This process of evaluating a single gate based on the view of evaluating
 the previous gate can then be repeated until all gates have been computed. This
 overall idea has been captured in the procedure in figure \ref{lst:decomp_aux},
-where it is assumed access to a function eval\_gate, which has signature:
-$eval\_gate : circuit \Rightarrow party \Rightarrow (view * view) \Rightarrow (random\_tape * random\_tape) \Rightarrow share$,
-\todo{explain eval gate better?}
-where $party$ is a integer in $\{1,2,3\}$ that determines which party is
-computing the share. \todo{Say that eval gate implements the function in the
-  ZKBoo section}
+which mimics the Update function from section \ref{subsec:general:arith}.
+The arithmetic decompose, however, requires that we can split the witness into
+three uniformly random shares. To do this we fix a distribution \texttt{dinput}
+which is a full and uniform distribution over shares, which in this case is
+field elements.
+Moreover we note that the function \texttt{Update} is the one defined in section
+\ref{subsec:general:arith}, except that it only returns the newest share and not
+the entire views. Moreover, when calling \texttt{Update} on with a gate $g$,
+then it will use randomness $k_{i}[j]$ where $j$ is the index of $g$ in the circuit.
 
-The output of the decomposition can then be defined as summing the last share from each view that has been compute by the aformentioned procedure. More formally the output is:
+The reconstructed output of the decomposition can then be defined as summing the output share
+from each view that has been compute by the aformentioned procedure. Here we use
+the evaluation order for arithmetic circuits defined in the previous section,
+which tells us that the share in the last index of the view in the output share.
+More formally the reconstructed output is:
 \begin{equation}
-  \text{Output}(w1, w2, w3) = \sum_{i \in \{1,2,3\}} \text{last } w_{i}
+  \sum_{i \in \{1,2,3\}} \text{last } w_{i}
 \end{equation}
 
+Based on procedure defined in listing \ref{lst:decomp_aux} we then define what
+it means to correctly decompose the circuit into three computational branches:
 
 \begin{definition}[Correctness of views]
   \label{def:decomp:valid_view}
@@ -337,51 +388,121 @@ The output of the decomposition can then be defined as summing the last share fr
 \begin{lstlisting}[float,label=lst:decomp_aux,caption= Incremental decomposition procedure]
   proc compute(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
     while (c <> []) {
-      g = oget (ohead c);
+      g = c[0];
       r1 <$ dinput;
       r2 <$ dinput;
       r3 <$ dinput;
       k1 = (rcons k1 r1);
       k2 = (rcons k2 r2);
       k3 = (rcons k3 r3);
-      v1 = eval_gate g 1 w1 w2 k1 k2;
-      v2 = eval_gate g 2 w2 w3 k2 k3;
-      v3 = eval_gate g 3 w3 w1 k3 k1;
+      v1 = Update g 1 w1 w2 k1 k2;
+      v2 = Update g 2 w2 w3 k2 k3;
+      v3 = Update g 3 w3 w1 k3 k1;
       w1 = (rcons w1 v1);
       w2 = (rcons w2 v2);
       w3 = (rcons w3 v3);
-      c = behead c;
+      c = behead c; (* remove first entry from c *)
     }
     return (k1, k2, k3, w1, w2, w3);
   }
+\end{lstlisting}
+
+Based on the above definitions and listings we can then define the \texttt{decompose} procedure, a wrapper around \texttt{compute} that computes the three input shares based on the witness and returns the reconstructed output of the decomposition. The procedure can be seen in listing \ref{lst:zkboo:decompose}
+
+\begin{lstlisting}[float,label=lst:zkboo:decompose,caption=Decompose procedure]
+proc main(h : input, c : circuit) = {
+  (c, x) = h;
+  x1 <$ dinput;
+  x2 <$ dinput;
+  x3 = x - x1 - x2;
+  k1 = [];
+  k2 = [];
+  k3 = [];
+  (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], k1, k2, k3);
+  y1 = last w1;
+  y2 = last w2;
+  y3 = last w3;
+  y = y1 + y2 + y3;
+  return y;
+}
 \end{lstlisting}
 
 \paragraph{Handling randomness}
 \label{subsec:decomp:randomness}
 
 Looking at compute we see that compute we make three random choices for each
-gate and then save those choices to some random tapes. These tapes are then
-returned. They are used to keep track of the random choices made thoughout the
-protocol, such that views can be verified. For most proof the specific values
-contained within the random tapes are not imporant, since the random values are
-only there to cancel eachother out whilst making the shares look randomly
-distributed.
-We therefore omit the random tapes for most procedures and proofs in this
-section, since they are static? When the random tapes are imporant for the
-security we will mentioned how.
+gate and then save those choices to random tapes. These tapes are then
+returned alongside the views and are used to keep track of the random choices made thoughout the
+protocol.
+The purpose of this is to re-run the protocol, such that it can be verified that
+each view has indeed been produced by the decomposition protocol.
 
-The reason for sampling random values at each iteration of the while loop
-instead of all at once is to be able to reason about the specific random choices
-made at this time in the computation. This is especially important to be able to
-relate two procedures running at the same iteration of the while loop...
-\todo{Show this in section about privacy}
+In most cases it is not important verify that a previously made decomposition is
+valid, specifically when we consider the correctness and 2-privacy properties it
+is also important that the view we are currently construction is made by the decomposition.
+
+Moreover, if we observe the gate evaluation function for arithmetic circuits as
+description in section \ref{subsec:general:arith}, the random tapes are only used
+to add randomness to the evaluation of MULT gates, but if we add all the shares
+of a MULT gate together, then the randomness will cancel out. This means that
+the result of the decomposition will be the same value regardless of the
+contents of the random tapes, with the difference begin the values of the
+shares in each view.
+
+For this reason we omit the random tapes from our proofs when we only care about
+the result of the computation or when we assume two procedures to make the same
+random choices. When the contents of the random tapes are important for security
+we will explicitly mention them.
+
+Last, since \texttt{compute} samples random when needed, rather than before the
+protocol is run it cannot be used to re-run the protocol and verify the views in
+relation to the random tapes. To do this we define an alternative procedure,
+which does not sample randomness nor update the views. This procedure can be
+seen in listing \ref{lst:compute-fixed}. This procedure works exactly like
+\texttt{compute} except that it assumes all randomness has been sampled
+before-hand.
+
+\begin{lstlisting}[float,label=lst:compute-fixed,caption=Compute with fixed randomness]
+proc compute_fixed(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+  var g, v1, v2, v3;
+  while (c <> []) {
+    g = oget (ohead c);
+    v1 = Update g 1 w1 w2 k1 k2;
+    v2 = Update g 2 w2 w3 k2 k3;
+    v3 = Update g 3 w3 w1 k3 k1;
+    w1 = (rcons w1 v1);
+    w2 = (rcons w2 v2);
+    w3 = (rcons w3 v3);
+    c = behead c;
+  }
+  return (w1, w2, w3);
+}.
+\end{lstlisting}
+
+We then give the following lemmas for describing the relation between
+\texttt{compute} and \texttt{compute\_fixed}:
+
+\begin{lemma}
+  \label{lem:compute/compute-fixed}
+  \begin{align*}
+    equiv[&\texttt{compute} \sim \texttt{compute\_{fixed}} : \; \indis{c, w_{1}, w_{2}, w_{3}} \\
+    &\implies \forall j.\left(\sum_{i \in \{1,2,3\}} w_{i}^{compute}[j] = \sum_{i \in \{1,2,3\}} w_{i}^{compute\_{fixed}}[j]\right)]
+  \end{align*}
+\end{lemma}
+\begin{proof}
+  We prove this by running the while-loop under the invariant given by the
+  postcondition.
+  The invariant follows trivially by the definition of Update from section
+  \ref{subsec:general:arith}, which states the state of the random tape has no
+  influence on the result of summing the sharing.
+\end{proof}
 
 \paragraph{Security}
-To prove security we...
+To prove security we state the MPC security definitions as procedures based on
+the above listings and definitions.
 
 \subsection{Correctness}
 \label{sec:decomp_correct}
-Ultimately want to prove:
 \begin{lemma}[Decomposition correctness]
   \label{lem:decomposition_correctness}
 
@@ -410,7 +531,7 @@ To prove the above lemma we first introduce a helper lemma:
 
   Alternatively this is stated as:
   \[
-    \textbf{Valid}(c_{1}, w_{1}, w_{2}, w_{3})  \implies
+    \textbf{Valid}(c_{1}, w_{1}, w_{2}, w_{3}) \land \text{Valid circuit } c \implies
     \Pr{ \texttt{compute}(c_{2}, w_{1}, w_{2}, w_{3}) : \textbf{Valid}(c, w'_{1} , w'_{2}, w'_{3}) } = 1
   \]
 
@@ -418,19 +539,35 @@ To prove the above lemma we first introduce a helper lemma:
 \begin{proof}
   The proof proceeded by induction on the list c.
 
-  \begin{itemize}
-    \item Base case $c = []$:
-        trivially true since an empty circuit is the identity function.
-    \item Induction step $c = c' ++ [g]$:
-      \begin{itemize}
-        \item Inline definitions to get compute\_stepped
-        \item We use to induction hypotheses to compute c' which give us
-              \validviews{c_{1}, w_{1}, w_{2}, w_{3}}.
-        \item We then need to prove, that we can compute any gate on top of the
-          valid views to produce a new set of valid views.
-      \end{itemize}
-  \end{itemize}
+  \noindent \textbf{Base case $c = []$: } trivially true.
 
+  \noindent \textbf{Induction step $c = c' ++ [g]$: }
+  We start by splitting the procedure of \texttt{compute} into two calls:
+\begin{lstlisting}
+  (w1', w2', w3') = compute(c', w1, w2, w3);
+  (w1'', w2'', w3'') = compute([g], w1, w2, w3);
+  return (w1'', w2'', w3'');
+\end{lstlisting}
+  To use the induction hypothesis we must show that
+  \[
+    \textbf{Valid circuit } c'++[g] \implies
+    \textbf{Valid circuit } c'.
+  \]
+  Which is true by the definition of Valid Circuit. We can then apply our
+  induction hypothesis to the \texttt{compute} call with circuit c'.
+
+  We are then left with showing:
+  \[
+    \textbf{Valid}(c', w_{1}', w_{2}', w_{3}') \land \text{Valid circuit } c \implies
+    \Pr{ \texttt{compute}([g], w_{1}', w_{2}', w_{3}') : \textbf{Valid}(c, w''_{1} , w''_{2}, w''_{3}) } = 1
+  \]
+
+  First, we note that Valid circuit c implies that g has no input wires from
+  gates that has not already been computed.
+
+  To prove that the predicate holds after compute gate g we prove that it holds
+  for each different gate type.
+  The proof is then complete by inlining the definition of Update for each gate.
 \end{proof}
 
 \begin{proof}[Proof of lemma \ref{lem:decomposition_correctness}]
@@ -439,8 +576,11 @@ To prove the above lemma we first introduce a helper lemma:
   evaluating the circuit, which is true by lemma \ref{lem:decompose_compute_step}
 \end{proof}
 
-\todo{Our formalisation differs by imposing stricter restrictions on the shares computed...}
-
+In some sense our work imposes stricter restrictions on the correctness of decomposition that
+the proof by \citet{zkboo} since we require that every share computed can be
+proven correct by decomposition while classic proof of the decomposition only
+require that output shares compute correctly. This additional restriction on the
+views becomes important for the proof of the ZKBoo protocol.
 
 \subsection{2-Privacy}
 \label{sec:decomp_privacy}
@@ -467,10 +607,9 @@ making the share appear random too.
 In this case the view of party $e$ can always be computationally reconstructed
 by looking at the view of party $e+1$, but the view of party $e+1$ cannot be
 verified, since the view of party $e+2$ is unknown, which makes it seem valid.
+\todo{rewrite}
 
-\todo{Where we use that compute and simulate sample randomness at the time of computation}
-
-The procedure $\texttt{simulate}$ is simply a wrapper around
+The procedure $\texttt{simulate}$ is a wrapper around
 \texttt{simulator\_eval}, which is responsible for constructing the views and
 sampling randomness incrementally for each gate in the circuit, much like how \texttt{compute} is a wrapper around \texttt{eval\_gate}.
 
@@ -498,19 +637,26 @@ proc simulate(c : circuit, e : int, w1 w2 : view, k1 k2 k3 : random_tape) = {
     w2 = (rcons w2 v2);
     c = behead c;
   }
+  return (w1,w2);
 \end{lstlisting}
 
 To compare the views output by the simulator and the ones produced by the decomposition we fix two procedures \texttt{real} and \texttt{simulated}, where the first return two views and the final share of the third view and the latter returns the two views output by the simulator and a fake final share of the thrid view. These procedures can be seen in figure \ref{lst:decomp-real-ideal}.
+Here \texttt{simulated} is given access to the output of the decompostion as by the definition of privacy of MPC protocol.
 
 \begin{lstlisting}[float, mathescape,label=lst:decomp-real-ideal,caption= Real/Simulated view of decomposition]
 
-proc real((c,y) : statement, w : witness, e : challenge) = {
-    $(y_{1},y_{2},y_{3},w_{1},w_{2},w_{3})$ = compute(c);
-    return $(w_{e}, w_{e+1}, y_{e+2})$
+proc real((c,y) : statement, x : witness, e : challenge) = {
+  $x_{1}$ <$\$$ dinput;
+  $x_{1}$ <$\$$ dinput;
+  $x_{3} = x - x_{1} - x_{2}$
+  $(w_{1},w_{2},w_{3})$ = compute$(c, [x_{1}], [x_{2}], [x_{3}])$;
+  $y_{i} = \textbf{last } w_{i}$;
+  return $(w_{e}, w_{e+1}, y_{e+2})$
 }
 
 proc simulated((c, y) : statement, e : challenge) = {
-    $(w_{e}, w_{e+1})$ = simulate(c, e);
+    $x_{i}$ <$\$$ dinput;
+    $(w_{e}, w_{e+1})$ = simulate$(c, e, [x_e], [x_{e+1}])$;
     $y_{e}$ = last $w_{e}$;
     $y_{e+1}$ = last $w_{e+1}$;
     $y_{e+2}$ = $y - (y_{e} + y_{e+1})$
@@ -522,77 +668,146 @@ proc simulated((c, y) : statement, e : challenge) = {
 We are then ready to state 2-privacy as the following lemma:
 \begin{lemma}[Decomposition 2-Privacy]
   \label{lem:zkboo:decomposition:privacy}
-  We say that the decomposition protocol offers 2-Privacy, if the output
-  distributions between \texttt{real} and \texttt{simulated} are
-  indistinguishable.
-
-  \todo{Why must h be in the domain of R here, but not in correctness?}
-
-  This can be stated in rPHL as:
   \[
-    h \in \textbf{Domain}(R) \implies
-    equiv[real \sim simulated : =\{e, h\} \implies =\{res\}].
+    \forall c.equiv[real \sim simulated : =\{e, h\} \land y^{simulated} = \texttt{eval\_{circuit}} \; c \; x^{real} \implies =\{res\}].
   \]
 
 \end{lemma}
 
 To prove this lemma we first prove that running \texttt{compute} and
-\texttt{simulate} with the same random choices will produce indistinguishable
+\texttt{simulate} will produce indistinguishable
 views corresponding to the challenge and summing the output shares of
 \texttt{compute} will yield the same value as evaluating the circuit. This
 effectively inlines the correctness property in the proof of the simulator. This
 is necessary to be able to reason about the existence of the view of party
 $e+2$, which would make the views produced by the simulated equal to honestly
 produces views.
-More specifically the inlined correctness property gives us ...
 
 This is stated as the following lemma:
 
-\todo{Define notation for referring the views from protocol one and the views
-  from protocol 2}
-
 \begin{lemma}
   \label{lem:zkboo:decomposition:privacy_aux}
-  Given a valid arithmetic circuit in list representation with challenge $e$ and
-  intermediate circuit computations/state $s$ the following holds:
+  Given a valid arithmetic circuit, $c$, in list representation with challenge
+  $e$ and witness $x$:
 
-  \[
-    equiv[compute \sim simulated : \; =\!\{h, e, w_{e}, w_{e+1}\} \implies =\!\{w'_{e}, w'_{e+1}\}]
-  \]
+  \begin{align*}
+    equiv[&\texttt{compute} \sim \texttt{simulated} : \; =\!\{h, e, w_{e}, w_{e+1}\} \\
+           &\implies =\!\{w'_{e}, w'_{e+1}\} \land \sum_{i \in \{1,2,3\}} \textbf{last } w'_{i} = \texttt{eval\_{circuit}} \; c \; x]
+  \end{align*}
 
   Moreover, we require that the input views $w_{1}, w_{2}, w_{3}$ satisfies the
   correctness property from equation \ref{eq:decomp:view:sum}.
-
-  Additionally this property most also hold for the views
-  $w'_{1}, w'_{2}, w'_{3}$ produced by running \texttt{compute}. This is
-  equivalent to part of the \textbf{Valid} property used in the proof of
-  correctness.
-
-  % \begin{itemize}
-  %   \item Running \texttt{compute} and \texttt{simulate} with the same random
-  %     choices satisfies conditions:
-  %     \begin{itemize}
-  %       \item The initial views of $w^{compute}_{e}$ and $w^{compute}_{e+1}$ are indistinguishable from  $w^{simulate}_{e}$ and $w^{simulate}_{e+1}$.
-  %       \item It hold that $\forall 0 \leq i < size w1, w_{1}[i] + w_{2}[i] + w_{3}[i] = s[i]$
-  %       \item
-  %     \end{itemize}
-  % \end{itemize}
 \end{lemma}
+  \begin{figure}
+    \caption{expanded procedures}
+    \label{lst:real/simulated}
+    \centering
+    \begin{subfigure}{0.48\textwidth }
+    \begin{lstlisting}[mathescape]
+$(w'_{1},w'_{2},w'_{3})$ = compute$([g], w_{1}, w_{2}, w_{3})$;
+$(w''_{1},w''_{2},w''_{3})$ = compute$(c', w'_{1}, w'_{2}, w'_{3})$;
+return $(w''_{1}, w''_{2}, w''_{3})$
+    \end{lstlisting}
+      \caption{expanded compute procedure}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{ 0.48\textwidth }
+    \begin{lstlisting}[mathescape]
+$(w'_{e}, w'_{e+1})$ = simulate$([g], e, w_{e}, w_{e+1})$;
+$(w''_{e}, w''_{e+1})$ = simulate$(c', e, w'_{e}, w'_{e+1})$;
+return $(w''_{e}, w''_{e+1})$
+    \end{lstlisting}
+      \caption{expanded simulate procedure}
+    \end{subfigure}
+  \end{figure}
 \begin{proof}
   We proceed by induction on the list representation of the circuit c:
 
-  \begin{itemize}
-    \item Base Case $c = []$ : trivial
-    \item Induction Case $c = g::cs$ :
-    \item Write this as program steps like in \cite{certicrypt_sigma}?
-      \begin{align*}
-        compute(g::gs, w_{1}, w_{2}, w_{3}) \sim simulate(g::gs, w'_{1}, w'_{2}, w'_{3} )
-      \end{align*}
-    \item Possible due to inlined randomness sampling
-    \item If tape has been sampled before the run we cannot use EC's coupling
-      functionality to reason about the random choices.
-  \end{itemize}
+  \noindent \textbf{Base case $c = []$: } trivial.
+  \noindent \textbf{Induction step $c = []$: }
+  We then start by expanding the computation of \texttt{compute} and
+  \texttt{simulate} as seen in figure \ref{lst:real/simulated}.
+  We start by showing that calling \texttt{compute} and \texttt{simulate} will
+  satisfy $\indis{w_{e}, w_{e+1}}$.
 
+  \begin{figure}
+    \caption{inlined procedures}
+    \label{lst:privacy:inlined}
+    \centering
+    \begin{subfigure}{0.48\textwidth }
+    \begin{lstlisting}[mathescape]
+r1 <$\$$ dinput;
+r2 <$\$$ dinput;
+r3 <$\$$ dinput;
+k1 = (rcons k1 r1);
+k2 = (rcons k2 r2);
+k3 = (rcons k3 r3);
+v1 = eval_gate g 1 w1 w2 k1 k2;
+v2 = eval_gate g 2 w2 w3 k2 k3;
+v3 = eval_gate g 3 w3 w1 k3 k1;
+w1 = (rcons w1 v1);
+w2 = (rcons w2 v2);
+w3 = (rcons w3 v3);
+
+return (k1, k2, k3, w1, w2, w3);
+    \end{lstlisting}
+      \caption{inlined compute procedure}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{ 0.48\textwidth }
+    \begin{lstlisting}[mathescape]
+$r_e <\$$ dinput;
+$r_{e+1} <\$$ dinput;
+$r_{e+2} <\$$ dinput;
+$k_{e}$ = (rcons $k_{e}$ $r_{e}$);
+$k_{e+1}$ = (rcons $k_{e+1}$ $r_{e+1}$);
+$k_{e+1}$ = (rcons $k_{e+1}$ $r_{e+1}$);
+$v_{e}$ = simulator_eval g e $w_{e}$ $w_{e+1}$ $k_{e}$ $k_{e+1}$ $k_{e+2}$;
+$v_{e+1}$ = simulator_eval g $e+1$ $w_{e+1}$ $w_{e}$ $k_{e}$ $k_{e+1}$ $k_{e+2}$;
+$w_{e}$ = (rcons $w_{e}$ $v_{e}$);
+$w_{e+1}$ = (rcons $w_{e+1}$ $v_{e+1}$);
+    \end{lstlisting}
+      \caption{inlined simulate procedure}
+    \end{subfigure}
+  \end{figure}
+
+  We proceed by inlining both procedures and explicitly stating the random tapes
+  on which the procedures operate. This can be seen in figure \ref{lst:privacy:inlined}.
+  The proof is then split based on the value of the challenge:
+
+  \noindent$e=1$ : We then further split the proof based on which type of gate
+  it is. For every gate except MULT the computation for \texttt{compute} and
+  \texttt{simulate} are the same for parties $e$ and $e+1$. We therefore only
+  need to look at the case of MULT.
+
+  When simulating MULT the $w_{e}$ is constructed by calling \texttt{compute}
+  and is therefore trivially indistinguishable. For the construction of
+  $w_{e+1}$ the value is simply sampled at random for the simulator. More
+  specially, the value of $r_{e+2}$ is used as the share of party $e_{2}$.
+  Based on this we need to the computation perform for MULT by \texttt{compute}
+  is indistinguishable from a random sampled share:
+  \begin{align*}
+    (&w_{2}^{compute}[l] \cdot  w_{2}^{compute}[r] \\
+     &+ w_{3}^{compute}[l] \cdot w_{2}^{compute}[r] \\
+     &+ w_{2}^{compute}[l] \cdot w_{3}^{compute}[r] \\
+     &+ r^{compute}_{2} - r^{compute}_{3}) \sim r^{simulate}_{e+2}.
+  \end{align*}
+  where $l$ and $r$ are the indexed of the left and right input wire,
+  respectively.
+  To prove this we use the fact that randomness is sampled right before the gate
+  evaluation is done. This allows us to use \easycrypt\ coupling functionality
+  to sample randomness is provably indistinguishable from the real computation.
+  Had the randomness been sampled before had this would not have been possible,
+  since \easycrypt\ can only reason about indistinguishable of sampled values at
+  the time of sampling.
+  With this we can conclude that the two are indistinguishable since our
+  distribution is full and uniform and our finite field is closed under addition
+  and multiplication.
+
+  \noindent$e=2 \land e=3$ The rest of the cases proceeded like the case for
+  $e=1$ except when proving MULT to be indistinguishable we show
+  indistinguishability between the random value and the view of $w_{3}$ and
+  $w_{1}$ respectively.
 \end{proof}
 
 \begin{proof}[Proof of lemma \ref{lem:zkboo:decomposition:privacy}]
@@ -600,7 +815,7 @@ This is stated as the following lemma:
   views output by both procedures are indistinguishable. All we have left to prove
   is that $y^{real}_{e+2} \sim y^{simulated}_{e+2}$. To prove this we use the
   equation \ref{eq:decomp:view:sum}, which states that the shares of the real views always sum to
-  the intermediate values of computing the circuit to conlude
+  the intermediate values of computing the circuit to conclude
   \[
   y = y^{real}_{1} + y^{real}_{2} + y^{real}_{3} \iff y^{real}_{e+2} = y - (y^{real}_{e} + y^{real}_{e+1})
   \]
@@ -688,7 +903,6 @@ With a way to validate the views we can instantiate the ZKBoo protocol from
 section \ref{sec:zkboo} as a $\Sigma$-Protocol in our formalisation by
 implementing the algorithms from figure \ref{lst:sigma_procedures}, which can be
 seen in figure \ref{lst:zkboo_procedures}.
-\todo{Assumes existence of decomposition protocol}
 
 \begin{lstlisting}[float, mathescape,label=lst:zkboo_procedures,caption= ZKBoo $\Sigma$-Protocol instantiation]
 global variables = w1, w2, w3, k1, k2, k3.
@@ -787,7 +1001,10 @@ line committing to view $w_{e+2}$ since it does not influence the output of the 
 Next, since the commitment scheme and the decomposition are correct are we left
 with showing that \texttt{valid\_view\_op} return true. To reason about this we
 use lemma \ref{lem:func/proc-equiv}. From this it follows that the predicate
-must be true by correctness of the decomposition.
+must be true by correctness of the decomposition. Here the additional
+restrictions put on the correctness property becomes important. If the
+correctness of the decomposition did not ensure that every share has been
+compute by the decomposition there would be no way to conclude the truthiness of \texttt{valid\_view\_op}.
 
 \noindent\textbf{case} $e = 2 \land e = 3$ follow the same steps as above.
 \end{proof}
@@ -796,8 +1013,6 @@ must be true by correctness of the decomposition.
   Assuming perfect hiding from definition \ref{def:commitment:perfect-hiding} then ZKBoo satisfy Special Honest Verifier Zero-knowledge definition \ref{def:sigma:shvzk}
 \end{lemma}
 \begin{proof}
-  \todo{Would have to be expressed as an adversary game if we used original
-    definitions from commitment schemes}
   To prove shvzk we show that running the \texttt{real} and the \texttt{ideal}
   procedures with the same inputs and identical random choices produces
   indistinguishable output values. The proof the proceeded by casing on the
@@ -874,178 +1089,169 @@ proc ideal(h, e) = {
   The rest of the output values are then indistinguishable by the 2-Privacy property.
 \end{proof}
 
-\todo{Change order so this lemma comes last}
-\todo{Problem: compute sample random values - tape is complete already in this instance}
+For the proof of SHVZK for ZKBoo, which depend on the hiding property of the
+underlying commitment scheme Com we had to use the alternative definition of
+perfect hiding (definition \ref{def:commitment:perfect-hiding}). The reason for
+this, is that we are trying to prove indistinguishable between the two programs
+using \easycrypt's rPHL. This ultimately leaves us with proving a statement of
+the form:
+\[
+  equiv[\texttt{Com.commit}(m_{1}) \sim \texttt{Com.commit}(m_{2}) :\; \indis{\textbf{glob } Com} \implies \indis{res}]
+\]
+
+If we are then given that no adversary can distinguish the two commitments
+better than random guessing then informally the above statement should be true.
+But it is not clear how these to notions of indistinguishability relate in the
+formal setting.
+If we where to use the original definition of hiding (definition
+\ref{def:commitment:hiding}) then we would have to change the SHVZK definition
+to be an adversary-based game. Proving this, however, would require a lot more
+intermediate work, since we would have to construct a adversary breaking the
+SHVZK property based on one that breaks the hiding property.
+
+Lastly, we want to prove the 3-special soundness property of ZKBoo. To do so we
+first inline the procedures of the soundness game and group the procedures
+together. This is seen in listing \ref{lst:zkboo:alt_soundness}
+
+\begin{lstlisting}[float,label=lst:zkboo:alt_soundness,caption=Soundness game for ZKBoo]
+local module SoundnessInter = {
+  proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
+    v1 = ZK.verify(h, m, 1, z1);
+    v2 = ZK.verify(h, m, 2, z2);
+    v3 = ZK.verify(h, m, 3, z3);
+
+    (k1, w1, k2, w2) = z1;
+    (k2', w2', k3, w3) = z2;
+    (k3', w3', k1', w1') = z3;
+    (y1, y2, y3, c1, c2, c3) = m;
+    cons1 = alt_binding(c1, w1, w1');
+    cons2 = alt_binding(c2, w2, w2');
+    cons3 = alt_binding(c3, w3, w3');
+
+    return v1 /\ v2 /\ v3 /\ cons1 /\ cons2 /\ cons3;
+  }
+
+  proc main(h : statement, m : message, z1 z2 z3 : response) = {
+    v = extract_views(h, m, z1, z2, z3);
+    w = witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
+
+    if (w = None \/ !v) {
+      ret = false;
+    } else{
+      w_get = oget w;
+      ret = R h w_get;
+    }
+    return ret;
+  }
+}.
+\end{lstlisting}
+
+Here we replace the calls to \texttt{Com.verify} with the alternative binding
+game from definition \ref{def:commitment:alt-binding}. This replacement does not
+change the output distribution of the soundness game since the two are indistinguishable.
+
+From the new soundness game we can then prove two helper lemmas. First we
+introduce a lemma that allows us to reason about the probability of all the
+openings in the three responses $z_{i}$ opens to the same views. We refer to
+this property as the responses being \textit{consistent}.
+
 \begin{lemma}
-  Given a commitment scheme, where an adversary can produce three pairs
-  commitments, where at least one pair has different openings with probability
-  $p$, then ZKBoo satisfy the 3-Special Soundness property with probability $p$.
+  \label{lem:zkboo:consistent-views}
+  Assuming that all three transcripts are accepting and that the probability of
+  breaking the binding game with three attempts is $binding\_{prob}$ then:
+  \[
+  \Pr{\texttt{extract\_views}(h, m, z_1, z_2, z_3) : v_1 \land v_2 \land v_3 \land w_{i} =
+    w'_{i}} = (1-binding\_prob)
+  \]
 \end{lemma}
 \begin{proof}
-  \todo{If we had used to original definition of hiding for Com then this lemma would have to be restated}
-  The proof has three distinct steps.
-  First, we show that the inputs z1, z2, z3 to \texttt{witness\_extractor}
-  procedure will be valid and consistent openings revealing the views
-  $w_{1}, w_{2}, w_{3}$ which has been produced by the same call to \texttt{compute}
-  with probability $1-p$. Next, we show that given views $w_{1}, w_{2}, w_{3}$
-  which correspond to three views produced by the same call to \texttt{compute},
-  then a valid witness can be extracted.
-  Ultimately, we show that Special Soundness game can be won with probability $(1-p)$
-
-  \paragraph{Consistent views}
-  To check if the views are valid we use the \texttt{verify} procure, which
-  check that \texttt{valid\_view\_op} return true. By lemma
-  \ref{lem:func/proc-equiv} we know that this is equivalent to equation
-  \ref{eq:decomp:valid}. From this we can define the following procedure for
-  checking validity and consistency of the openings:
-
-\begin{lstlisting}[label=lst:zkboo:consistency,caption=Consistency procedure]
-proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
-
-  v1 = verify(h, m, 1, z1);
-  v2 = verify(h, m, 2, z2);
-  v3 = verify(h, m, 3, z3);
-
-  (w1, w2) = z1;
-  (w2', w3) = z2;
-  (w3', w1') = z3;
-  (y1, y2, y3, c1, c2, c3) = m;
-  cons = bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
-
-  return v1 /\ v2 /\ v3;
-}
-\end{lstlisting}
-
-  Here we are given two potential openings for each view, namely $w_{e}$
-  and $w'_{e}$. Ideally $w_{e} = w'_{e}$ but if it is possible for the adversary
-  to win the binding game for three commitments then the openings might be
-  inconsistent. We therefore let the procedure call \texttt{bind\_three}, which
-  returns true if the adversary has broken the binding game. This is bound to a
-  variable cons, which is not returned. This allows us to encode the consistency
-  check as auxiliary information such that the return value of the procedure is
-  still equivalent to only calling \texttt{verify} on the three responses.
-
-  \todo{bind\_three => (a = a') and valid views}
-  \todo{Proven by phoare split}
-
-
-  From this we can state the following:
-  \begin{lemma}
-    \label{lem:consistent-views}
-    $\Pr{\texttt{extract\_views}(h, m, z_1, z_2, z_3) : v_1 \land v_2 \land v_3 \land w_{i} =
-      w'_{i}} = (1-binding\_prob)$
-  \end{lemma}
-  \begin{proof}
-    Special soundness assumes that all transcripts are accepting, we can
-    therefore conclude that $v_{1} \land v_{2} \land v_{3}$ must hold.
-    We are then left with showing that \texttt{bind\_three} proves that the
-    views are consistent with probability $(1-binding\_prob)$. This is true by
-    our assumption of Com having binding.
-  \end{proof}
-
-  % For any one of the openings only the view corresponding to the challenge needs
-  % to be provably constructed by the decomposition. This means that we need all
-  % three openings to conclude that the views has all been produced by the
-  % decomposition. However, by breaking the binding property it is possible to
-  % provide an opening, which might not have been produced by the same call to
-  % \texttt{compute}. For example, z1 reveals $w^{1}_{1}, w^{1}_{2}$ whilst z2
-  % reveals $w^{2}_{2}, w^{2}_{3}$, but if the binding property is broken, then
-  % $w^{2}_{2}$ might be a valid view, but it has been produced with randomness
-  % that is different from $w^{1}_{2}$. The probability of breaking the binding property is $p$,
-  % hence the probability of all openings being to the same views is $1-p$.
-
-  \paragraph{Witness extraction}
-  Given that all openings correspond to the same call of \texttt{compute} and
-  \validviews{c, w_1, w_2, w_3} we must then show that
-  $w = w_{1}[0] + w_{2}[0] + w_{3}[0] \implies y = \texttt{eval\_circuit}(c, w)$
-  i.e. the witness is the sum of all the input shares to the parties of the
-  decomposition.
-
-  \begin{align*}
-    &\texttt{eval\_circuit}(c, w_{1}[0] + w_{2}[0] + w_{3}[0]) = y \\
-    \iff& \Pr{\texttt{eval\_circuit}(c, w_{1}[0] + w_{2}[0] + w_{3}[0]) = y} \\
-      =& \Pr{(w'_{1}, w'_{2}, w'_{3}) \leftarrow \texttt{compute}(c, w_{1}[0], w_{2}[0], w_{3}[0]); \left(\sum_{i \in \{1,2,3\}} \text{last
-         }w'_{i} \right) = y}
-  \end{align*}
-
-  We then show that we can traverse the computations of the decomposition in
-  reverse:
-  \begin{lemma}
-    \label{lem:witness-extraction}
-      $\Pr{(w'_{1}, w'_{2}, w'_{3}) \leftarrow \texttt{compute}(c, w_{1}[0], w_{2}[0], w_{3}[0]); \left(\sum_{i \in \{1,2,3\}} \text{last }w'_{i} \right) = y}$
-  \end{lemma}
-
-
-  Now, we can it is possible to show that for each iteration of the while-loop
-  in \texttt{compute} it must preserve the property that
-  \[
-    \forall j \in \{1,2,3\} \forall 0 \leq i < \text{size } w_{j}':\; w'_{j}[i] = w_{j}[i]
-  \]
-  by \validviews{c, w_1, w_2, w_3}, which asserts that each view has precisely
-  been constructed by the \texttt{compute} procedure with the appropriate randomness.
-
-  Moreover, we have that $\sum_{i \in \{1,2,3\}} \text{last }w_{i} = y$ since
-  the transcripts containing the views are accepted by the \texttt{verify}
-  procedure, which proves that the witness can be reconstructed if all the views
-  of the decomposition is given.
-
-
-  \paragraph{Special Soundness}
-  The soundness game can be restated as the following procedure returning true
-  with probability $1-p$
-\begin{lstlisting}
-proc alt_soundness(h, m, z1, z2, z3) = {
-  v = consistent_views(h, m, z1, z2, z3);
-  w = witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
-
-  if (w = None \/ !v) {
-    return false;
-  } else{
-    w_get = oget w;
-    return R h w_get;
-  }
-}
-\end{lstlisting}
-  \begin{lemma}
-    \label{lem:soundness_alt_equiv}
-    The above procedure has output distribution indistinguishable from the
-    soundness game from definition \ref{def:sigma:soundness} instantiated with
-    ZKBoo, i.e.
-    $\Pr{\texttt{alt\_soundness}} = \Pr{\texttt{soundness(ZKBoo)}}$
-  \end{lemma}
-  \begin{proof}
-    By inlining all sub-procedure calls from both procedures we have equivalent
-    calls to \texttt{verify} and \texttt{witness\_extractor}. The only
-    differences between the two procedures is that
-    $\texttt{consistent\_{views}}$ call the binding game, but the value from the
-    binding game is never returned, so it does it affect the output distribution.
-  \end{proof}
-
-  We can then show conclude the proof of the main lemma by
-  applying lemma \ref{lem:soundness_alt_equiv}.
-  From this we need to show:
-  $\Pr{\texttt{alt\_soundness} : true} = (1- binding\_{prob})$.
-  Which follows from applying lemma \ref{lem:consistent-views} and \ref{lem:witness-extraction}.
+  By our assumption all three transcripts are accepting. We are there left with
+  proving that the probability of not breaking the binding game with three
+  attempts is $(1-binding\_{prob})$. We prove this by showing that the
+  probability of the procedure outputting false is $binding\_{prob}$ which
+  follows directly from our assumption.
+  We then have that the procedure must return true with probability $1-binding\_{prob}$.
 \end{proof}
 
-\begin{lstlisting}[float,label=lst:zbkoo_extractor,caption= ZKBoo witness extractor]
-proc witness_extractor(h : statement, a : message, e : challenge list, z : response list) = {
-  [z1; z2; z3] = z;
-  (k1'', w1'', k2'', w2'') = z1;
-  (k2', w2', k3'', w3'') = z2;
-  (k3', w3', k1', w1') = z3;
+Next we prove that if all the openings in the responses opens to the same views
+then we can extract a witness satisfying R.
 
-  if (k1'' = k1' /\ w1'' = w1' /\ k2'' = k2' /\ w2'' = w2' /\ k3'' = k3' /\ w3'' = w3') {
-    ret = Some( (first 0 w1') + (first 0 w2') + (first 0 w3') );
-  } else {
-    ret = None;
-  }
-  return ret;
-}
-\end{lstlisting}
+\begin{lemma}
+  \label{lem:zkboo:witness_extraction}
+  Given consistent reposes opening $w_{1}, w_{2}, w_{3}$ with randomness
+  $k_{1}, k_{2}, k_{3}$ then
+
+  \[
+    \textbf{Valid}( c, w_{1}, w_{2}, w_{3} ) \implies \Pr{ \texttt{witness\_{extractor}} : \text{R
+    h w} } = 1
+  \]
+\end{lemma}
+\begin{proof}
+  We start by unfolding the relation:
+  \begin{align*}
+    \text{R h x} &= \texttt{eval\_{circuit}} \; c \; x = y \\
+                 &\iff \Pr{\texttt{eval\_{circuit}}(c, x) = y} && \text{lemma \ref{lem:func/proc-equiv}}\\
+                 &= \Pr{\texttt{decomposition}(c, x) = y} && \text{Decomposition correctness}\\
+                 &= \Pr{\texttt{decomposition\_{fixed}}(c, x, w_{1}, w_{2}, w_{3}, k_{1}, k_{2}, k_{3}) = y} && \text{lemma \ref{lem:compute/compute-fixed}}
+  \end{align*}
+
+  From this we use \validviews{c, w_1, w_2, w_3} prove that the computation
+  starting with the input shares $w_{i}[0]$ will result in output $y$
+
+  To do so we prove that after running the while-loop of procedure
+  \texttt{decomposition\_fixed} producing views $w'_{i}$ then $w'_{i} = w_{i}$.
+
+  We prove this by showing that if this invariant holds before one step of
+  the while-loop then it will also hold after the step.
+
+  This follows directly from \validviews{c, w_1, w_2, w_3} since at any step of
+  the while-loop it will perform exactly the same computation as the ones
+  performed to compute views $w_{1}, w_{2}, w_{3}$. Next, we have to show that
+  the invariant is true after the first step of the while-loop. This is again
+  true by \validviews{c, w_1, w_2, w_3}.
+
+  After having executed every step of the while-loop we are left with views
+  matching $w_{1}, w_{2}, w_{3}$, which by our assumption of \validviews{c, w_1,
+  w_2, w_3} have output shares summing to $y$. We can therefore conclude that a
+  decomposition starting with values $w_{i}[0]$ produce the correct output $y$,
+  hence they must be a valid witness for the relation.
+\end{proof}
+
+Based on these two lemmas are now ready to prove special soundness for ZKBoo.
+
+\begin{lemma}
+  Given accepting transcripts $(a, e_{i}, z_{i})_{i = \{1,2,3\}}$ we have:
+  \[
+    \Pr{\texttt{SpecialSoundness(ZKBoo)}.main = true} = (1 - binding\_{prob})
+  \]
+\end{lemma}
+\begin{proof}
+  First we proceed with replacing \texttt{SpecialSoundness(ZKBOO).main} with \texttt{SoundnessInter.main}
+
+  We then split the execution of the procedure into thee parts:
+
+  \noindent\textbf{1)} First we show that we can execute \texttt{extract\_views}
+  with output true with probability $(1 - binding\_{prob})$
+
+  \noindent\textbf{2)} If \texttt{extract\_views} outputs true then the rest of
+  the procedures will output true with probability 1
+
+  \noindent\textbf{2)} If \texttt{extract\_views} outputs then the rest of
+  procedure will also output false with probability 1.
+
+  To prove \textbf{1)} we apply lemma \ref{lem:zkboo:consistent-views}. Next, we
+  show \textbf{2)}. Since we assume \texttt{extract\_views} to have output true
+  we know that the openings must be consistent. We then use lemma
+  \ref{lem:zkboo:witness_extraction} to conclude that we can produce a valid
+  witness. The result of the procedure will then output true.
+  Last, we show \texttt{3)} which follows directly from the fact that if
+  \texttt{extract\_views} output false the rest of the procedure immediately
+  fails be definition.
 
 
-\todo{Formal verification does not tell us about efficiency}
+  Combining the three above facts we can conclude that the procedure will output
+  true with probability $1 - binding\_{prob}$.
+\end{proof}
 
 \paragraph{Conclusion}
 In this chapter we have seen how to apply our formalisations of

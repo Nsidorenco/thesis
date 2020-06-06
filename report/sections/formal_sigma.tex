@@ -3,13 +3,13 @@
 \todo{Aim to port results from Isabelle to EC}
 This section will aim to formalise $\Sigma$-protocols according to the
 definitions set out in section \ref{sec:background:sigma_protocols}, with a
-sufficiently general set-up to allows easy instantiation of arbitrary concrete
-protocols.
+sufficiently general set-up to allow for easy instantiation of any arbitrary
+protocol.
 
 Moreover, we show that any protocol that adheres to this abstract specification
 of a $\Sigma$-Protocol can be compounded together whilst still being secure.
 
-We then end this section by formalising the Fiat-Shamir heuristic, which allows
+We then end this section by formalising the Fiat-Shamir transformation, which allows
 us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
 This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
 model, since Special honest verifier zero-knowledge ensure zero-knowledge in the
@@ -30,12 +30,11 @@ We start by defining the types for any arbitrary $\Sigma$-Protocol:
 \end{align*}
 These types corresponds to the types from Figure \ref{fig:proto_sigma}.
 
-Furthermore, we define the relation for which the protocol operates on as a binary function mapping a statement and a witness to true/false :
-$R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$ along with
-a distribution over challenges. This distribution is used to model a honest
-verifier which will always generate a random challenge. Since distribution are
-probabilistic programs within \easycrypt\ we require that sampling from the
-distribution is always successful. This is referred to as the distribution being lossless.
+Furthermore, we define the relation for which the protocol operates on as a
+binary function mapping a statement and witness to true/false
+$R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$.
+Moreover, we fix a lossless and full/uniform distribution over challenges. This
+distribution is used to model a honest verifier which will always generate a random challenge.
 
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
 \begin{lstlisting}[label=lst:sigma_procedures,caption= Abstract procedures of $\Sigma$-Protocols]
@@ -49,15 +48,17 @@ module type SProtocol = {
 }
 \end{lstlisting}
 
-Here all procedures are modelled into the same module. This allows the
+Here all procedures are defined in the same module. This allows the
 Verifier procedure to access the global state of the Prover. This could lead to
-invalid proofs of security. It is therefore important to not implement a
-\texttt{verify} procedure which access global state of the SProtocol module.
+invalid proofs of security. It is paramount to implement the
+\texttt{verify} procedure such that it never accesses the global state of the SProtocol module.
 This could have been alleviated by splitting the SProtocol module into multiple
 different modules with only the appropriate procedures inside. This would remove
-any potential for human error when defining a $\Sigma$-Protocol, but it makes it
-more bothersome to instantiate a $\Sigma$-Protocol in \easycrypt\ . Ultimately,
-we decided on having everything defined within the same module.
+any potential for human error when defining a $\Sigma$-Protocol, but it is
+easier to quantify over one module containing all relevant procedures than
+quantifying over a Prover and a Verifier module and then reasoning about the two
+modules being part of the same $\Sigma$-Protocol.
+Ultimately, we decided on having everything defined within the same module.
 
 \todo{Here gen is \dots}
 
@@ -116,13 +117,10 @@ a protocol to be complete we have the following lemma:
 
 \begin{lemma}
   \label{lem:sigma:alt:completeness}
-Given that definition \ref{def:sigma:alt_completeness} then it must hold that
-definition \ref{def:sigma:completeness} holds, given the same public input and witness.
-
-\begin{align*}
-  &\Pr{\texttt{special} : true \implies res} = 1 \implies
-    &\Pr{\texttt{Completeness(S).main} : true \implies res} = 1.
-\end{align*}
+\begin{equation*}
+  \Pr{\texttt{special} : true \implies res} = 1 \implies
+  \Pr{\texttt{Completeness(S).main} : true \implies res} = 1.
+\end{equation*}
 \end{lemma}
 
 \begin{proof}
@@ -141,10 +139,10 @@ the sampling to the first line of each program. This will make the two programs
 equivalent.
 
 Now, we can prove the lemma by instead proving:
-\begin{align*}
-  &\Pr{\texttt{special} : true \implies res} = 1 \implies
-    &\Pr{\texttt{intermediate} : true \implies res} = 1.
-\end{align*}
+\begin{equation*}
+  \Pr{\texttt{special} : true \implies res} = 1 \implies
+  \Pr{\texttt{intermediate} : true \implies res} = 1.
+\end{equation*}
 
 The proof then proceeds by first sampling $e$ and then proving the following
 probabilistic Hoare triplet: $true \vdash \{\exists e', e = e'\}
@@ -238,11 +236,12 @@ this only hold if both inputs are in the domain of R.}
 \section{Compound Protocols}
 \label{sec:sigma_comp}
 Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
-composes is various ways. More specially it is possible to prove knowledge of
-relations compounded by the logical operators ``AND'' and ``OR''.
+composes is various ways. More specially we show that it is possible to prove knowledge of
+relations compounded by the logical operators ``AND'' and ``OR'' by compounding
+$\Sigma$-Protocols together.
 The benefit of this is...
 
-Formalisations of compound $\Sigma$-Protocols already exists for other proof
+Formalisations of compound $\Sigma$-Protocols already exists in other proof
 assistants \cite{cryptoeprint:2019:1185,certicrypt_sigma}, which we will also
 use as a basis for our \easycrypt\ formalisation. By drawing on previous work we
 aim to make a formalisation that is workable and succinct within reason of what
@@ -261,11 +260,11 @@ $S_{2}$ with relation $R_{2}(h_{2},w_{2})$ we define the AND construction to be 
 $\Sigma$-Protocol proving knowledge of the relation
 $R((h_{1}, h_{2}), (w_{1}, w_{2})) = R_{1}(h_{1}, w_{1}) \land R_{2}(h_{2}, w_{2})$.
 
-The construction of AND protocol is then a $\Sigma$-Protocol running both
+The construction of AND protocol is a $\Sigma$-Protocol running both
 $S_{1}$ and $S_{2}$ as sub-procedures. To formalise this we start by declaring
 the AND construction as an instantiation of a $\Sigma$-Protocol. To do this we
-first need to define the types for which the protocol works of. But before we
-can define the types of the AND construction we need to know the types of the
+first need to define the types of AND construction. But before we
+can define the types we need to know the types of the
 underlying $\Sigma$-Protocols $S_{1}$ and $S_{2}$. To denote the types of
 $S_{i}$ we use the notation: $\text{type}_i$
 \begin{align*}
@@ -287,8 +286,9 @@ and therefore can express any $\Sigma$-Protocol.
 But, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
 the AND construction parametrised by $\Sigma$-Protocols satisfying the type
 signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
-construction be any two $\Sigma$-protocols? Ideally, this would how the AND
-construction is formalised, but due to how \easycrypt\ handles types we
+construction be any two $\Sigma$-protocols? Ideally, the AND
+construction would be formalised in this way, but due to how \easycrypt\ handles
+types of modules we
 need to declare the types of the AND construction and ensure that the procedures
 are typeable. The only way of ensuring this is by fixing the types of the
 underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
@@ -397,7 +397,7 @@ $R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$.
 The main idea behind the OR construction, is that by the SHVZK it is possible to
 construct accepting conversations for both $S_{1}$ and $S_{2}$ if the Prover is
 allowed to choose what challenge he responds to. Obviously, if the Prover is
-allowed to chose the challenge the protocol is would not be secure. Therefore,
+allowed to chose the challenge the protocol would not be secure. Therefore,
 we limit the Prover such that he can choose the challenge for one sub-protocol,
 but must run the other sub-protocol with a challenge influenced by the Verifier.
 This is done by letting the Prover chose two challenges $e_{1}$ and $e_{2}$,
@@ -466,7 +466,7 @@ proc verify(h : statement, m : message, s : challenge, z : response) = {
 \todo{Write protocol as diagram?}
 
 \paragraph{Security}
-Given the OR constructions instantiation of a $\Sigma$-Protocols we simply need
+Given the OR constructions instantiation of a $\Sigma$-Protocols we need
 to prove the security definitions given in section \ref{sec:sigma:def} with
 regards to the module \texttt{ORProtocol}
 
@@ -583,7 +583,7 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
 The Fiat-Shamir transformation is a technique for converting $\Sigma$-protocols
 into zero-knowledge protocols. $\Sigma$-Protocols almost satisfy the definition
 of zero-knowledge, the only problem is that $\Sigma$-Protocols only guarantee
-zero-knowledge given the verifier is honest. This is stated by the Special
+zero-knowledge in the presence of a honest verifier. This is stated by the Special
 Honest Verifier Zero-Knowledge property. However, if we can alter the protocol
 to force the verifier to always be honest, then the protocol, by definition,
 must be zero-knowledge.
@@ -593,7 +593,7 @@ random oracle, which generates a random challenge based on the first message of
 the prover, thus it works exactly like an honest verifier in the interactive
 protocol. However, since the random oracle is a sub-procedure of the prover he
 is allowed to make polynomially many call to the oracle in the hopes of getting
-a good challenge.
+a good challenge... \todo{more text?}
 
 \subsection{Oracles}
 \label{subsec:sigma:fiat:oracle}
@@ -687,23 +687,22 @@ Soundness, however, cannot be proven by the definition of special soundness from
 $\Sigma$-Protocols, since the Prover has gained more possibilities of cheating
 the verifier. We could prove some arbitrary bounds, but to get a meaningful
 proof of soundness for the Fiat-Shamir transformation we would need the
-rewinding lemma, which still an open research topic to formalise within \easycrypt\ \cite{ec_intro}.
+forking lemma, which depends on rewinding and is still an open research topic to formalise within \easycrypt\ \cite{ec_intro}.
 
 \section{Concrete instantiation: Schnorr protocol}
 \label{sec:schnorr}
 To show the workability of the proposed formalisation we show that it can be
 used to instantiate Schnorr's protocol.
-The Schnorr's protocol is run between a Prover C and a
-Verifier R. Both parties have before running the protocol agreed on a group
+Schnorr's protocol is run between a Prover P and a
+Verifier V. Both parties have before running the protocol agreed on a group
 $(\mathbb{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
 generator for the group.
 Schnorr's protocol is a $\Sigma$-Protocol for proving knowledge of a discrete
 logarithm. Formally it is a $\Sigma$-Protocol for the relation R h w $= (h = g^{w})$
 
-When the P wants to prove knowledge of the w to V he starts by
+When P wants to prove knowledge of w to V he starts by
 constructing a message $a = g^{r}$ for some random value $r$. The Verifier will
-the generate a random challenge, $e$, which is a bit-string of some arbitrary length
-that defines the security of the protocol.
+the generate a random challenge, $e$, which is a bit-string of some arbitrary length.
 Based on this challenge P then constructs a response $z = r + e \cdot w$ and sends
 it to V.
 To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a \cdot h^{e}$.
@@ -847,29 +846,19 @@ proc ideal(h, e) = {
   \end{figure}
   To prove this we use \easycrypt\ coupling functionality to show that $r^{real} \equiv z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \equiv r^{real} + e \cdot w^{real}$.
   This is easily prove, since the distribution is full and uniform, and the group is closed under addition and multiplication. All these facts follow directly from the cyclic group theory in \easycrypt.
-  By the coupling functionality we are then for the rest of the proof allowed to assume:
-  $r^{real} = z^{ideal} - e \cdot w^{real}$ and $z^{ideal} = r^{real} + e \cdot
-  w^{real}$. We then use this to show output indistinguishability:
+  We then use this to show output indistinguishability:
   \begin{align*}
     (a^{real}, e, z^{real}) &= (g^{r^{real}}, e, r^{real} + e \cdot w^{real}) \\
-                          &= (g^{r^{real}}, e, z^{ideal} - e \cdot w^{real} + e \cdot w^{real}) \\
+                          &\sim (g^{r^{real}}, e, z^{ideal} - e \cdot w^{real} + e \cdot w^{real}) \\
                           &= (g^{z^{ideal} - e \cdot w^{real}}, e, z^{ideal}) \\
                           &= (g^{z^{ideal}} \cdot g^{w^{real} - e}, e, z^{ideal}) \\
                           &= (g^{z^{ideal}} \cdot h^{(-e)}, e, z^{ideal}) \\
                           &= (a^{ideal}, e, z^{ideal}) \\
   \end{align*}
-  Which is proven by \easycrypt's automation tools.
+  Which can easily be proven by \easycrypt's automation tools.
 \end{proof}
 \todo{Define generalised notation for comparing views in background chapter}
 \todo{The proofs have been relatively easy thanks to the strong support for algebraic groups in EC}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "../main"
-%%% End:
-
-
-
 
 %%% Local Variables:
 %%% mode: latex
