@@ -2,46 +2,46 @@
 \label{ch:intro}
 \todo{Maybe add database example from CertiCrypt paper?}
 
-In recent years, blockchains have been a breakthrough in the area of
-secure, decentralized, computing on an open network.  At its core, a blockchain
-provides a distributed ledger/database. Blockchain has in particular caught
-interest from the financial sector, namely from bitcoins which were the first to use
-the blockchain as a distributed ledger, where each monetary transaction is first
-publicly verified and then appended to the blockchain. This function
-is similar to how a bank would process transactions, but with two distinct differences;
-all transactions are publicly available and the transactions are verified by
-the user of the blockchain rather than a central authority, e.g. a bank
-\cite{blockchain-overview}.
+% In recent years, blockchains have been a breakthrough in the area of
+% secure, decentralized, computing on an open network.  At its core, a blockchain
+% provides a distributed ledger/database. Blockchain has in particular caught
+% interest from the financial sector, namely from bitcoins which were the first to use
+% the blockchain as a distributed ledger, where each monetary transaction is first
+% publicly verified and then appended to the blockchain. This function
+% is similar to how a bank would process transactions, but with two distinct differences;
+% all transactions are publicly available and the transactions are verified by
+% the user of the blockchain rather than a central authority, e.g. a bank
+% \cite{blockchain-overview}.
 
-The introduction of bitcoins has since led to a myriad of different blockchains with unique
-focal points.
-Notably Ethereum, ZCash, and Concordium. Ethereum extends the original design of
-the blockchain with a rich programming language to allow for so-called "smart
-contracts". Programs written as a smart contract can then be added to the
-blockchain and then computed by the joint computational power of the blockchain.
-A recent example of this is the *Board-room voting protocol*
-\cite{boardroom-voting}, which is a zero-knowledge based protocol that allows a
-few people to participate in an online vote where the individual votes are
-confidential but the final tally of the vote is accessible to the voters.
-Moreover, smart contracts can be used to realise multi-party computation protocols,
-which allows specific users to jointly compute on private data through the blockchain,
-whilst only learning the result of the computation, but not the private data.
+% The introduction of bitcoins has since led to a myriad of different blockchains with unique
+% focal points.
+% Notably Ethereum, ZCash, and Concordium. Ethereum extends the original design of
+% the blockchain with a rich programming language to allow for so-called "smart
+% contracts". Programs written as a smart contract can then be added to the
+% blockchain and then computed by the joint computational power of the blockchain.
+% A recent example of this is the *Board-room voting protocol*
+% \cite{boardroom-voting}, which is a zero-knowledge based protocol that allows a
+% few people to participate in an online vote where the individual votes are
+% confidential but the final tally of the vote is accessible to the voters.
+% Moreover, smart contracts can be used to realise multi-party computation protocols,
+% which allows specific users to jointly compute on private data through the blockchain,
+% whilst only learning the result of the computation, but not the private data.
 
-ZCash and Concordium more predominantly deal with the privacy issues relating
-to the blockchain.
-In ZCash every transaction has the possibility of being performed completely
-anonymously. This is in contrast to bitcoins, where every transaction is
-pseudonymous, meaning that every transaction can be traced back to an
-identifier also called a pseudonym, but
-the users' real identity cannot necessarily be identified.
+% ZCash and Concordium more predominantly deal with the privacy issues relating
+% to the blockchain.
+% In ZCash every transaction has the possibility of being performed completely
+% anonymously. This is in contrast to bitcoins, where every transaction is
+% pseudonymous, meaning that every transaction can be traced back to an
+% identifier also called a pseudonym, but
+% the users' real identity cannot necessarily be identified.
 
-The level of privacy ZCash provides, however, lacks compliance
-with regulations like "Know Your Customer" (KYC) and "Anti
-Money Laundering" (AML), which require financial institutions to be able to trace
-money of illicit origin. This is the problem that the Concordium
-blockchain has tried to solve with its "ID-layer", which grants its
-users total privacy under normal use but, also enables authorities to revoke the privacy of certain
-users if they deem it necessary[fn:id-layer].
+% The level of privacy ZCash provides, however, lacks compliance
+% with regulations like "Know Your Customer" (KYC) and "Anti
+% Money Laundering" (AML), which require financial institutions to be able to trace
+% money of illicit origin. This is the problem that the Concordium
+% blockchain has tried to solve with its "ID-layer", which grants its
+% users total privacy under normal use but, also enables authorities to revoke the privacy of certain
+% users if they deem it necessary[fn:id-layer].
 
 Common for these three blockchains are their reliance on zero-knowledge.
 A zero-knowledge proof is a core primitive in cryptography which
@@ -87,25 +87,6 @@ Front ends usually differ in what relation they accept. A front end like
 libsnark's[fn:libsnark] accepts relations written as c functions, while others
 target languages like Rust or JavaScript.
 
-
-Because of the many combinations of front ends and back ends, standardisation
-efforts have been commenced.
-One example of such a proposed standardisation is the zkinterface proposed by
-the https://zkproof.org community.
-This standardisation aims to allow the users to match any of the front ends to
-any of the other back ends.
-An example of this could be combining a Rust front end with the libsnark back end.
-
-This standardisation effort is two-fold: first, it allows the user to pick the
-back end that is the most efficient for their use case.
-Moreover, having a standardisation is a sign of a more maturing field.
-The protocols considered for the standardisations have proven themselves
-efficient and reliable.
-The widespread adoption of a select few zero-knowledge compilers makes them an
-ideal target for formal verification since they are generally applied to
-longer-lasting programs, where it is not always possible to change the
-underlying zero-knowledge implementation.
-
 \vspace{3mm}
 
 Formal verification of protocols like zero-knowledge compilers has recently
@@ -134,27 +115,14 @@ been successfully embedded within \cite{easycrypt-jasmin}.
 Cryptographic protocols written in a low-level machine language can
 then, through EasyCrypt, be formally proven secure and extracted to assembly code.
 
-The recent introduction of this embedding also indicates the possibility of
-exporting the high-level and formally verified implementation from
-EasyCrypt to a low-level implementation in Jasmin while still having the same
-security guarantees.
-
 This would allow researchers to take a protocol description written in a
 cryptographic paper and then, almost directly, prove its security in a tool like EasyCrypt.
 The implementation done in EasyCrypt would then ultimately be extracted to an efficient implementation.
 This creates a direct link between the protocol description, the code run in
 practice, and the proof of security.
 
-These advances in blockchain and formal verification research leaves an
-interesting gap, where it is now possible to formally verify complex
-cryptographic protocol like the ones utilised by the blockchain.
-These protocols have, thanks to the recent advances in blockchain research, seen more
-applications in the industry.
-But while showing functional correctness has proven feasible through the usage of tools like
-Coq, the research into proving cryptographic security of smart contracts using
-proof assistants has been relatively unexplored.
 
-In this paper we will therefore look at the ZKBoo protocol by \citet{zkboo},
+In this thesis we look at the ZKBoo protocol by \citet{zkboo},
 which can generate zero-knowledge proofs for any relation, assuming the relation
 can be expressed as a circuit, with a bound on the proof size.
 

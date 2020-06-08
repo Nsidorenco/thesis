@@ -1,11 +1,11 @@
 \chapter{Background}
 \label{ch:background}
-This chapter we aim to introduce the fields of cryptography needed for this
+This chapter aims to introduce the fields of cryptography needed for this
 thesis.
-Most of these fields have very intricate security definitions depending on the
-context in which they are applied.
-We, therefore, limit our introduction of these field to the specific definitions
-relevant to this thesis, rather than try to give a complete introduction to these fields.
+Most of these fields have very intricate security definitions which depend on the
+context.
+We, therefore, do not try to give a complete introduction to the fields.
+Instead, we limit our introduction to the specific definitions relevant to the work of this thesis.
 
 Notably, the section about multi-part computations (MPC) is intentionally left brief. The
 cryptographic field of MPC has lots of intricate security definitions
@@ -25,7 +25,7 @@ logarithm; any protocol operating on a group will have arithmetic operations
 with running time proportional to the size of the group. Therefore, the smaller
 the group, the faster the protocol is to run in practice.
 
-The security parameter, however, is usually left implicit which we have also
+The security parameter, however, is usually left implicit, which we have also
 done in the definitions below.
 
 \paragraph{Notations}
@@ -36,10 +36,10 @@ and solely focus on what tools easycrypt provides us with for proving
 procedures.
 
 Most notably we adopt the list indexing notation of $l[0]$ to mean the 0'th
-index of the list $l$. Formally this notation is not sound, since it does not
+index of the list $l$. Formally this notation is not sound since it does not
 specify what will happen if the index not exists. The is solved in \easycrypt\
 by declaring a default element to return, should the indexing fail. We omit 
-default value from our code examples.
+the default value from our code examples.
 Moreover, we define $x::xs$ to mean that we prepend $x$ to the list $xs$,
 $l_{1} ++ l_{2}$ means we concatenate two lists, and $rcons \; x \; xs$ means we
 append x to the list $xs$.
@@ -52,7 +52,7 @@ indistinguishability unless stated otherwise.
 Zero-knowledge can be separated into two categories: \textit{arguments} and
 \textit{proofs-of-knowledge}. We start by defining the former.
 
-A Zero-knowledge argument is protocol run between a probabilistic polynomial
+A Zero-knowledge argument is a protocol run between a probabilistic polynomial
 time (PPT) prover P and a PPT verifier V. The prover and verifier then both
 know a relation $R \subseteq \{0,1\}^{*} \times \{0,1\}^*$, which expresses a
 computational problem. We refer to the first argument of the relation as $h$ and
@@ -72,12 +72,12 @@ prover indeed knew the pair $(h,w)$.
 
 
 Common amongst both variants is that they require that verifier learns no
-information, whatsoever, about w, which is more formally defined as:
+information, whatsoever, about w:
 
 \begin{definition}[Zero-knowledge from \citet{on-sigma-protocols}]
   \label{def:zk}
-  Any proof-of-knowledge or argument with parties (P,V) is said to be
-  zero-knowledge if there for every PPT verifier V$^{*}$ there exists a
+  Any proof-of-knowledge or argument with parties (P, V) is said to be
+  zero-knowledge if for every PPT verifier V$^{*}$ there exists a
   simulator $\text{Sim}_{V^{*}}$ running in expected polynomial time can output a
   conversation indistinguishable from a real conversation between (P, V$^{*}$).
 \end{definition}
@@ -92,7 +92,7 @@ $\Sigma$-protocols are two-party protocols on a three-move-form, based on a,
 computationally hard, relation $R$, such that $(h, w) \in R$ if $h$ is an
 instance of a computationally hard problem, and $w$ is the solution to $h$.
 This relation can also be expressed as a function, such that
-$(h,w) in \R \iff R_{f} \; h \; w = 1$.
+$(h,w) \in \text{R} \iff \text{R}_{f} \; h \; w = 1$.
 $\Sigma$-protocols allows a prover, P, who knows the solution $w$, to convince a
 verify, V, of the existence of $w$, without revealing $w$ to him.
 
@@ -142,10 +142,10 @@ that given the two transcripts outputs a valid witness for the relation $R$.
 
 The special soundness property is important for ensuring that a cheating prover
 cannot succeed. Given special soundness, and the protocol is run multiple times,
-his advantage becomes negligible, since special soundness implies that there can
+his advantage becomes negligible since special soundness implies that there can
 only exist one challenge, for any given message $a$, which can make the
 protocol accept, without knowing the witness. Therefore, given a challenge space
-with cardinality $c$, the probability of a cheating prover succeeding in
+with cardinality $c$ the probability of a cheating prover succeeding in
 convincing the verifier is $\frac{1}{c}$. The protocol can then be run multiple
 times to ensure negligible probability.
 
@@ -158,7 +158,7 @@ witness can be constructed, given $s$ accepting conversations.
   transcript $(a,e,z)$ indistinguishable from the transcript produced by $S$
 \end{definition}
 
-$\Sigma$-Protocols have the interesting property of being able to construct
+$\Sigma$-Protocols have the convenient property of being able to construct
 zero-knowledge protocols from any secure $\Sigma$-Protocol in the random oracle
 model with no additional computations. This effectively allows us to construct a
 secure zero-knowledge protocol while only having to prove that the protocol is
@@ -177,24 +177,24 @@ assuming access to a random oracle \cite{on-sigma-protocols}.
 Commitment schemes is another fundamental building block in cryptography, and
 has a strong connection to $\Sigma$-Protocols where it is possible to construct
 commitment schemes from $\Sigma$-Protocols \cite{cryptoeprint:2019:1185}. A commitment
-schemes facilitates an interaction between two parties, C and V, where C
+scheme facilitates interaction between two parties, C and V, where C
 generates a commitment of a message, which he then sends to V, without revealing
 what his original message where. At a later point, C can then send the message
 to V, who is then able to verify that C has not altered his message since
-creating the commitment. More formally a commitment scheme is defined as:
+creating the commitment. More formally, a commitment scheme is defined as:
 
 \begin{definition}[Commitment Schemes]
 A commitment scheme is a tuple of algorithms (Gen, Com, Ver), where:
 \begin{itemize}
   \item $(ck, vk) \leftarrow Gen()$, provides key generation.
   \item $(c, d) \leftarrow Com(ck, m)$ generates a commitment $c$ of the message
-    $m$ along with a opening key $d$, which can be revealed at a later time.
+    $m$ along with an opening key $d$ which can be revealed at a later time.
   \item $\{true, false\} \leftarrow Ver(vk, c, m, d)$ checked whether the
     commitment $c$ was generated from $m$ and opening key $d$.
 \end{itemize}
 \end{definition}
 
-For commitment schemes to be secure, it is required to satisfy three
+For commitment schemes to be secure; it is required to satisfy three
 properties: \textbf{Correctness}, \textbf{Binding}, and \textbf{Hiding}.
 
 \begin{definition}[Informal correctness]
@@ -209,14 +209,15 @@ $$
 \begin{definition}[Informal binding]
 The binding property states that a party committing to a message will not be
 able to successfully convince another party, that he has committed to different
-from the original message, i.e. $(c, d) \leftarrow Com(ck, m)$, will not be able
+from the original message, \ie $(c, d) \leftarrow Com(ck, m)$, will not be able
 to find an alternative opening key $d'$ and message $m'$ such that
 $(c, d') \leftarrow Com(ck, m')$.
 
-The scheme is said to have \textit{perfect binding} if it impossible to change the
-opening, \textit{statistical binding} if there is a negligible probability of changing
-the opening and \textit{computation binding} if producing a different opening is
-equivalent to a hard computation problem.
+The scheme is said to have \textit{perfect binding} if it is impossible to change the
+opening.
+\textit{statistical binding} is achieved if there is a negligible probability of changing
+the opening and \textit{computation binding} if producing a valid opening to a
+different message is equivalent to a hard computation problem.
 \end{definition}
 
 \begin{definition}[Informal hiding]

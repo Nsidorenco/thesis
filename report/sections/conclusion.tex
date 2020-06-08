@@ -18,7 +18,8 @@ offers a higher-order logic for dealing with cryptographic game-based proofs.
 The fundamental difference between the two tools is that Isabelle/CryptHOL
 programs are written in a functional style, where as \easycrypt\ allows the user
 to write programs in an imperative style. This ultimately leads to the same
-understanding of programs as distribution transformers as discussed in chapter \ref{ch:EasyCrypt}.
+understanding of programs as distribution transformers as discussed in chapter
+\ref{ch:EasyCrypt}. Moreover, \easycrypt\ offers strong automation tactics...
 
 Other formalisations of $\Sigma$-Protocols also exists. \citet{certicrypt_sigma}
 successfully formalised $\Sigma$-Protocols with CertiCrypt. They work includes a
@@ -75,11 +76,6 @@ In particular \easycrypt\ offers its rPHL for proving procedures to be perfect
 indistinguishable. If, however, computational indistinguishability is needed then
 the rPHL logic cannot directly be used, and we instead have to deal with
 adversaries comparing procedures.
-% This is a completely sound method for dealing
-% with indistinguishability of procedures. In \easycrypt, however, the technique
-% of using an adversary to compare procedures then none of the tactics for dealing
-% with procedures provided by \easycrypt\ can be used, unless all proofs are
-% converted into adversarial games.
 
 This problem is part of a more general problem where \easycrypt\ in essence
 offers two techniques for dealing with cryptographic proofs. The first is the
@@ -101,7 +97,7 @@ the different logics that \easycrypt\ provides are not documented anywhere, but
 instead have to be found in the papers describing \textbf{CertiCrypt} which is
 the Coq-based proof assistant antecedent to \easycrypt.
 
-Overall, we believe that ...
+Overall, we believe that the power full automatic tactics...
 
 \section{Future work}
 \label{sec:future_work}

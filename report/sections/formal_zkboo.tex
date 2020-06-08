@@ -10,7 +10,7 @@ The definitions and proofs formalised in the chapter all come from
 the definitions and prove certain predicates about the different procedures of
 the protocol to prove it secure. These changes have been necessary since crucial
 assumptions have been kept implicit in the original paper.
-By formalising the proofs of security, we make these assumptions explicit
+By formalising the proofs of security, we make these assumptions explicit,
 which can help improve implementation-level security by exposing edge-cases
 where the security definitions could break down.
 
@@ -23,7 +23,7 @@ To formalise the work of ZKBoo, we first start by developing a formalisation of
 arithmetic circuits within \easycrypt. This formalisation allows us the reason about
 evaluating circuits to a value while also enabling us to reason about the
 structure of arithmetic circuits.
-Next, in section \ref{sec:decomposition} we formalise the
+Next, in section \ref{sec:decomposition}, we formalise the
 (2,3)-Decomposition of arithmetic circuits as defined in section
 \ref{sec:arith_circuits}.
 Ultimately, we use the formalisation of arithmetic circuits and their
@@ -64,7 +64,7 @@ about the structure of the circuit and its evaluation.
 
 \subsection{Representing an arithmetic circuit}
 \label{subsec:arith-representation}
-An arithmetic circuit in its most general form express a function $f$ over some
+An arithmetic circuit in its most general form expresses a function $f$ over some
 arbitrary finite field $\mathbb{Z}_{q}$, where $f : \mathbb{Z}_{q}^{k} \rightarrow \mathbb{Z}_{q}^{l}$
 
 To express arbitrary (arithmetic) computations in a finite field we
@@ -99,7 +99,7 @@ representation of a circuit:
   Specifically, o is a gate with only in-going wires and no out-going wire.
   The value of the circuit is then obtained by computed the value of $o$.
 
-  Finally, for all gates $g \in G$ there must exist a path in W from in to o going
+  Finally, for all gates, $g \in G$ there must exist a path in W from in to o going
   through g.
   If this was not the case, then the gate could be removed from the graph without changing the
   semantic meaning of the circuit.
@@ -108,8 +108,8 @@ representation of a circuit:
 To define the evaluation of the circuit, we would then need to compute the value of the
 in-going wires of o, but this requires all other wires in the circuit to be
 computed first.
-Consequently, the value of the out-going wires of a given gate can only
-be computed if all in-going wires of the gate have already been assigned to a
+Consequently, the value of the out-going wires of a gate can only
+be computed if all in-going wires of the gate have already been assigned a
 value.
 It is clear from this that we need to define an evaluation order for the
 circuit, such that we only try to compute the value of a gate if we know that
@@ -179,22 +179,20 @@ A linear ordering O is a function that when applied to G assigns a unique
 index to each gate in G.
 One example of such a linear ordering is the breadth-first
 search (BFS) of a graph.
-Here each gate in the circuit graph is labelled according to the time at which
-the BFS visited the gate/node.
+Here each gate in the graph is labelled according to when the BFS visited the gate/node.
 
 This labelling would start at the input gate and end at the output gate.
 
 A particular property of the linear ordering induced by a BFS ordering is that a
-gate can only be visited if all nodes with wires to that gate have already been
-visited by the BFS.
+gate can only be visited if the BFS has already visited all nodes with wires going to that gate.
 This ordering ensures that for any node with index $i$ only
 depends on out-going wires of nodes with index less-than $i$.
 
 This ordering allows us to convert the graph representation into a list
 representation, where the gate at index $i$ is the node with index $i$ by the
 linear ordering. However, since the input gate performs no computation and only
-exists to add the input value to the graph we exclude it from the list
-representation, and shift every index one down.
+exists to add the input value to the graph, we exclude it from the list
+representation and shift every index one down.
 
 \paragraph{Encoded gates}
 A gate is a type, where the type defines the operation the gate computes along
@@ -204,7 +202,7 @@ In the case of unary gates like ADDC and MULTC
 the tuple is $(c, l)$ where l is the input wire, and $c$ is the constant used in
 the computation.
 
-But we need to encode W into this list. To do this, we encode the information
+However, we need to encode W into this list. To do this, we encode the information
 about input wires into the types of the gates themselves, as seen in figure
 \ref{lst:gate_types}.
 
@@ -220,7 +218,7 @@ type encoded_gate = [
 \noindent
 One important aspect of the list representation of circuits is that it allows
 us to define an evaluation order, which ensures that we are not trying to
-computing the value of a gate before the all its inputs wires has been assigned
+compute the value of a gate before the all its inputs wires has been assigned
 a value. To capture this notion of a valid evaluation order we give the following definition:
 
 \begin{definition}[Valid circuit]
@@ -275,7 +273,7 @@ Computing the entire circuit in then correct by the correctness of computing a
 single gate, and that we evaluate the circuit in order from lowest to highest index.
 
 By continually performing gate evaluation of the next entry in the list and saving the result
-into in a list called ``state'' at the appropriate index.
+into a list called ``state'' at the appropriate index.
 Then when computing the gate $MULT(i,j)$, we simply look up the valued of index
 $i$ and $j$ in ``state'' and multiply them together.
 When every single gate of the circuit has then been computed and saved in
@@ -298,7 +296,7 @@ the state.
   \end{equation}
 \end{definition}
 
-We then have that any valid circuit c can be compute to a value y as
+We then have that any valid circuit c can be computed to a value y as
 \texttt{eval\_circuit(c, [input]) = y}. This can also be stated as a probabilistic
 procedure as $\Pr{\texttt{eval\_circuit(c, [input])} = y} = 1$.
 
@@ -341,7 +339,7 @@ the previous gate until all gates have been computed. This
 overall idea has been captured in the procedure in figure \ref{lst:decomp_aux},
 which mimics the Update function from section \ref{subsec:general:arith}.
 The arithmetic decomposition, however, requires that we can split the witness into
-three uniformly random shares. To do this we fix a distribution \texttt{dinput}
+three uniformly random shares. To do this, we fix a distribution \texttt{dinput}
 which is full and uniformly distributed over the shares; in this case, field elements.
 Moreover, we note that the function \texttt{Update} is the one defined in section
 \ref{subsec:general:arith}, except that it only returns the newest share and not
@@ -948,7 +946,7 @@ regards to the module \texttt{ZKBoo}
 
 \paragraph{Assumptions}
 We assume that ZKBoo is given access to a secure key-less commitment scheme Com
-which is not allowed to access nor alter the state of the ZKBoo module. Moreover we
+which is not allowed to access nor alter the state of the ZKBoo module. Moreover, we
 assume that that Com satisfy the perfect hiding definition
 \ref{def:commitment:perfect-hiding} and can win the alternative binding game
 given in definition \ref{def:commitment:alt-binding} with probability
@@ -1012,7 +1010,7 @@ the procedure returns true for any $e \in \{1,2,3\}$.
 By our assumption of \texttt{Commit} being lossless, we can remove the
 commitment to view $w_{e+2}$ from the procedure since it does not influence the output of the procedure.
 Next, since the commitment scheme and the decomposition are correct are we left
-with showing that \texttt{valid\_view\_op} return true. To reason about this we
+with showing that \texttt{valid\_view\_op} return true. To reason about this, we
 use lemma \ref{lem:func/proc-equiv}. From this, it follows that the predicate
 must be true by the correctness of the decomposition. Here the additional
 restrictions put on the correctness property becomes important. If the
@@ -1087,7 +1085,7 @@ proc ideal(h, e) = {
   By 2-Privacy of the decomposition we know that \texttt{compute} and
   \texttt{simulate} are indistinguishable, when only considering the views
   $w_{e}, w_{e+1}$ and output share $y_{e+2}$. By this indistinguishability we
-  can then apply correctness lemma to both sides, thus make both procedures
+  can then apply correctness lemma to both sides, thus making both procedures
   return true.
 
   We, therefore, only need to argue that $c^{ideal}_{e+2} \sim c^{real}_{e+2}$.
@@ -1105,14 +1103,14 @@ proc ideal(h, e) = {
 
 For the proof of SHVZK, we depend on the alternative hiding property of the
 underlying commitment scheme.
-The reason for this, is when trying to prove indistinguishable between the two programs
+The reason for this is when trying to prove indistinguishable between the two programs
 using \easycrypt's pRHL we ultimately have to prove a statement of
 the form:
 \[
   equiv[\texttt{Com.commit}(m_{1}) \sim \texttt{Com.commit}(m_{2}) :\; \indis{\textbf{glob } Com} \implies \indis{res}]
 \]
 
-If we were given the original hiding definition based on an adversary
+If we were given the original hiding definition based on an adversary,
 it is not immediately clear how to apply this notion of indistinguishability in
 relation to the pRHL statement above.
 
@@ -1164,7 +1162,7 @@ Here we replace the calls to \texttt{Com.verify} with the alternative binding
 game from definition \ref{def:commitment:alt-binding}. This replacement does not
 change the output distribution of the soundness game since the two are indistinguishable.
 
-From the new soundness game we then prove two helper lemmas. First we
+From the new soundness game, we then prove two helper lemmas. First we
 introduce a lemma that allows us to reason about openings given by:
 \begin{gather*}
   z_{1} = (w_{1}, w_{2}) \\
@@ -1173,7 +1171,7 @@ introduce a lemma that allows us to reason about openings given by:
 \end{gather*}
 
 Here we notice that for each view there are two potential openings $w_{i}$ and
-$w'_{i}$, since all these openings corresponds to same message $a$ then should
+$w'_{i}$, since all these openings corresponds to a commitment in message $a$ then should
 be identical. when $\forall i. w_{i} = w'_{i}$ we refer to the responses as
 begin \textit{consistent}.
 
