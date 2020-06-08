@@ -5,52 +5,46 @@ thesis.
 Most of these fields have very intricate security definitions depending on the
 context in which they are applied.
 We, therefore, limit our introduction of these field to the specific definitions
-relevant to this thesis, rather than try to give complete introduce to these fields.
+relevant to this thesis, rather than try to give a complete introduction to these fields.
 
-Particularly, the section about multi-part computations (MPC) is intentionally left brief. The
-cryptographic field of MPC has of a lot of intricate security definitions
-depends on who is allowed to participate in to protocols. For our purposes we
-only need a very specific definition of security since we assume all parties to
+Notably, the section about multi-part computations (MPC) is intentionally left brief. The
+cryptographic field of MPC has lots of intricate security definitions
+depends on who is allowed to participate in the protocols. For our purposes, we
+need a specific definition of security, where we assume all parties
 adhere to the protocol description.
 
-Additionally, in cryptography it is common practice to quantify every security
+Additionally, in cryptography, it is common practice to quantify every security
 definition over a ``security parameter''. This parameter exists to define how
-hard certain computation problems should be. Consider for example the discrete
-logarithm problem for a cyclic. Naturally, the larger the group is,
-the harder to problem is to solve, since there are more potential solutions. The
-security parameter would in this case be the size of the group.
+hard specific computation problems should be. Consider, for example, the discrete
+logarithm problem in a cyclic group. Naturally, the larger the group is,
+the harder the problem is to solve since there is a larger set of potential solutions. The
+security parameter would, in this case, be the size of the group.
 The existence of the security parameter usually offers a trade-off between
-security and efficient. Considering the previous example for the discrete
-logarithm; any protocol operating on a group will have arithmetic operation
-with running time proportion to the size of the group. Therefore, the smaller
-the group is the faster the protocol is to run in practice.
+security and efficiency. Considering the previous example for the discrete
+logarithm; any protocol operating on a group will have arithmetic operations
+with running time proportional to the size of the group. Therefore, the smaller
+the group, the faster the protocol is to run in practice.
 
 The security parameter, however, is usually left implicit which we have also
-done in the definitions below. The security parameter is less important in the
-formal setting, since we ...
-
-
-% First, we start by describing $\Sigma$-protocols, along with its security
-% definitions and extensions.
-
-\todo{remark on implicit security parameter}
+done in the definitions below.
 
 \paragraph{Notations}
-While this thesis has been performed entirely in easycrypt the code in this
+While this thesis has been performed entirely in easycrypt, the code in this
 thesis will be given in a more pseudo-code style to make it more general. For
-the most party we will avoid easycrypt specific notation when writing procedures
+the most part, we will avoid easycrypt specific notation when writing procedures
 and solely focus on what tools easycrypt provides us with for proving
 procedures.
 
 Most notably we adopt the list indexing notation of $l[0]$ to mean the 0'th
 index of the list $l$. Formally this notation is not sound, since it does not
 specify what will happen if the index not exists. The is solved in \easycrypt\
-by declaring a default element to return, should the indexing fail. We omit omit
-default value form our code examples.
+by declaring a default element to return, should the indexing fail. We omit 
+default value from our code examples.
+Moreover, we define $x::xs$ to mean that we prepend $x$ to the list $xs$,
+$l_{1} ++ l_{2}$ means we concatenate two lists, and $rcons \; x \; xs$ means we
+append x to the list $xs$.
 
-\todo{cons and cat on lists.}
-
-Moreover, when referring to indistinguishability we are referring the perfect
+Lastly, when referring to indistinguishability, we are referring the perfect
 indistinguishability unless stated otherwise.
 
 \section{Zero-knowledge}
@@ -58,27 +52,27 @@ indistinguishability unless stated otherwise.
 Zero-knowledge can be separated into two categories: \textit{arguments} and
 \textit{proofs-of-knowledge}. We start by defining the former.
 
-An Zero-knowledge argument is protocol run between an probabilistic polynomial
-time (PPT) prover P and and a PPT verifier V. The prover and verifier then both
+A Zero-knowledge argument is protocol run between a probabilistic polynomial
+time (PPT) prover P and a PPT verifier V. The prover and verifier then both
 know a relation $R \subseteq \{0,1\}^{*} \times \{0,1\}^*$, which expresses a
 computational problem. We refer to the first argument of the relation as $h$ and
 to the second argument as $w$.
-The goal of the protocol is then for P to convince V that we knows the pair
-$(h,w)$ whilst only revealing $h$. At the end of the protocol the verifier will
+The goal of the protocol is then for P to convince V that he knows the pair
+$(h,w)$ while only revealing $h$. At the end of the protocol, the verifier will
 then either output \textbf{accept}/\textbf{reject} based on whether P convinced
 him or not.
 We then require that the verifier following the protocol always output
-\textbf{accept} if we P knew $(h,w)$ and followed the protocol. This is known as \textit{correctness}.
-Moreover, we requires that that a cheating adversary who does not know $w$ can
+\textbf{accept} if P knew $(h,w)$ and followed the protocol. This is known as \textit{correctness}.
+Moreover, we require that a cheating adversary who does not know $w$ can
 only make the verifier output \textbf{accept} with some probability $\epsilon$.
 
-The stronger variant of \textit{proofs-of-knowledge} shares the same definitions
+\textit{Proofs-of-knowledge} shares the same definitions
 as above, but require that the verifier only output \textbf{accept} if the
 prover indeed knew the pair $(h,w)$.
 
 
-Common amongst both variants is that the require that verifier learns no
-information, whatsoever, about w. This is more formally defined as:
+Common amongst both variants is that they require that verifier learns no
+information, whatsoever, about w, which is more formally defined as:
 
 \begin{definition}[Zero-knowledge from \citet{on-sigma-protocols}]
   \label{def:zk}
@@ -91,12 +85,16 @@ information, whatsoever, about w. This is more formally defined as:
 
 \section{Sigma Protocols}
 \label{sec:background:sigma_protocols}
-Originally introduced by Cramer \todo{reference}, $\Sigma$-protocols are
-two-party protocols with a three-move-form, based on a, computationally hard,
-relation $R$, such that $(h, w) \in R$ if $h$ is an instance of a
-computationally hard problem, and $w$ is the solution to $h$. $\Sigma$-protocols
-then allows a prover, P, who knows the solution $w$, to convince a verify, V, of
-the existence of $w$, without explicitly showing $w$ to him.
+The following section aims to introduce the definition of $\Sigma$-protocols,
+along with its notions of security. The following section is based on the
+presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
+$\Sigma$-protocols are two-party protocols on a three-move-form, based on a,
+computationally hard, relation $R$, such that $(h, w) \in R$ if $h$ is an
+instance of a computationally hard problem, and $w$ is the solution to $h$.
+This relation can also be expressed as a function, such that
+$(h,w) in \R \iff R_{f} \; h \; w = 1$.
+$\Sigma$-protocols allows a prover, P, who knows the solution $w$, to convince a
+verify, V, of the existence of $w$, without revealing $w$ to him.
 
 
 \begin{figure}[ht]
@@ -117,22 +115,18 @@ the existence of $w$, without explicitly showing $w$ to him.
   \caption{\label{fig:proto_sigma} $\Sigma$-Protocol}
 \end{figure}
 
-
-The following section aims to introduce the definition of $\Sigma$-protocols,
-along with its notions of security. The following section is based on the
-presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
-
-\todo{explain the flow of the protocol. what is a \dots}
+A general overview of a $\Sigma$-Protocol can be seen in figure
+\ref{fig:proto_sigma}. Here we note that the protocol is on a three-move form
+since only three messages, $(a,e,z)$, are sent between the prover and the verifier.
 
 \begin{definition}[$\Sigma$-Protocol Security]
 \label{def:sigma:sec}
-To prove security of a $\Sigma$-protocols, we require three properties, namely,
-\textbf{Completeness}, \textbf{Special Soundness}, and \textbf{Special Honest Verifier Zero Knowledge (SHVZK)}.
+To prove the security of a $\Sigma$-protocols, we require three properties, namely,
+\textbf{Completeness}, \textbf{Special Soundness}, and \textbf{Special Honest Verifier Zero-Knowledge (SHVZK)}.
 \end{definition}
 
-\todo{define honest}
 \begin{definition}[Completeness]
-  Assuming both P and V are honest then V will always output \textbf{accept} at
+  Assuming both P and V are honest \ie following the protocol, then V will always \textbf{accept} at
   the end of the protocol.
 \end{definition}
 
@@ -142,35 +136,35 @@ and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
 where both transcripts have the same initial message, $a$ and $e \neq e'$.
 
 Then we say that $S$ satisfies $2$-special soundness if, there exists an
-efficient algorithm, which we call the ``witness\_extractor'',
+efficient algorithm, which we call the ``witness extractor'',
 that given the two transcripts outputs a valid witness for the relation $R$.
 \end{definition}
 
 The special soundness property is important for ensuring that a cheating prover
-cannot succeed. Given special soundness, if the protocol is run multiple times,
+cannot succeed. Given special soundness, and the protocol is run multiple times,
 his advantage becomes negligible, since special soundness implies that there can
-only exists one challenge, for any given message $a$, which can make the
+only exist one challenge, for any given message $a$, which can make the
 protocol accept, without knowing the witness. Therefore, given a challenge space
 with cardinality $c$, the probability of a cheating prover succeeding in
 convincing the verifier is $\frac{1}{c}$. The protocol can then be run multiple
-times, to ensure negligible probability.
+times to ensure negligible probability.
 
 Can also be generalised to $s$-Special Soundness, which requires that the
 witness can be constructed, given $s$ accepting conversations.
 
 \begin{definition}[SHVZK]
-  A $\Sigma$-Protocol $S$ is said to be SHVZK if there exists a polynomial time
-  simulator Sim which given instance $h$ and challenge $e$ as input produce a
+  A $\Sigma$-Protocol $S$ is said to be SHVZK if there exists a polynomial-time
+  simulator Sim which given instance $h$ and challenge $e$ as input produces a
   transcript $(a,e,z)$ indistinguishable from the transcript produced by $S$
 \end{definition}
 
-$\Sigma$-Protocols has the interesting property of being able to construct
+$\Sigma$-Protocols have the interesting property of being able to construct
 zero-knowledge protocols from any secure $\Sigma$-Protocol in the random oracle
 model with no additional computations. This effectively allows us to construct a
-secure zero-knowledge protocol whilst only having the prove that the protocol is
-zero-knowledge in the case of a honest verifier. This transformation from
-$\Sigma$-Protocol to zero-knowledge protocol is known as the ``Fiat-Shamir''
-transformation. More details about this transformation can be found in section
+secure zero-knowledge protocol while only having to prove that the protocol is
+zero-knowledge in the case of an honest verifier. This transformation from
+$\Sigma$-Protocol to zero-knowledge protocol is known as the ``Fiat-Shamir
+transformation''. More details about this transformation can be found in section
 \ref{subsec:fiat-shamir}.
 Moreover, it is possible to turn any $\Sigma$-Protocol into a zero-knowledge
 argument with one additional round of communication between the Prover and
@@ -183,14 +177,14 @@ assuming access to a random oracle \cite{on-sigma-protocols}.
 Commitment schemes is another fundamental building block in cryptography, and
 has a strong connection to $\Sigma$-Protocols where it is possible to construct
 commitment schemes from $\Sigma$-Protocols \cite{cryptoeprint:2019:1185}. A commitment
-schemes facilitates an interaction between two parties, P1 and P2, where P1
-generates a commitment of a message, which he then sends to P2, without revealing
-what his original message where. At a later point P1 can then send the message
-to P2, who is then able to verify that P1 has not altered his message since
-creating the commitment. More formally a commitment schemes is defined as:
+schemes facilitates an interaction between two parties, C and V, where C
+generates a commitment of a message, which he then sends to V, without revealing
+what his original message where. At a later point, C can then send the message
+to V, who is then able to verify that C has not altered his message since
+creating the commitment. More formally a commitment scheme is defined as:
 
 \begin{definition}[Commitment Schemes]
-A commitment schemes is a tuple of algorithms (Gen, Com, Ver), where:
+A commitment scheme is a tuple of algorithms (Gen, Com, Ver), where:
 \begin{itemize}
   \item $(ck, vk) \leftarrow Gen()$, provides key generation.
   \item $(c, d) \leftarrow Com(ck, m)$ generates a commitment $c$ of the message
@@ -200,13 +194,13 @@ A commitment schemes is a tuple of algorithms (Gen, Com, Ver), where:
 \end{itemize}
 \end{definition}
 
-For a commitment schemes to be secure it is required to satisfy three
+For commitment schemes to be secure, it is required to satisfy three
 properties: \textbf{Correctness}, \textbf{Binding}, and \textbf{Hiding}.
 
 \begin{definition}[Informal correctness]
-A commitment scheme is said to be correct, if a commitment $(c, d)$ made by a
-honest party will always be accepted by the verification procedure of another
-party, i.e:
+  A commitment scheme is said to be correct if
+  the verification procedure  will always accept a commitment made by an honest party,
+ \ie
 $$
 Pr[Ver(vk, c, m, d) | (c, d) = Com(ck, m) \land (ck, vk) \leftarrow Gen()] = 1.
 $$
@@ -226,8 +220,8 @@ equivalent to a hard computation problem.
 \end{definition}
 
 \begin{definition}[Informal hiding]
-The Hiding property states that a party given a commitment $c$, will not be able
-to guess the message $m$, which the commitment was based on.
+The Hiding property states that a party given a commitment $c$ will not be able
+to guess the message $m$ on which the commitment was based.
 
 The scheme is said to have \textit{perfect hiding} if it is impossible to
 distinguish two commitment of different messages from each other,
@@ -239,44 +233,43 @@ distinguishing the commitments is equivalent to a hard computational problem.
 
 \section{Multi-Part Computation (MPC)}
 \label{sec:background:mpc}
-Consider the problem, where $n$ parties, called $P_{1}, \dots, p_{n}$, with
+Consider the problem with $n$ parties, called $P_{1}, \dots, p_{n}$, with
 corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ where the parties
-are allowed to free communicate with each other over a secure channel.
+are allowed to communicate with each other over a secure channel freely.
 The parties then want to compute a public function,
 $f : (\text{input})^{n} \rightarrow \text{output}$, where each party contribute
-with their own input to the function and every party agrees on the same output
+their input to the function and every party agrees on the same output
 $y$, such that $y = f(\textbf{x})$, but none of them learns the inputs to
 function, barring their own.
 
-To achieve this the parties jointly run a MPC protocol $\Phi_{f}$. This protocol
-is defined in the term of rounds. In each round each party $P_{i}$ computes a
-value dictated  by the protocol $\Phi_{f}$ and sends it to another party, or
-broadcasts it to all parties. This value is computed by a deterministic
-function of the private input $x_{i}$ and all previously computed values by
-$P_{i}$ along with all messages sent to $P_{i}$. We define the collection of
+To achieve this, the parties jointly run an MPC protocol $\Phi_{f}$. This protocol
+is defined in the term of rounds.
+In each round, each party $P_{i}$ computes a
+value with a deterministic function of all previously observed messages.
+The party then either sends the value to another party or broadcasts it to everyone.
+We define the collection of
 computed values and received values as $\text{view}_{i}$.
 
-Once all rounds of the protocol has been completed the output values $y$ can be
+Once all rounds of the protocol have been completed, the output values $y$ can be
 directly computed based on $\text{view}_{i}$.
 
 \todo{Yao's millionaire problem as primer?}
 
 \begin{definition}[informal correctness]
   \label{def:mpc:correctness}
-  A MPC protocol $\Phi_{f}$ computing a function $f$ is said to have perfect
+  An MPC protocol $\Phi_{f}$ computing a function $f$ is said to have perfect
   correctness if $f(x) = \Phi_{f}(x)$ for all x.
 \end{definition}
 
 \begin{definition}[d-Privacy]
 \label{def:mpc:d-privacy}
-  A MPC protocol $Phi_{f}$ is said to have $d$-privacy if $d$ parties colluding
+  An MPC protocol $Phi_{f}$ is said to have $d$-privacy if $d$ parties colluding
   cannot about information about any of other $n-d$ private inputs.
 
   More formally, the protocol has $d$-privacy if it is possible to define a
   simulator $S_{A}$ which is given access to the output of the protocol,
   producing views that are indistinguishable from the views of the $d$ colluding
   parties.
-  \todo{copy definition from zkboo}
 \end{definition}
 
 %%% Local Variables:
