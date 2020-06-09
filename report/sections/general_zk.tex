@@ -1,37 +1,37 @@
 \chapter{Generalised Zero-Knowledge protocols}
 \label{ch:general_zk}
-In this chapter we introduce the concept of generalised zero-knowledge
+In this chapter, we introduce the concept of generalised zero-knowledge
 protocols. We also introduce the ZKBoo protocol, which is a generalised $\Sigma$-Protocol.
-In previously section, we have seen a concrete instantiation of a
+In the previous section, we have seen a concrete instantiation of a
 $\Sigma$-protocol with the relation being the discrete logarithm problem, namely
 Schnorr's protocol (Section \ref{sec:schnorr}).
 We have also seen how it is possible to prove the security of $\Sigma$-Protocols
 working on composite relations like AND and OR (Section \ref{sec:sigma_comp}).
 
-However, since the need for zero-knowledge is wide spread, it is unlikely that a
+However, since the need for zero-knowledge is widespread, it is unlikely that a
 $\Sigma$-Protocol for proving knowledge of a discrete logarithm suffices.
 Consider the example of an authentication system, where each user has a
 certificate consisting of his name, income, and birthday. This certificate also has some
 additional information to verify the certificate.
 A user of this system would then like to prove that he is above the age of 18.
-However, the user is not willing to reveal his birthday. To solve this problem
-we could define a $\Sigma$ protocol for proving knowledge of the birthday making
+However, the user is not willing to reveal his birthday. To alleviate this,
+we could define a $\Sigma$ protocol for proving knowledge of the birthday matching
 a certificate with the name and income valid.
 We could then image another user being interesting in proving their wealth is
 above 5000, but not their precise income. Here, we have the same problem as
 before, but with a slightly different relation.
 
-To solve this problem, we could either pre-determine all the relations we could
-need zero-knowledge proofs of. However, another approach is that of generalised
+To solve this problem, we could either pre-determine all the relations for which
+we need zero-knowledge proofs. However, another approach is that of generalised
 zero-knowledge protocols.
 A generalised zero-knowledge protocol is, like the name suggests, a
 protocol able to prove zero-knowledge for an entire class of relations.
-One example of such a class of relations, is every relation that can be
-described as the pre-image of a group homomorphism \ie that the user knows the
-input to some function, which results in to a specific output.
+One example of such a class of relations is every relation that can be
+described as the pre-image of a group homomorphism, \ie that the user knows the
+input to some function, which results in a specific output.
 
-To explore the field of generalised zero-knowledge protocol we introduce ZKBoo
-and its security definition by \citet{zkboo}.
+To explore the field of generalised zero-knowledge protocols, we introduce ZKBoo
+by \citet{zkboo}.
 ZKBoo is a $\Sigma$-Protocol for any relation expressed as the
 pre-image of a group homomorphism.
 \section{ZKBOO}
@@ -50,27 +50,27 @@ The principle idea of this protocol is based on a technique called ``MPC in the
 head''. The idea of ``MPC in the head'' is to run a secure $n$ party MPC protocol for computing
 $f$, but with every party being locally simulated, rather than run as part of
 the protocol.
-By running every party locally we also remove any communicate overhead the MPC
-protocol might incur. Moreover, since the protocol is run locally we can assume
+By running every party locally, we also remove any communicate overhead the MPC
+protocol might incur. Moreover, since the protocol is run locally, we can assume
 every party of the MPC protocol to be semi-honest. If the parties where not
 semi-honest, then it might be easier to extract the secret input of the parties,
 which is not in the interest of the person running the protocol.
-These two facts contribute the ``MPC in the head'' approach to be significantly
+These two facts contribute to the ``MPC in the head'' approach being significantly
 more efficient than a normal MPC protocol.
 
 We can distribute $x$ to all the local parties, such that the output of the MPC
 protocol will be $y$. In a sense, this corresponds to splitting the computation
 into $n$ branches. Consequently, if all $n$ branches are then later recombined
 we get the actual evaluation of $f$.
-Then, if we reveal $d$ of the $n$ computation branches to a verifier, he
+Then, if we reveal $d$ branches to a verifier, he
 would not be able to reconstruct the original input. Reconstructing the input
 requires all the computational branches and by the $d$-privacy
 property we know that $d$ of the views reveal no information about the other views.
 
-In the following section we introduce the concept of the $(2,3)$-Decomposition,
-which is a ``MPC in the head'' protocol for splitting the evaluation of a
+In the following section, we introduce the concept of the $(2,3)$-Decomposition,
+which is an ``MPC in the head'' protocol for splitting the evaluation of a
 circuit into three branches with $2$-privacy and correctness. We then introduce
-the actual ZKBoo protocol, and describe how the views of a MPC protocol can be
+the actual ZKBoo protocol and describe how the views of an MPC protocol can be
 used to prove knowledge of $x$.
 
 \subsection{(2,3)-Function Decomposition}
@@ -78,25 +78,24 @@ used to prove knowledge of $x$.
 (2,3)-Function decomposition is a general technique for computing the output of
 a circuit $f : X \rightarrow Y$ on input value $x \in X$.
 The decomposition works by splitting the function evaluation into three
-computational branches where each computation branch is a party in a MPC
+computational branches where each computation branch is a party in an MPC
 protocol. The $(2,3)$-Decomposition is essentially a $3$ party MPC protocol with
 $2$-privacy that has been altered such that every party is run locally.
-Throughout this section we will simply refer the (2,3)-Function decomposition
+Throughout this section, we will refer the (2,3)-Function decomposition
 of a function $f$ as $\decomp_{f}$.
 
 We refer to the three parties of the decomposition as $P_{1}, P_{2}, P_{3}$. The
-decomposition then works by splitting the input into a input share for each
-party, where the original input can be obtain if all three input shares are
+decomposition then works by splitting the input into an input share for each
+party, where the original input can be obtained if all three input shares are
 acquired.
 Each party then evaluates all the gates of the circuit to a value, as described by
-the MPC protocol. Here, we mimic communication of the parties by simply letting
-them access each others views. As a general rule we only allow party $P_{i}$ to
+the MPC protocol. Here, we mimic the communication of the parties by simply letting
+them access each other's views. As a general rule, we only allow party $P_{i}$ to
 communicate with party $P_{i+1 \mod 3}$.
-The view of a party is then a list  of all the values that
-the party has computed so far.
+The view of a party is a list of values that the party has computed so far.
 The view of party $P_{i}$ is referred to as $w_{i}$.
-For the rest of this chapter we will omit the $\mod 3$ from the
-indexing. Moreover we assume that each party has access to a random tape $k_{i}$
+For the rest of this chapter, we will omit the $\mod 3$ from the
+indexing. Moreover, we assume that each party has access to a random tape $k_{i}$
 which describes what the party should do if the protocol asks for a random
 choice.
 
@@ -106,15 +105,15 @@ choice.
     \decomp = \{\text{Share}, \text{Output}, \text{Rec}, \text{Update}\}
   \]
 
-  Where Share is a procedure for compute the three inputs shares based on a
+  Where Share is a procedure for computing the three inputs shares based on an
   input to $f$.
-  Moreover, it should be possible to invert the share procedure such that the
+  Moreover, it should be possible to invert the Share procedure such that the
   original input can be recovered from the three input shares.
   Output is a function returning the output share from the view of a party.
   Rec is a function reconstructing the output of the function $f$ based on the
   output values of the parties.
 
-  Lastly we have Update(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
+  Last, we have Update(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
   is the function used to evaluate the j'th gate of the circuit from the point
   of view of $P_{i}$. Here
   $j$ also refers to the size of the view, i.e. how many shares has been
@@ -123,11 +122,11 @@ choice.
 
 The (2,3)-Decomposition is then the three views produced by running Update on
 each party with input shares produced by Share until the entire circuit has been
-evaluated by each party.
+evaluated.
 
 \paragraph{Security}
 Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
-can then define the two necessary properties from \cite{zkboo} for security of
+can then define the two fundamental properties from \cite{zkboo} for showing security of
 our (2,3)-Function decomposition, namely, correctness and privacy.
 
 \begin{definition}[Correctness]
@@ -170,7 +169,7 @@ We then implement $\decomp_{\text{ARITH}}$ as:
     value of evaluating the circuit normally.
   \item Update(view$^{j}_{i}$, view$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$): Here we
     define procedures based on what type the j'th gate is. Since update only
-    append a new share to the view of the party we only define how to compute
+    append a new share to the view of the party, we only define how to compute
     the new share, since the old shares are immutable.
     \begin{itemize}
       \item Addition by constant: where $a$ is the input wire to the gate
@@ -220,24 +219,27 @@ The protocol proceeds as follows:
     \end{itemize}
 \end{itemize}
 
-From this protocol we can see that if $\decomp_{C_{f}}$ is correct and we get access to
-all three views then we would be able to extract the witness of the relation,
+From this protocol we can see that if get access to all three views and $\decomp_{C_{f}}$ is correct, then we would be able to extract the witness of the relation
 since the output of decomposition is equivalent to the result of the function it decomposes.
-By only revealing 2 of the three views we are ensured by the 2-privacy property
+By only revealing 2 of the three views, we are ensured by the 2-privacy property
 of $\decomp_{C_{f}}$ that the protocol is zero-knowledge. This
 property is stronger than the one given by $\Sigma$-protocols, which only offers
 zero-knowledge if the verifier is honest. The problem, however, is that the
 prover gives the verifier access to the commitment of the last view, so if the
-view can be determined based on the commitment then the zero-knowledge property
+view can be determined based on the commitment, then the zero-knowledge property
 does not hold.
 
 Lastly, if the prover is to cheat the verifier he must produce three views where
-the output is $y$. The only way for the prover to do this is to change some of
-the shares in one of the views to coerce the output. By doing so one of the
-views will deviate from the procedures of $\decomp_{f}$, which the prove can easily
-check if the pick the correct challenge.
+the output is $y$.
+The only way for the prover is if he changes some of
+the shares in one of the views; thus coercing the output to the value he wants.
+By doing so, one of the
+views will deviate from the procedures of $\decomp_{f}$, which the prove can quickly
+verify if he picked the correct challenge. If not, then the prover has
+successfully cheated him. It is, therefore, necessary to run the protocol
+multiple times.
 
-To prove that the above claims holds and that the ZKBoo protocol is secure we will
+To prove that the above claims hold and that the ZKBoo protocol is secure we will
 in the following chapter use the work laid out in this thesis to develop a
 formalisation of the ZKBoo protocol that captures the aforementioned security aspects.
 

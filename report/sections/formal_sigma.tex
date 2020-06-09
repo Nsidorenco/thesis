@@ -1,11 +1,10 @@
 \chapter{Formalising $\Sigma$-Protocols}
 \label{ch:formal_sigma}
-\todo{Aim to port results from Isabelle to EC}
-In this chapter we formalise $\Sigma$-Protocols a long with different
+In this chapter, we formalise $\Sigma$-Protocols along with different
 constructions based on $\Sigma$-Protocol. Our formalisation is driven by the
 definitions given by \cite{on-sigma-protocols} and already existing
 formalisation of $\Sigma$-Protocols in the \easycrypt\ source code \cite{ec_source}. Our work
-improve on this work by providing more generalised definition, namely
+improves on this work by providing more generalised definition, namely
 $s$-special soundness instead of the usual $2$-special soundness definition
 given. Additionally, we also provide an alternative definition of completeness.
 Moreover, we \todo{word} the work of compound $\Sigma$-Protocols by
@@ -16,12 +15,12 @@ Last, we show that our formalisation can be used to prove the security of
 Schnorr's $\Sigma$-Protocol.
 
 Moreover, we show that any protocol that adheres to this abstract specification
-of a $\Sigma$-Protocol can be compounded together whilst still being secure.
+of a $\Sigma$-Protocol can be compounded together while still being secure.
 
 We then end this section by formalising the Fiat-Shamir transformation, which allows
 us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
-This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
-model, since Special honest verifier zero-knowledge ensure zero-knowledge in the
+This also implies that $\Sigma$-Protocols are Zero-knowledge in the random oracle
+model since Special honest-verifier zero-knowledge ensure zero-knowledge in the
 presence of an honest verifier. If we remove the verifier then he can always be
 assumed honest.
 
@@ -41,7 +40,7 @@ Furthermore, we define the relation for which the protocol operates on as a
 binary function mapping a statement and witness to true/false
 $R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$.
 Moreover, we fix a lossless and full/uniform distribution over challenges. This
-distribution is used to model a honest verifier which will always generate a random challenge.
+distribution is used to model an honest verifier which will always generate a random challenge.
 
 We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
 \begin{lstlisting}[label=lst:sigma_procedures,caption= Abstract procedures of $\Sigma$-Protocols]
@@ -141,7 +140,7 @@ proc intermediate(h : input, w : witness) : bool = {
 \end{lstlisting}
 
 From this it is easy to prove equivalence between the two procedures
-``intermediate'' and ``main'' by simply inlinining the procudures and moving
+``intermediate'' and ``main'' by simply inlining the procedures and moving
 the sampling to the first line of each program. This will make the two programs
 equivalent.
 
@@ -232,7 +231,7 @@ proc ideal(h, e) = {
 \begin{definition}
 \label{def:sigma-protocol}
   S is said to be a $\Sigma$-Protocol if it implements the procedures in figure
-  \ref{lst:sigma_procedures} and satisfy the definitions of completeness,
+  \ref{lst:sigma_procedures} and satisfies the definitions of completeness,
   special soundness, and special honest-verifier zero-knowledge.
 \end{definition}
 
@@ -240,14 +239,13 @@ We note that our definition of special-honest verifier zero-knowledge is not
 expressive enough for all use cases. Since we are using \easycrypt's pRHL to
 distinguish the two procedures, our definition only captures perfect
 zero-knowledge. If we wanted a definition capable of expressing computational
-zero-knowledge we would have to use an adversary to compare the two procedures.
-We opted to restrictive shvzk to perfect zero-knowledge since it is easier to
-work with.
+zero-knowledge, we would have to use an adversary to compare the two procedures.
+We opted to restrict shvzk to perfect zero-knowledge.
 
 \section{Compound Protocols}
 \label{sec:sigma_comp}
 Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
-composes is various ways. More specially we show that it is possible to prove knowledge of
+composes in various ways. More specifically, we show that it is possible to prove knowledge of
 relations compounded by the logical operators ``AND'' and ``OR'' by compounding
 $\Sigma$-Protocols together.
 
@@ -259,10 +257,10 @@ By drawing on previous work we aim to make a
 formalisation that is workable and succinct within reason of what \easycrypt\
 allows us to do.
 Moreover, by recreating formalisations within new proof
-assistant we can gain valuable insight into how \easycrypt\ compares to other
-proof assistant whilst reflecting on how to improve previous work.
+assistant, we can gain valuable insight into how \easycrypt\ compares to other
+proof assistant while reflecting on how to improve previous work.
 
-\paragraph{Higher order instances of theories} \todo{Unsure how?}
+\paragraph{Higher-order instances of theories} \todo{Unsure how?}
 We then define the AND construction as a module parametrised by
 $\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
 can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
@@ -271,7 +269,7 @@ specific type signature of $S_{1}$ and $S_{2}$, but recall that the entire AND
 construction is quantified over the types given in the type declaration. This
 means that the types of $S_{1}$ and $S_{2}$ can be fixed to any arbitrary types
 and therefore can express any $\Sigma$-Protocol.
-But, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
+Nevertheless, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
 the AND construction parametrised by $\Sigma$-Protocols satisfying the type
 signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
 construction be any two $\Sigma$-protocols? Ideally, the AND
@@ -289,9 +287,9 @@ $\Sigma$-Protocol proving knowledge of the relation
 $R((h_{1}, h_{2}), (w_{1}, w_{2})) = R_{1}(h_{1}, w_{1}) \land R_{2}(h_{2}, w_{2})$.
 
 The construction of AND protocol is a $\Sigma$-Protocol running both
-$S_{1}$ and $S_{2}$ as sub-procedures. To formalise this we start by declaring
+$S_{1}$ and $S_{2}$ as sub-procedures. To formalise this, we start by declaring
 the AND construction as an instantiation of a $\Sigma$-Protocol. To do this we
-first need to define the types of AND construction. But before we
+first need to define the types of AND construction. However, before we
 can define the types we need to know the types of the
 underlying $\Sigma$-Protocols $S_{1}$ and $S_{2}$. To denote the types of
 $S_{i}$ we use the notation: $\text{type}_i$
@@ -304,7 +302,7 @@ $S_{i}$ we use the notation: $\text{type}_i$
 \end{align*}
 
 We then define the procedures of the AND construction as seen in listing \ref{lst:and-procedures}.
-The AND construction works by running both protocol in parallel. The first
+The AND construction works by running both protocols in parallel. The first
 message, therefore, becomes the product of the messages produced by the
 underlying protocols. The responses are similarly created.
 
@@ -356,7 +354,7 @@ regards to the module \texttt{ANDProtocol}
   \texttt{Completeness(ANDProtocol).special} we see that it is equivalent to:
   \texttt{Completeness($P_{1}$).special; Completeness($P_{2}$).special}. Which is true by our
   assumption of $P_{1}$ and $P_{2}$ being complete.
-  We need to use the \texttt{special} definition of the completeness game here,
+  We need to use the \texttt{special} definition of the completeness game here
   since the challenge $e$ is given by a Verifier running the AND construction.
   And the sub-protocols are, therefore, not allowed to sample their own
   challenges.
@@ -418,7 +416,7 @@ proc simulator(h : statement, e : challenge) : message * response = {
 \begin{proof}
   Since the simulator for AND is simply running both simulator for P1 and P2,
   we use \ref{eq:and:verify} to apply the shvzk of P1 and P2.
-  From this we can conclude that the transcript of the simulator is
+  From this, we can conclude that the transcript of the simulator is
   indistinguishable from the transcript of running honest versions of P1 and P2.
   By correctness of AND the proof is then complete.
 \end{proof}
@@ -448,17 +446,17 @@ To fix this we use the alternative relation:
 The main idea behind the OR construction, is that by SHVZK it is possible to
 construct accepting conversations for both $S_{1}$ and $S_{2}$ if the Prover is
 allowed to choose what challenge he responds to. Obviously, if the Prover is
-allowed to chose the challenge the protocol would not be secure. Therefore,
+allowed to chose the challenge, the protocol would not be secure. Therefore,
 we limit the Prover such that he can choose the challenge for one sub-protocol,
 but must run the other sub-protocol with a challenge influenced by the Verifier.
 This is done by letting the Prover chose two challenges $e_{1}$ and $e_{2}$,
-which the Verifier will only accept, if the $e_{1} \oplus e_{2} = s$ where $s$
+which the Verifier will only accept if the $e_{1} \oplus e_{2} = s$ where $s$
 is the challenge produced by the Verifier.
-By producing accepting transcripts for both sub-protocols it must be true that
+By producing accepting transcripts for both sub-protocols, it must be true that
 he knew the witness for at least one of the relations.
 
-To formalise this we first need a way to express that the challenge type
-supports XOR operations. To do this we add the following axioms, which will have
+To formalise this, we first need a way to express that the challenge type
+supports XOR operations. To do this, we add the following axioms, which will have
 to be proven true before our formalisation can be applied.
 
 \begin{gather}
@@ -523,9 +521,9 @@ regards to the module \texttt{ORProtocol}
 \end{lemma}
 \begin{proof}
   To prove completeness we branch depending on which relation holds. If R1 $h1$
-  $w$ holds then all P1 procedures can be grouped together as the P1
+  $w$ holds then all P1 procedures can be grouped into the P1
   completeness game. We then need to prove that \texttt{S2.verify} output accept
-  on the transcript generated by \texttt{S2.simulator} which is true by the
+  on the transcript generated by \texttt{S2.simulator}, which is true by the
   assumption of SHVZK of P2.
   The proof when R2 $h2$ $w$ holds follows similarly.
 \end{proof}
@@ -535,7 +533,7 @@ regards to the module \texttt{ORProtocol}
   \[
     equiv[SHVZK(OR(P1, P2)).ideal \sim SHVZK(OR(P1, P2)).real]
   \]
-  With the Pre and Post condition given by definition \ref{def:sigma:shvzk}.
+  With the pre and postcondition given by definition \ref{def:sigma:shvzk}.
 
   Where the simulator for the OR construction is given by
 
@@ -595,7 +593,7 @@ proc simulator(h : statement, s : challenge) : message * response = {
   Given secure $\Sigma$-Protocols P1 P2 then
   The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness}
   with $s = 2$ and witness extractor for the OR construction defined as:
-\begin{lstlisting}[mathescape]
+\begin{lstlisting}
 proc witness_extractor(h, a, s : challenge list, z : response list) = {
   (h1, h2) = h;
   (a1, a2) = m;
@@ -738,10 +736,10 @@ forking lemma, which depends on rewinding and is still an open research topic to
 
 \section{Concrete instantiation: Schnorr protocol}
 \label{sec:schnorr}
-To show the workability of the proposed formalisation we show that it can be
+To show the workability of the proposed formalisation, we show that it can be
 used to instantiate Schnorr's protocol.
 Schnorr's protocol is run between a Prover P and a
-Verifier V. Both parties have before running the protocol agreed on a group
+Verifier V. Both parties, before running the protocol, agree on a group
 $(\mathbb{G}, q, g)$, where $q$ is the order of $\mathbb{G}$ and $g$ is the
 generator for the group.
 Schnorr's protocol is a $\Sigma$-Protocol for proving knowledge of a discrete
@@ -749,12 +747,12 @@ logarithm. Formally it is a $\Sigma$-Protocol for the relation R h w $= (h = g^{
 
 When P wants to prove knowledge of w to V he starts by
 constructing a message $a = g^{r}$ for some random value $r$. The Verifier will
-the generate a random challenge, $e$, which is a bit-string of some arbitrary length.
+generate a random challenge, $e$, which is a bit-string of some arbitrary length.
 Based on this challenge P then constructs a response $z = r + e \cdot w$ and sends
 it to V.
 To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a \cdot h^{e}$.
 
-From this general description it is clear that this protocol fits within out
+From this general description, it is clear that this protocol fits within our
 formalisation of $\Sigma$-Protocol procedures. We then define the appropriate
 types and instantiate the protocol using our $\Sigma$-Protocol formalisation,
 which can be seen in listing \ref{lst:sigma:schnorr}.
@@ -789,11 +787,11 @@ module Schnorr : SProtocol = {
 }
 \end{lstlisting}
 
-Here we first discharge the assumption that the challenge are lossless, uniform
+Here we first discharge the assumption that the challenge distribution is lossless, uniform
 and fully distributed by using the \easycrypt\ theories about distributions and
 cyclic groups.
 
-To prove security of the protocol we show that the it satisfies the security
+To prove that the protocol is secure, we show that it satisfies the security
 definitions from section \ref{sec:sigma:def}.
 
 \begin{lemma}[Schnorr correctness]
