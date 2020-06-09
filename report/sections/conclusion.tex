@@ -48,22 +48,25 @@ of circuits.
 
 \section{Discussion}
 \label{sec:discussion}
-For all of the work laid out in this thesis we have used the \easycrypt\ proof
-assistant to formally verify all the proofs shown.
+\todo{Needs a semi-honest MPC protocol}
+Throughout the work of this thesis we have used the \easycrypt\ proof assistant
+to formally verify the proofs presented herein.
+The work has been an iterative process between formulating a lemma and then
+trying to prove it within \easycrypt. This process was then repeated until the
+lemma would be formally proven. Consequently, \easycrypt\ has been a
+instrumental part of the work formulated in this thesis. Moreover, the powerful
+automation tools offered by \easycrypt\ has allowed us to discharge trivial
+proofs, thus enabling us to spend more time working on the complex lemmas seen
+within this thesis.
 
-\easycrypt\ tries to capture the models in which cryptographers create and prove
-protocols. For the most part we feel like \easycrypt\ has managed to capture
-these models quite well both in its \textit{pWhile} language for implementing
-protocols and its different logics for proving properties about programs.
-
-The benefit of using an imperative language like \textit{pWhile} over a functional
-language used by cryptographic proof assistants like Isabelle/CryptHOL is that most
-cryptographic protocols are described in a pseudo-code mimicking imperative
-languages. This makes it relatively easy to convert protocols described in
-papers into \easycrypt\ implementations. This is clear from the code examples
-provided in this thesis, which closely resemble the actual \easycrypt\
-implementations whilst being relatively similar to the protocol descriptions
-seen in cryptographic papers.
+Overall, we feel that \easycrypt\ captures the models used by cryptographers
+quite well; our formalisation of ZKBoo has a structure similar to that presented
+in the original paper by \citet{zkboo}. This has enabled us to spend less time
+formulating the protocol and the proof steps and more time on formalising
+important security criteria.
+This has been capacitated, in part, by \easycrypt\ \textit{pWhile} language for
+implementing procedures. This language follow a structure closely resembling the
+pseudo-code seen in cryptographic papers.
 
 Ultimately, the tool offers the possibility of writing programs both in a
 functional style and in an imperative style. It is, however, only programs
@@ -85,8 +88,9 @@ then be used to construct new adversaries that can break the security of other p
 The other techniques observably indistinguishability with \easycrypt's rPHL
 logic.
 Both of these techniques are perfectly valid for proving security of
-cryptographic protocols. However, \easycrypt\ offers no support for relating the
-two techniques. This became apparent in chapter \ref{ch:formal_zkboo} where the
+cryptographic protocols. However, at the time of writing this thesis it is not
+clear to us how to formally prove the relation between the two techniques.
+The schism became apparent in chapter \ref{ch:formal_zkboo} where the
 adversarial-based security definitions of our commitment schemes did not conform
 to our the goals needed to prove security in our $\Sigma$-Protocol formalisation.
 
@@ -97,21 +101,22 @@ the different logics that \easycrypt\ provides are not documented anywhere, but
 instead have to be found in the papers describing \textbf{CertiCrypt} which is
 the Coq-based proof assistant antecedent to \easycrypt.
 
-Overall, we believe that the power full automatic tactics...
-
 \section{Future work}
 \label{sec:future_work}
-In this thesis we has created a formalisation and $\Sigma$-Protocols and
+In this thesis we have formalised $\Sigma$-Protocols and
 commitment schemes that is applicable to larger cryptographic protocols, as show
-by our formalisation of ZKBoo. Various improvement has then been made to the
-ZKBoo protocol to mainly reduce to proof size but also to provide zero-knowledge
-in a post-quantum context \cite{zkb++}.
+by our formalisation of ZKBoo. However, various improvement has since been made to the
+ZKBoo protocol. Notably, the ZB++ protocol, which offers a reduction to the
+size of the zero-knowledge proof sent to the verify. Moreover, it also provides zero-knowledge
+in a post-quantum context \cite{zkb++}. An interesting next step could,
+therefore, be to use our existing formalisation of ZKBoo to formally verify the
+improvements made by ZB++.
 
 With our formalisation we have intentionally focused on the ZKBoo protocol in
 isolation but in real applications it would be part of a larger tool chain.
 Mainly, ZKBoo requires a circuit with a definable execution order to be secure.
 In our formalisation we have assumed the input to be a circuit and defined an
-execution order but to complete the tool chain we would need a formalisation of
+execution order, but to complete the tool chain we would need a formalisation of
 a procedure converting functions to circuits and a formal proof of the induced
 execution order in section \ref{subsec:arith-representation} being semantic preserving.
 
@@ -119,11 +124,8 @@ Moreover we saw in section \ref{subsec:fiat-shamir} that there is a need for
 formalising the rewinding lemma to reason about soundness of the Fiat-Shamir
 transformation. Moreover, rewinding is a common technique for proving soundness
 of zero-knowledge protocols. Formalising the rewinding lemma would then allows
-us to reason about be general zero-knowledge protocols than the sub-class of
+us to reason about more general zero-knowledge protocols than the sub-class of
 $\Sigma$-Protocol which we have explored in this thesis.
-
-% \todo{Prove connection between $\Sigma$ and pok or arg ZK}
-% \todo{Commitment: connection between original and alternative definitions}
 
 \section{Conclusion}
 \label{sec:conclusion}

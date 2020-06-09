@@ -1,123 +1,101 @@
-\chapter{Generalised Zero-Knowledge compilation}
+\chapter{Generalised Zero-Knowledge protocols}
 \label{ch:general_zk}
-We have previously seen a concrete instantiation of a $\Sigma$-protocol with the
-relation being the discrete logarithm problem, namely Schnorr's protocol
-(Section \ref{sec:schnorr}).
+In this chapter we introduce the concept of generalised zero-knowledge
+protocols. We also introduce the ZKBoo protocol, which is a generalised $\Sigma$-Protocol.
+In previously section, we have seen a concrete instantiation of a
+$\Sigma$-protocol with the relation being the discrete logarithm problem, namely
+Schnorr's protocol (Section \ref{sec:schnorr}).
 We have also seen how it is possible to prove the security of $\Sigma$-Protocols
 working on composite relations like AND and OR (Section \ref{sec:sigma_comp}).
-The main problem with these solutions is that they require a specialised
-$\Sigma$-Protocol for every non-composite relation. In our case we have a
-protocol we can use for proving knowledge of the discrete logarithm relation,
-but what if we also want to prove knowledge for another computational problem?
-With our current framework we would have to define a new $\Sigma$-Protocol
-exclusively for this relation.
 
-The problem with this is that there exists an infinite set of possible
-relations, for which we could want to provide zero-knowledge proofs. It is
-therefore infeasible to design a protocol for each relation and proving it to be
-secure.
+However, since the need for zero-knowledge is wide spread, it is unlikely that a
+$\Sigma$-Protocol for proving knowledge of a discrete logarithm suffices.
+Consider the example of an authentication system, where each user has a
+certificate consisting of his name, income, and birthday. This certificate also has some
+additional information to verify the certificate.
+A user of this system would then like to prove that he is above the age of 18.
+However, the user is not willing to reveal his birthday. To solve this problem
+we could define a $\Sigma$ protocol for proving knowledge of the birthday making
+a certificate with the name and income valid.
+We could then image another user being interesting in proving their wealth is
+above 5000, but not their precise income. Here, we have the same problem as
+before, but with a slightly different relation.
 
-We therefore need a more generalised approach, that is able to generate
-zero-knowledge proof for an entire family of relations rather than a specific relation.
-One such family of relations is the pre-image under group homomorphisms \dots
+To solve this problem, we could either pre-determine all the relations we could
+need zero-knowledge proofs of. However, another approach is that of generalised
+zero-knowledge protocols.
+A generalised zero-knowledge protocol is, like the name suggests, a
+protocol able to prove zero-knowledge for an entire class of relations.
+One example of such a class of relations, is every relation that can be
+described as the pre-image of a group homomorphism \ie that the user knows the
+input to some function, which results in to a specific output.
 
-We will in this chapter introduce the generalized zero-knowledge compiler,
-ZKBoo, by \citet{zkboo}. When doing so we aim to provide an general overview
-of how the protocol works, whilst recalling key definitions and proofs from the paper.
-
+To explore the field of generalised zero-knowledge protocol we introduce ZKBoo
+and its security definition by \citet{zkboo}.
+ZKBoo is a $\Sigma$-Protocol for any relation expressed as the
+pre-image of a group homomorphism.
 \section{ZKBOO}
 \label{sec:zkboo}
-\todo{Based on MPC in the head}
-\todo{Needs a semi-honest MPC protocol}
-\todo{Efficient because of semi-honest requirement}
-\todo{privacy implies ZK}
-\todo{Can only cheat verifier if he is unlucky in the view he opens}
-\todo{One view needs to be inconsistent to produce valid output for invalid input}
-ZKBoo protocol is a generalised $\Sigma$-Protocol for the class of relations that can be
-expressed as the pre-image of a group homomorphism, i.e.
+In this section we introduce ZKBoo, a generalised $\Sigma$-Protocol for
+relations of the form:
 
 \[
-  R \text{ h w} = \phi(w) = h
+  (x, y) \in R \iff f(x) = y
 \]
 
-Where $h$ is the public input and $w$ is the witness.
-
-\todo{define view. different from normal MPC definition}
+Where $y$ is the public input, $x$ is the witness and $f$ is any function
+defined as a circuit over a finite group.
 
 The principle idea of this protocol is based on a technique called ``MPC in the
-head''. Recall from section \ref{sec:background:mpc}, that
-Multipart Computations allows us to securely compute any given function taking
-$n$ inputs to an output $y$.
-We then have by definition \ref{def:mpc:d-privacy} that as long as only
-$d \leq n$ views are available to the adversary, then the inputs to the function
-are private.
+head''. The idea of ``MPC in the head'' is to run a secure $n$ party MPC protocol for computing
+$f$, but with every party being locally simulated, rather than run as part of
+the protocol.
+By running every party locally we also remove any communicate overhead the MPC
+protocol might incur. Moreover, since the protocol is run locally we can assume
+every party of the MPC protocol to be semi-honest. If the parties where not
+semi-honest, then it might be easier to extract the secret input of the parties,
+which is not in the interest of the person running the protocol.
+These two facts contribute the ``MPC in the head'' approach to be significantly
+more efficient than a normal MPC protocol.
 
-Now, if we instead of proving the knowledge of a witness satisfying $\phi(w) = h$
-we revealed a run, i.e. the views of a MPC protocol computing the above
-function, but with the witness distributed amongst all parties then we get the
-following:
+We can distribute $x$ to all the local parties, such that the output of the MPC
+protocol will be $y$. In a sense, this corresponds to splitting the computation
+into $n$ branches. Consequently, if all $n$ branches are then later recombined
+we get the actual evaluation of $f$.
+Then, if we reveal $d$ of the $n$ computation branches to a verifier, he
+would not be able to reconstruct the original input. Reconstructing the input
+requires all the computational branches and by the $d$-privacy
+property we know that $d$ of the views reveal no information about the other views.
 
-\begin{lemma}
-\label{lemma:zkboo_correctness}
-By correctness (definition \ref{def:mpc:correctness}), and assuming that
-the input share to the parties where indeed a valid distribution of the
-witness, then we can conclude that the witness is the pre-image of the public input
-\end{lemma}
-
-\begin{lemma}
-\label{lemma:zkboo_privacy}
-By d-privacy (definition \ref{def:mpc:d-privacy}) if $d \leq n$ views are
-revealed, then the witness is not revealed.
-\end{lemma}
-
-Which ultimately gives us:
-
-\begin{lemma}
-\label{lemma:zkboo_secure}
-From lemma \ref{lemma:zkboo_correctness} and lemma \ref{lemma:zkboo_privacy} it
-follows that MPC can be used to create an $\Sigma$-Protocol for the
-pre-image of a group homomorphism.
-\end{lemma}
-
-Before we go into proving the above lemmas, we first need to address how we are
-to actually perform the MPC protocol. Having to depend on $n$ different parties
-to perform a zero-knowledge protocol is not a feasible solution, so instead of
-recruiting the help of $n$ external parties to perform the protocol we instead
-perform the entire protocol locally by simulating every party in the protocol.
-This is commonly refereed to as performing the protocol ``in the head''.
-
-\todo{implication on security by having all parties locally}
-
-The following section we then, in order, be dedicated to explaining how to
-distribute the witness to multiple parties, and decomposing the original single
-input into an MPC protocol computing the function take $n$ inputs. Then, having
-properly defined the MPC protocol, we will show how to use the ``MPC in the
-head'' protocol to make a zero-knowledge protocol to and prove lemma \ref{lemma:zkboo_secure}.
+In the following section we introduce the concept of the $(2,3)$-Decomposition,
+which is a ``MPC in the head'' protocol for splitting the evaluation of a
+circuit into three branches with $2$-privacy and correctness. We then introduce
+the actual ZKBoo protocol, and describe how the views of a MPC protocol can be
+used to prove knowledge of $x$.
 
 \subsection{(2,3)-Function Decomposition}
 \label{subsec:decomposition}
-\todo{MPC protocol but local}
 (2,3)-Function decomposition is a general technique for computing the output of
-a function $f : X \rightarrow Y$ on input value $x \in X$.
+a circuit $f : X \rightarrow Y$ on input value $x \in X$.
 The decomposition works by splitting the function evaluation into three
 computational branches where each computation branch is a party in a MPC
-protocol. Each party is then allowed to communicate with each other, but
-observing the computation of any two of the parties will reveal no information
-about the input value $x$.
-Through-out this section we will simply refer the (2,3)-Function decomposition
+protocol. The $(2,3)$-Decomposition is essentially a $3$ party MPC protocol with
+$2$-privacy that has been altered such that every party is run locally.
+Throughout this section we will simply refer the (2,3)-Function decomposition
 of a function $f$ as $\decomp_{f}$.
 
 We refer to the three parties of the decomposition as $P_{1}, P_{2}, P_{3}$. The
-decomposition then works by converting the function $f$ into a circuit and
-computing a input share for each party, where the original input can be obtain
-if all three input shares are acquired.
-Each party then evaluates the gates in the circuit to a new
-share based on the input they are given. party $P_{i}$ is allowed to communicate
-with party $P_{i+1 \mod 3}$, but since every party in run locally it effectively
-means that party $P_{i}$ has access to the entire view of $P_{i+1 \mod 3}$ for
-the entire duration of the protocol. The view of a party is then a list  of all the shares that
-the party has computed so far. The view of party $P_{i}$ is referred to as
-$w_{i}$ For the rest of this section we will omit the $\mod 3$ from the
+decomposition then works by splitting the input into a input share for each
+party, where the original input can be obtain if all three input shares are
+acquired.
+Each party then evaluates all the gates of the circuit to a value, as described by
+the MPC protocol. Here, we mimic communication of the parties by simply letting
+them access each others views. As a general rule we only allow party $P_{i}$ to
+communicate with party $P_{i+1 \mod 3}$.
+The view of a party is then a list  of all the values that
+the party has computed so far.
+The view of party $P_{i}$ is referred to as $w_{i}$.
+For the rest of this chapter we will omit the $\mod 3$ from the
 indexing. Moreover we assume that each party has access to a random tape $k_{i}$
 which describes what the party should do if the protocol asks for a random
 choice.
@@ -156,7 +134,6 @@ our (2,3)-Function decomposition, namely, correctness and privacy.
 \label{def:decomp_correctness}
 A (2,3)-decomposition $\decomp_{f}$ is correct if
 $\forall x \in X, \Pr{f(x) = \decomp_{f}(x)} = 1$.
-\todo{Change notation to account for randomness}
 \end{definition}
 
 \begin{definition}[Privacy]
@@ -223,23 +200,19 @@ the share of the other party where. If the random values where not added then if
 would be easy to deduce what the share of $P_{i+1}$ where given access to the
 view of party $P_{i}$.
 
-\todo{ZKBoo omits implementation detail - what is the output wire of the gate}
-
-\todo{Replace $\phi$ with f?}
 \subsection{ZKBoo}
 \label{subsec:general:zkboo}
-Based on the (2,3)-Decomposition we are now ready to describe the
-$\Sigma$-Protocol for the relation R x y = $f(x) = y$.
+Based on the (2,3)-Decomposition we are now ready to ZKBoo.
 
 The protocol proceeds as follows:
 \begin{itemize}
-  \item The Prover run obtains the circuit representation $C_{f}$ of f and uses
-    $\decomp$ to produce three views $w_{1}, w_{2},$ and $w_{3}$.
-    The Prover then commits to all random choices and the views and sends the
-    output shares $y_{1}, y_{2}, y_{3}$ of the decomposition and the commitments to the Verifier
+  \item The prover obtains the circuit representation $C_{f}$ of f and uses
+    $\decomp_{C_{f}}$ to produce three views $w_{1}, w_{2},$ and $w_{3}$.
+    The prover then commits to all random choices and the views and sends the
+    output shares $y_{1}, y_{2}, y_{3}$ of the decomposition and the commitments to the verifier
   \item The verifier pick a number $e \in \{1,2,3\}$
-  \item The Prover sends views $w_{e}, w_{e+1}$ to the Verifier
-  \item The Verifier checks
+  \item The prover sends views $w_{e}, w_{e+1}$ to the verifier
+  \item The verifier checks
     \begin{itemize}
       \item The commitments corresponds to the views
       \item The view $w_{e}$ has been constructed by $\decomp$
@@ -247,19 +220,19 @@ The protocol proceeds as follows:
     \end{itemize}
 \end{itemize}
 
-From this protocol we can see that if $\decomp_{f}$ is correct and we get access to
+From this protocol we can see that if $\decomp_{C_{f}}$ is correct and we get access to
 all three views then we would be able to extract the witness of the relation,
 since the output of decomposition is equivalent to the result of the function it decomposes.
 By only revealing 2 of the three views we are ensured by the 2-privacy property
-of $\decomp$ that the protocol is zero-knowledge. This
+of $\decomp_{C_{f}}$ that the protocol is zero-knowledge. This
 property is stronger than the one given by $\Sigma$-protocols, which only offers
 zero-knowledge if the verifier is honest. The problem, however, is that the
-Prover gives the Verifier access to the commitment of the last view, so if the
+prover gives the verifier access to the commitment of the last view, so if the
 view can be determined based on the commitment then the zero-knowledge property
 does not hold.
 
-Lastly, if the Prover is to cheat the Verifier he must produce three views where
-the output is $y$. The only way for the Prover to do this is to change some of
+Lastly, if the prover is to cheat the verifier he must produce three views where
+the output is $y$. The only way for the prover to do this is to change some of
 the shares in one of the views to coerce the output. By doing so one of the
 views will deviate from the procedures of $\decomp_{f}$, which the prove can easily
 check if the pick the correct challenge.

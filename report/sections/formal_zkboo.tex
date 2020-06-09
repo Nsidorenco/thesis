@@ -842,8 +842,6 @@ type challenge = int.
 type response  = random_tape $\times$ view $\times$ random_tape $\times$ view
 \end{lstlisting}
 
-% and instantiating the $\Sigma$-Protocol framework.
-
 The relation is then all tuples of (circuits, outputs, inputs), where it holds
 that evaluating the circuit with the input returns the output. We formalise this as:
 \begin{equation}
@@ -1123,9 +1121,9 @@ SHVZK property based on one that violates the hiding property.
 \vspace{3mm}
 \noindent Lastly, we want to prove the 3-special soundness property of ZKBoo. To do so, we
 first inline the procedures of the soundness game and group the procedures
-together. This is seen in listing \ref{lst:zkboo:alt_soundness}
+together. This is seen in listing \ref{lst:zkboo:alt-soundness}
 
-\begin{lstlisting}[float,label=lst:zkboo:alt_soundness,caption=Soundness game for ZKBoo]
+\begin{lstlisting}[float,label=lst:zkboo:alt-soundness,caption=Soundness game for ZKBoo]
 local module SoundnessInter = {
   proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
     v1 = ZK.verify(h, m, 1, z1);
@@ -1279,7 +1277,7 @@ Based on these two lemmas are now ready to prove special soundness for ZKBoo.
   true with probability $1 - binding\_{prob}$.
 \end{proof}
 
-\paragraph{Conclusion% }
+% \paragraph{Conclusion}
 % In this chapter we have seen how to apply our formalisations of
 % $\Sigma$-Protocols and commitment schemes to a MPC based protocol...
 
@@ -1293,11 +1291,6 @@ Based on these two lemmas are now ready to prove special soundness for ZKBoo.
 % Moreover, they help us expose some of the more subtle details important for
 % proving security of cryptographic protocols, like requiring certain procedures
 % to be lossless since...
-
-
-% definitions are annoying to work with.
-
-% \todo{Have to take care to ensure that the decomposition can be backtraced}
 
 
 %%% Local Variables:

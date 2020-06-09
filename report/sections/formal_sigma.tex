@@ -1,10 +1,19 @@
 \chapter{Formalising $\Sigma$-Protocols}
 \label{ch:formal_sigma}
 \todo{Aim to port results from Isabelle to EC}
-This section will aim to formalise $\Sigma$-protocols according to the
-definitions set out in section \ref{sec:background:sigma_protocols}, with a
-sufficiently general set-up to allow for easy instantiation of any arbitrary
-protocol.
+In this chapter we formalise $\Sigma$-Protocols a long with different
+constructions based on $\Sigma$-Protocol. Our formalisation is driven by the
+definitions given by \cite{on-sigma-protocols} and already existing
+formalisation of $\Sigma$-Protocols in the \easycrypt\ source code \cite{ec_source}. Our work
+improve on this work by providing more generalised definition, namely
+$s$-special soundness instead of the usual $2$-special soundness definition
+given. Additionally, we also provide an alternative definition of completeness.
+Moreover, we \todo{word} the work of compound $\Sigma$-Protocols by
+\citet{cryptoeprint:2019:1185} by formalising their results in \easycrypt.
+We then introduce the Fiat-Shamir transformation and how it applies to our
+formalisation.
+Last, we show that our formalisation can be used to prove the security of
+Schnorr's $\Sigma$-Protocol.
 
 Moreover, we show that any protocol that adheres to this abstract specification
 of a $\Sigma$-Protocol can be compounded together whilst still being secure.
@@ -15,8 +24,6 @@ This also implies that $\Sigma$-Protocol are Zero-knowledge in the random oracle
 model, since Special honest verifier zero-knowledge ensure zero-knowledge in the
 presence of an honest verifier. If we remove the verifier then he can always be
 assumed honest.
-
-\todo{Cite other works about $\Sigma$-Protocols}
 
 \section{Defining $\Sigma$-Protocols}
 \label{sec:sigma:def}
@@ -49,14 +56,14 @@ module type SProtocol = {
 \end{lstlisting}
 
 Here all procedures are defined in the same module. This allows the
-Verifier procedure to access the global state of the Prover. This could lead to
+Verifier procedure to access the global state of the prover. This could lead to
 invalid proofs of security. It is paramount to implement the
 \texttt{verify} procedure such that it never accesses the global state of the SProtocol module.
 This could have been alleviated by splitting the SProtocol module into multiple
 different modules with only the appropriate procedures inside. This would remove
 any potential for human error when defining a $\Sigma$-Protocol, but it is
 easier to quantify over one module containing all relevant procedures than
-quantifying over a Prover and a Verifier module and then reasoning about the two
+quantifying over a prover and a verifier module and then reasoning about the two
 modules being part of the same $\Sigma$-Protocol.
 Ultimately, we decided on having everything defined within the same module.
 
@@ -158,30 +165,33 @@ Which then is proven by the hypothesis of the ``special'' procedure being comple
 
 \begin{definition}[Special Soundness]
 \label{def:sigma:soundness}
-  A $\Sigma$-Protocol S has special soundness if:
+  A $\Sigma$-Protocol S has $s$-special soundness if given a list of challenges
+  $c$ and a list of responses $z$ with $\text{size } c = \text{size } z = s$, it
+  holds that:
 \begin{align*}
-  \forall h,w,a&,e,e',z,z'. \\
-    & e \neq e' \\
-    & \text{R } h \; w \implies \\
-    \land &\Pr{S.verify((h_{1}, h_{2}), (w_{1}, w_{2}), a,  e, z)} = 1 \\
-    \land &\Pr{S.verify((h_{1}, h_{2}), (w_{1}, w_{2}), a, e', z')} = 1 \\
-    &\implies \Pr{SpecialSoundness(\texttt{ANDProtocol}(P_{1}, P_{2})).main(h, a, [e;e'], [z;z'])} = 1
+    & \forall (i \neq j). c[i] \neq c[j] \\
+    \land &\forall (i \in [1 \dots s]). \Pr{S.verify(h, a, c[i], z[i])} = 1 \\
+    &\implies \Pr{SpecialSoundness(\texttt{ANDProtocol}(S)).main(h, a, c, z)} = 1
 \end{align*}
 
 With \texttt{SpecialSoundness} defined as:
 
 \begin{lstlisting}[float, label=lst:sigma-soundness, caption= 2-special soundness game]
 module SpecialSoundness(S : SProtocol) = {
-  proc main(h : statement, a : message, e c' : challenge, z z' : response) : bool = {
-    var w, v, v';
+  proc main(h : statement, a : message, c : challenge list, z : response list) : bool = {
+    w = S.witness_extractor(h, m, c, z);
 
-    v  = S.verify(h, a, c, z);
-    v' = S.verify(h, m, c', z');
+    valid = true;
 
-    w = S.witness_extractor(h, m, e, e', z, z');
+    while (c <> []) {
+      c' = c[0];
+      z' = z[0];
+      valid = valid /\ S.verify(h, m, c', z');
+      c = behead c;
+      z = behead z;
+    }
 
-    return (e <> e' /\ (R h w) /\ v /\ v');
-  }
+    return valid /\ R h (oget w);
 }.
 \end{lstlisting}
 \end{definition}
@@ -229,9 +239,6 @@ proc ideal(h, e) = {
 \todo{Argue that games corresponds to original definitions}
 
 \todo{SHVZK only captures perfect indis. Unclear how to do with equiv?}
-
-\todo{To prove compound we assume to following relations to be true \dots and
-this only hold if both inputs are in the domain of R.}
 
 \section{Compound Protocols}
 \label{sec:sigma_comp}
