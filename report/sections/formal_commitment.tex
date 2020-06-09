@@ -57,25 +57,28 @@ should be easily verifiable by anyone knowing the public key, without having to
 keep any additional state about the committer.
 
 By separating the verification functions from the committers procedures we get a
-formalisation closer to the real world, where verification functions should not
-be able to read any of the state of the committer. This could alternatively have
-been modelled with the verifier being a module, but allowing the verify to keep
-state complicates proofs, since verifier two messages could potentially have an
-effect on each other \todo{rewrite this}.
+formalisation closer to the real world, where the verifiers functions should not
+be able to read/alter any of the state of the committer. This could alternatively have
+been modelled with the verifier being a separate module.
+However, if \texttt{verify} is expressed as a procedure in a verifier module,
+then we allow \texttt{verify} to read/alter state. By introducing state we
+unnecessarily complicate reasoning about verification of multiple messages.
+Consider the case, where the verifier is given two commitment and two openings;
+if \texttt{verify} is allowed to alter state, then the order of which we verify
+the commitments matter. It is, therefore, not possible to change to order of
+verifying commitments, unless it is explicitly proven that \texttt{verify} does
+not alter state.
+Implementing \texttt{verify} as a function alleviates the problem of reasoning
+about state.
 This is in contrast to previous work \cite{DBLP:journals/corr/MetereD17}, which
-has proven problematic to work with, when applying the formalisation of
-commitment schemes in larger protocols (Section \ref{sec:formal_zkboo}).
-\todo{Rewrite in sec \ref{sec:formal_zkboo} that it is needed to swap the order
-  of verifying commitments}
+has to implemented the functionality of the verifier as procedures in the same
+module as the committers functionality.
 
-We define a commitment scheme C to be an implementation of the functions and procedures in listing \ref{lst:commitment-procedures}.
-
-
-\todo{Mention randomness distributions?}
+We define a commitment scheme C to be an implementation of the functions and
+procedures in listing \ref{lst:commitment-procedures}.
 
 \section{Key-less commitment schemes}
 \label{sec:commitment:key-less}
-\todo{Is this section necessary?}
 We furthermore formalise a variant of commitment schemes that we key-less. This
 is formalised separately from the key-based commitment schemes, since the
 change in function/procedure signatures makes it incompatible with the key-based
@@ -179,7 +182,9 @@ module BindingGame(C : Committer, B : BindingAdv) = {
 \end{lstlisting}
 \end{definition}
 
-In our definitions of hiding and binding we do not have a formalisation of the statistical variant, since it is still unclear how to express those in EC \todo{reference}
+In our definitions of hiding and binding we do not have a formalisation of the
+statistical variant, since it is still unclear how to express those in EC \cite{ec_intro}.
+
 
 \section{Alternative definitions of security}
 \label{sec:commitment:alt-sec}
@@ -263,9 +268,8 @@ proc alt_binding(c : commitment, m m' : message) = {
 \end{definition}
 
 The alternative definition of hiding only works in the perfect case, but it is much easier
-to work with within \easycrypt\  when this is the case. This is due to most
-proofs being stated is indistinguishability proofs, which are bothersome to
-convert to adversarial proofs. \todo{rewrite this}
+to work with within \easycrypt\  since pRHL statement be used to prove
+equivalence of calls to sub-procedures in other proofs.
 
 The alternative definition of binding allows us to use the ambient logic to
 reason about the probability of breaking the binding property instead of the

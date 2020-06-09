@@ -7,7 +7,7 @@ formalisation of $\Sigma$-Protocols in the \easycrypt\ source code \cite{ec_sour
 improves on this work by providing more generalised definition, namely
 $s$-special soundness instead of the usual $2$-special soundness definition
 given. Additionally, we also provide an alternative definition of completeness.
-Moreover, we \todo{word} the work of compound $\Sigma$-Protocols by
+Moreover, we reproduce the work of compound $\Sigma$-Protocols by
 \citet{cryptoeprint:2019:1185} by formalising their results in \easycrypt.
 We then introduce the Fiat-Shamir transformation and how it applies to our
 formalisation.
@@ -628,17 +628,23 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
 The Fiat-Shamir transformation is a technique for converting $\Sigma$-protocols
 into zero-knowledge protocols. $\Sigma$-Protocols almost satisfy the definition
 of zero-knowledge, the only problem is that $\Sigma$-Protocols only guarantee
-zero-knowledge in the presence of a honest verifier. This is stated by the Special
-Honest Verifier Zero-Knowledge property. However, if we can alter the protocol
+zero-knowledge in the presence of a honest verifier. This is stated by the special
+honest-verifier zero-knowledge property. However, if we can alter the protocol slightly
 to force the verifier to always be honest, then the protocol, by definition,
 must be zero-knowledge.
 The Fiat-Shamir transformation achieves this by removing the verifier from the
-protocol and thus making it non-interactive. The verifier is then replaced by an
-random oracle, which generates a random challenge based on the first message of
-the prover, thus it works exactly like an honest verifier in the interactive
-protocol. However, since the random oracle is a sub-procedure of the prover he
-is allowed to make polynomially many call to the oracle in the hopes of getting
-a good challenge... \todo{more text?}
+protocol, thus making it non-interactive.
+The verifier is replaced by an random oracle, which generates a uniformly random
+challenge based on the first message of the prover. The random oracle,
+therefore,  works exactly like an honest verifier in the interactive protocol.
+However, since the prover is responsible for obtaining the challenge from random
+oracle, and there is no interaction with the verifier, then he is free to call
+the oracle as many times as he wants. The only limitations is that the time
+complexity of the protocol must still be polynomial. Therefore, the prover can
+only make polynomially many calls to the oracle.
+The problem with allowing the prover to call the oracle multiple times is
+he can keep sampling new challenges from the oracle until he gets a challenge that he can answer.
+
 
 \subsection{Oracles}
 \label{subsec:sigma:fiat:oracle}

@@ -92,7 +92,7 @@ Based on these simplifying assumptions we can now recall the graph
 representation of a circuit:
 \begin{definition}[Arithmetic Circuit]
   \label{def:arith_circuit}
-  An Arithmetic circuit is a directed graph C = (W, G) where W is the internal
+  An Arithmetic circuit is a directed acyclic graph C = (W, G) where W is the internal
   wires between the gates and G is the set of gates within the circuit. Then,
   we let $in \in G$ be the first gate of the circuit, i.e. the input and $o \in G$ be the final
   gate of the circuit, for which there must exist a path from in to o in W.
@@ -720,7 +720,7 @@ return $(w''_{e}, w''_{e+1})$
 
   \noindent \textbf{Base case $c = []$: } trivial.
 
-  \noindent \textbf{Induction step $c = []$: }
+  \noindent \textbf{Induction step $c = g::c'$: }
   We then start by expanding the computation of \texttt{compute} and
   \texttt{simulate} as seen in figure \ref{lst:real/simulated}.
   We start by showing that calling \texttt{compute} and \texttt{simulate} will
