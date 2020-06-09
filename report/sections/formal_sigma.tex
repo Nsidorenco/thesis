@@ -233,12 +233,16 @@ proc ideal(h, e) = {
 \label{def:sigma-protocol}
   S is said to be a $\Sigma$-Protocol if it implements the procedures in figure
   \ref{lst:sigma_procedures} and satisfy the definitions of completeness,
-  special soundness, and special honest verifier zero-knowledge.
+  special soundness, and special honest-verifier zero-knowledge.
 \end{definition}
 
-\todo{Argue that games corresponds to original definitions}
-
-\todo{SHVZK only captures perfect indis. Unclear how to do with equiv?}
+We note that our definition of special-honest verifier zero-knowledge is not
+expressive enough for all use cases. Since we are using \easycrypt's pRHL to
+distinguish the two procedures, our definition only captures perfect
+zero-knowledge. If we wanted a definition capable of expressing computational
+zero-knowledge we would have to use an adversary to compare the two procedures.
+We opted to restrictive shvzk to perfect zero-knowledge since it is easier to
+work with.
 
 \section{Compound Protocols}
 \label{sec:sigma_comp}
@@ -246,22 +250,39 @@ Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
 composes is various ways. More specially we show that it is possible to prove knowledge of
 relations compounded by the logical operators ``AND'' and ``OR'' by compounding
 $\Sigma$-Protocols together.
-The benefit of this is...
 
 Formalisations of compound $\Sigma$-Protocols already exists in other proof
 assistants \cite{cryptoeprint:2019:1185,certicrypt_sigma}, which we will also
-use as a basis for our \easycrypt\ formalisation. By drawing on previous work we
-aim to make a formalisation that is workable and succinct within reason of what
-\easycrypt\ allows us to do. Moreover, by recreating formalisations within new
-proof assistant we can gain valuable insight into how \easycrypt\ compares to
-other proof assistant whilst reflecting on how to improve previous work.
+use as a basis for our \easycrypt\ formalisation, primarily the work of
+\cite{cryptoeprint:2019:1185}.
+By drawing on previous work we aim to make a
+formalisation that is workable and succinct within reason of what \easycrypt\
+allows us to do.
+Moreover, by recreating formalisations within new proof
+assistant we can gain valuable insight into how \easycrypt\ compares to other
+proof assistant whilst reflecting on how to improve previous work.
 
 \paragraph{Higher order instances of theories} \todo{Unsure how?}
+We then define the AND construction as a module parametrised by
+$\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
+can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
+since the AND construction can now only be made from $\Sigma$-Protocol with the
+specific type signature of $S_{1}$ and $S_{2}$, but recall that the entire AND
+construction is quantified over the types given in the type declaration. This
+means that the types of $S_{1}$ and $S_{2}$ can be fixed to any arbitrary types
+and therefore can express any $\Sigma$-Protocol.
+But, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
+the AND construction parametrised by $\Sigma$-Protocols satisfying the type
+signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
+construction be any two $\Sigma$-protocols? Ideally, the AND
+construction would be formalised in this way, but due to how \easycrypt\ handles
+types of modules we
+need to declare the types of the AND construction and ensure that the procedures
+are typeable. The only way of ensuring this is by fixing the types of the
+underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
 
 \subsection{AND}
 \label{subsec:sigma_AND}
-\todo{Based on description from \cite{on-sigma-protocols}}
-\todo{Not entirely correct. Need $h \in domain R$ to discharge axioms}
 Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w_{1})$ and
 $S_{2}$ with relation $R_{2}(h_{2},w_{2})$ we define the AND construction to be a
 $\Sigma$-Protocol proving knowledge of the relation
@@ -282,25 +303,10 @@ $S_{i}$ we use the notation: $\text{type}_i$
                   &\text{response = response}_{1} \times \text{response}_{2} \\
 \end{align*}
 
-We then define the AND construction as a module parametrised by
-$\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
-can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
-since the AND construction can now only be made from $\Sigma$-Protocol with the
-specific type signature of $S_{1}$ and $S_{2}$, but recall that the entire AND
-construction is quantified over the types given in the type declaration. This
-means that the types of $S_{1}$ and $S_{2}$ can be fixed to any arbitrary types
-and therefore can express any $\Sigma$-Protocol.
-But, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
-the AND construction parametrised by $\Sigma$-Protocols satisfying the type
-signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
-construction be any two $\Sigma$-protocols? Ideally, the AND
-construction would be formalised in this way, but due to how \easycrypt\ handles
-types of modules we
-need to declare the types of the AND construction and ensure that the procedures
-are typeable. The only way of ensuring this is by fixing the types of the
-underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
-
-\todo{Explicitly mention axioms}
+We then define the procedures of the AND construction as seen in listing \ref{lst:and-procedures}.
+The AND construction works by running both protocol in parallel. The first
+message, therefore, becomes the product of the messages produced by the
+underlying protocols. The responses are similarly created.
 
 \begin{lstlisting}[float,label=lst:and-procedures,caption=AND construction]
 module ANDProtocol (P1 : S1, P2 : S2) = {
@@ -353,55 +359,93 @@ regards to the module \texttt{ANDProtocol}
   We need to use the \texttt{special} definition of the completeness game here,
   since the challenge $e$ is given by a Verifier running the AND construction.
   And the sub-protocols are, therefore, not allowed to sample their own
-  challenges and need to use the challenge from the AND construction.
+  challenges.
 
   Then by lemma \ref{lem:sigma:alt:completeness} we get that
   $\Pr{\texttt{Completeness(AND($P_{1}, P_{2}$)}.main} = 1$
 \end{proof}
 
-\todo{Write protocol as diagram?}
-
 \begin{lemma}[AND special soundness]
   Given secure $\Sigma$-Protocols P1 and P2
   the AND construction AND(P1, P2) satisfy definition \ref{def:sigma:soundness}
+  with $s = 2$.
+
+  The witness extractor is defined in listing \ref{lst:AND:extractor}
+\begin{lstlisting}[float,label=lst:AND:extractor,caption=Witness extractor for AND construction]
+proc witness_extractor(h : statement, a : message, e : challenge list, z : response list) = {
+  (h1, h2) = h;
+  (a1, a2) = a;
+  e = e[0];
+  e' = e[1];
+  (z1, z2) = z[0];
+  (z1', z2') = z[1];
+  w1 = P1.witness_extractor(h1, a1, [e;e'], [z1;z1']);
+  w2 = P2.witness_extractor(h2, a2, [e;e'], [z2;z2']);
+
+  return Some(oget w1, oget w2);
+}
+\end{lstlisting}
 \end{lemma}
 \begin{proof}
-  Since a transcript of AND(P1, P2) is the transcripts of running P1 and P2
-  combined simulating a transcript for AND(P1, P2) is equivalent to simulating
-  transcripts for P1 and P2 and combining them. By SHVZK of P1 and P2 this will
-  always succeed.
+  We start by showing that
+  \begin{align}
+    &\texttt{AND.verify}((h_{1}, h_{2}), (a_{1}, a_{2}), e, (z_{1}, z_{2})) \label{eq:and:verify}\\
+    \iff &\texttt{P1.verify}(h_{1}, a_{1}, e, z_{1}) \land \texttt{P2.verify}(h_{2}, a_{2}, e, z_{2})
+  \end{align}
+  Which follows directly from the definition of \texttt{AND.verify}.
+
+  Then, since the witness for the relation is a pair of witnesses satisfying the
+  relations of P1 and P2 $2$-special soundness follows directly from $2$-special
+  soundness of P1 and P2.
 \end{proof}
 
 \begin{lemma}[AND SHVZK]
   Given secure $\Sigma$-Protocols $P_{1}$ and $P_{2}$ then AND(P1, P2) satisfy
   definition \ref{def:sigma:shvzk}.
+
+  The simulator for the AND construction is given in listing \ref{lst:AND:simulator}.
+\begin{lstlisting}[float,label=lst:AND:simulator,caption=Simulator for the AND construction]
+proc simulator(h : statement, e : challenge) : message * response = {
+  (h1, h2) = h;
+
+  (a1, z1) = P1.simulator(h1, e);
+  (a2, z2) = P2.simulator(h2, e);
+
+  return ((a1, a2), (z1, z2));
+}
+\end{lstlisting}
 \end{lemma}
 \begin{proof}
-  We start by showing:
-  \begin{align}
-    \label{eq:sigma:or:verify}
-    &verify((h1, h2), (a1, a2), s, (e1, z1, e2, z2) \iff  \\
-    &P1.verify(h1, a1, e1, z1) \land P2.verify(h2, a2, e2, z2)
-  \end{align}
-
-  Since the relation
-  $R \; (h1, h2) \; (w1, w2) = R1 \; h1 \; w1 /land R2 \; h2 \; w2$ we need to
-  produce valid witnesses for the protocol P1 and P2. Since both protocols have
-  special soundness we can use equation \ref{eq:sigma:or:verify} to apply the
-  special soundness property of both P1 and P2, which completes the proof.
+  Since the simulator for AND is simply running both simulator for P1 and P2,
+  we use \ref{eq:and:verify} to apply the shvzk of P1 and P2.
+  From this we can conclude that the transcript of the simulator is
+  indistinguishable from the transcript of running honest versions of P1 and P2.
+  By correctness of AND the proof is then complete.
 \end{proof}
 
 \subsection{OR}
 \label{subsec:sigma_OR}
-Here we use the definition of the OR construction by \cite{on-sigma-protocols},
+For the OR construction we use the definition of the OR construction by \cite{on-sigma-protocols},
 which states that both sub-protocols must have the same witness type.
 
 Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w)$ and
 $S_{2}$ with relation $R_{2}(h_{2},w)$ we define the AND construction to be a
 $\Sigma$-Protocol proving knowledge of the relation
-$R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$.
+$$R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$$.
 
-The main idea behind the OR construction, is that by the SHVZK it is possible to
+However, this above relation is not strong enough \cite{cryptoeprint:2019:1185}.
+If the if public statement $h_{i}$ for which there is no witness is not in the
+domain of statements with a possible witness making the relation true, then it
+is possible for the verifier to guess for which relation the witness is true.
+To fix this we use the alternative relation:
+
+\begin{align*}
+  R((h_{1}, h_{2}), w) = &R_1(h_1, w) \land h_2 \in \textbf{Domain } R_2 \\
+                   \lor &R_2(h_2, w) \land h_1 \in \textbf{Domain } R_1
+\end{align*}
+
+
+The main idea behind the OR construction, is that by SHVZK it is possible to
 construct accepting conversations for both $S_{1}$ and $S_{2}$ if the Prover is
 allowed to choose what challenge he responds to. Obviously, if the Prover is
 allowed to chose the challenge the protocol would not be secure. Therefore,
@@ -422,8 +466,6 @@ to be proven true before our formalisation can be applied.
   \textbf{axiom xorK } x \; c : (x \oplus c) \oplus c = x \label{axiom:xorK} \\
   \textbf{axiom xorA } x \; y : (x \oplus y) = y \oplus x \label{axiom:xorA}
 \end{gather}
-
-\todo{The protocol then proceeds as ...}
 
 We then define the OR construction as a $\Sigma$-Protocol like in section
 \ref{subsec:sigma_AND}. The procedures can be seen in listing \ref{lst:sigma:or}.
@@ -469,8 +511,6 @@ proc verify(h : statement, m : message, s : challenge, z : response) = {
   return ((s = e1 $\oplus$ e2) /\ v /\ v');
 }
 \end{lstlisting}
-
-\todo{Write protocol as diagram?}
 
 \paragraph{Security}
 Given the OR constructions instantiation of a $\Sigma$-Protocols we need
@@ -553,8 +593,8 @@ proc simulator(h : statement, s : challenge) : message * response = {
 
 \begin{lemma}[OR special soundness]
   Given secure $\Sigma$-Protocols P1 P2 then
-  The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness} with the
-  witness extractor for the OR construction defined as:
+  The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness}
+  with $s = 2$ and witness extractor for the OR construction defined as:
 \begin{lstlisting}[mathescape]
 proc witness_extractor(h, a, s : challenge list, z : response list) = {
   (h1, h2) = h;
@@ -566,7 +606,7 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
   } else {
     w = P2.witness_extractor(h2, a2, [e2;e2'], [z2;z2']);
   }
-  return w;
+  return Some(oget w);
 }
 \end{lstlisting}
 
@@ -625,7 +665,7 @@ challenge if sample is queried with the same message multiple times. This is
 implemented by the following module:
 
 \begin{lstlisting}[mathescape]
-module RealOracle : Oracle = {
+module RandomOracle : Oracle = {
   global variable : h = (message $\mapsto$ challenge)
 
   proc init() = {
@@ -716,9 +756,10 @@ To verify the transcript $(a,e,z)$ V then checks if $g^{z} = a \cdot h^{e}$.
 
 From this general description it is clear that this protocol fits within out
 formalisation of $\Sigma$-Protocol procedures. We then define the appropriate
-types and instantiate the protocol using out $\Sigma$-Protocol formalisation:
+types and instantiate the protocol using our $\Sigma$-Protocol formalisation,
+which can be seen in listing \ref{lst:sigma:schnorr}.
 
-\begin{lstlisting}[mathescape,label=lst:sigma:schnorr,caption=Schnorr instantiation]
+\begin{lstlisting}[float,mathescape,label=lst:sigma:schnorr,caption=Schnorr instantiation]
 clone export SigmaProtocols as Sigma with
   type statement <- group, (* group element *)
   type witness   <- F.t,   (* Finite field element, like $\mathbb{Z}_{q}$ *)
@@ -779,7 +820,7 @@ definitions from section \ref{sec:sigma:def}.
   Which is easily proven by \easycrypt\ automation tools for algebraic operations.
 \end{proof}
 
-\begin{lemma}[Schnorr soundness]
+\begin{lemma}[Schnorr 2-special soundness]
   \begin{align*}
     &e \neq e' \implies \\
     &\Pr{\texttt{verify}(a, e, z)} = 1 \implies \\
@@ -794,7 +835,6 @@ proc witness_extractor(h : statement, m : message, e : challenge list, z : respo
   return (z[0] - z[1]) / (e[0] - e[1]);
 }
 \end{lstlisting}
-  \todo{Define list indexing in background chapter}
   To prove that the soundness game succeeds we need the following
   \begin{enumerate}
     \item Both transcripts are accepting
