@@ -1,28 +1,19 @@
 \chapter{Formalising $\Sigma$-Protocols}
 \label{ch:formal_sigma}
 In this chapter, we formalise $\Sigma$-Protocols along with different
-constructions based on $\Sigma$-Protocol. Our formalisation is driven by the
-definitions given by \cite{on-sigma-protocols} and already existing
+constructions based on $\Sigma$-Protocols. Our formalisation is driven by the
+definitions given by \citet{on-sigma-protocols} and already existing
 formalisation of $\Sigma$-Protocols in the \easycrypt\ source code \cite{ec_source}. Our work
-improves on this work by providing more generalised definition, namely
+improves on previous work by providing more generalised definitions, namely
 $s$-special soundness instead of the usual $2$-special soundness definition
 given. Additionally, we also provide an alternative definition of completeness.
 Moreover, we reproduce the work of compound $\Sigma$-Protocols by
 \citet{cryptoeprint:2019:1185} by formalising their results in \easycrypt.
-We then introduce the Fiat-Shamir transformation and how it applies to our
-formalisation.
+We then introduce the Fiat-Shamir transformation, which can turn any
+$\Sigma$-Protocol into a non-interactive zero-knowledge protocol in the random
+oracle model. We then explore how this transformation applies to our formalisation.
 Last, we show that our formalisation can be used to prove the security of
 Schnorr's $\Sigma$-Protocol.
-
-Moreover, we show that any protocol that adheres to this abstract specification
-of a $\Sigma$-Protocol can be compounded together while still being secure.
-
-We then end this section by formalising the Fiat-Shamir transformation, which allows
-us to make any $\Sigma$-Protocol non-interactive in the random oracle model.
-This also implies that $\Sigma$-Protocols are Zero-knowledge in the random oracle
-model since Special honest-verifier zero-knowledge ensure zero-knowledge in the
-presence of an honest verifier. If we remove the verifier then he can always be
-assumed honest.
 
 \section{Defining $\Sigma$-Protocols}
 \label{sec:sigma:def}
@@ -39,11 +30,13 @@ These types corresponds to the types from Figure \ref{fig:proto_sigma}.
 Furthermore, we define the relation for which the protocol operates on as a
 binary function mapping a statement and witness to true/false
 $R : (\text{statement} \times \text{witness}) \rightarrow \{0,1\}$.
-Moreover, we fix a lossless and full/uniform distribution over challenges. This
-distribution is used to model an honest verifier which will always generate a random challenge.
+Moreover, we fix a lossless, full, and uniform distribution over challenges space. This
+distribution is used to model an honest verifier which will always generate a
+uniformly random challenge.
 
-We then define the $\Sigma$-protocol itself to be a series of probabilistic procedures:
-\begin{lstlisting}[label=lst:sigma_procedures,caption= Abstract procedures of $\Sigma$-Protocols]
+We define a $\Sigma$-protocol to be a series of probabilistic procedures, which
+can be seen in listing \ref{lst:sigma_procedures}.
+\begin{lstlisting}[label=lst:sigma_procedures,caption=Abstract procedures of $\Sigma$-Protocols]
 module type SProtocol = {
   proc init(h : statement, w : witness) : message
   proc response(h : statement, w : witness,
@@ -55,18 +48,16 @@ module type SProtocol = {
 \end{lstlisting}
 
 Here all procedures are defined in the same module. This allows the
-Verifier procedure to access the global state of the prover. This could lead to
-invalid proofs of security. It is paramount to implement the
-\texttt{verify} procedure such that it never accesses the global state of the SProtocol module.
+Verifier procedure to access the global state of the prover, which could lead to
+invalid proofs of security. It is, therefore, paramount to implement
+\texttt{verify} such that it never accesses the global state of the SProtocol module.
 This could have been alleviated by splitting the SProtocol module into multiple
 different modules with only the appropriate procedures inside. This would remove
-any potential for human error when defining a $\Sigma$-Protocol, but it is
-easier to quantify over one module containing all relevant procedures than
+any potential for human error when defining a $\Sigma$-Protocol,
+however, it is easier to quantify over one module containing all relevant procedures than
 quantifying over a prover and a verifier module and then reasoning about the two
 modules being part of the same $\Sigma$-Protocol.
-Ultimately, we decided on having everything defined within the same module.
-
-\todo{Here gen is \dots}
+Ultimately, we decided on defining everything within the same module.
 
 \begin{lstlisting}[float, label=lst:sigma_completeness,caption=Completeness game for $\Sigma$-Protocols]
 module Completeness(S : SigmaProtocol) = {
@@ -82,14 +73,15 @@ module Completeness(S : SigmaProtocol) = {
 \end{lstlisting}
 
 An instantiation of a $\Sigma$-Protocol is then an implementation of the
-procedures in Listing \ref{lst:sigma_completeness}.
+procedures in listing \ref{lst:sigma_completeness}.
 
+\paragraph{Security}
 We then model security as a series of games:
 
 \begin{definition}[Completeness]
 \label{def:sigma:completeness}
   We say that a $\Sigma$-protocol, S, is complete, if the probabilistic procedure in
-  \ref{lst:sigma_completeness} outputs 1 with probability 1, \ie
+  listing \ref{lst:sigma_completeness} outputs 1 with probability 1, \ie
   \begin{equation}
     \label{eq:sigma_completeness}
     \forall h \; w, \text{R } h \; w \implies \Pr{ \text{Completeness(S).main}(h,w) = true } = 1.
@@ -99,8 +91,8 @@ We then model security as a series of games:
 One problem with definition $\ref{def:sigma:completeness}$ is that
 quantification over challenges is implicitly done when sampling from the random
 distribution of challenges. This mean that reasoning about the challenges are
-done within the probabilistic Hoare logic, and not the ambient logic. If we at
-some later point need the completeness property to hold for a specific
+done within the probabilistic Hoare logic, and not the ambient logic. If we, at
+some later point, need the completeness property to hold for a specific
 challenge, then that is not true by this definition of completeness, since
 the ambient logic does not quantify over the challenges. To alleviate this
 problem we introduce a alternative definition of completeness:
@@ -110,13 +102,13 @@ problem we introduce a alternative definition of completeness:
   We say that a $\Sigma$-protocol, S, is complete if:
   \begin{equation}
     \label{eq:sigma_completeness}
-    \forall h \; w \; e, \text{R } h \; w \implies \Pr{\text{Completeness(S).special}(h,w,e) = true} = 1.
+    \forall h,w,e. \text{R } h \; w \implies \Pr{\text{Completeness(S).special}(h,w,e) = true} = 1.
   \end{equation}
-  Where the procedure ``Completeness(S).special'' is defined as
-  \lstinputlisting[linerange={40-48}]{../code/SigmaProtocols.eca}
+  Where the procedure ``Completeness(S).special'' is defined in listing \ref{lst:sigma:special}.
+  \lstinputlisting[float, label=lst:sigma:special, linerange={40-48}]{../code/SigmaProtocols.eca}
 \end{definition}
 
-Now, since the alternative procedure no longer samples from a random
+However, since the alternative procedure no longer samples from a random
 distribution it is not possible to prove equivalence between the two procedure,
 but to show that this alternative definition is still captures what is means for
 a protocol to be complete we have the following lemma:
@@ -130,7 +122,7 @@ a protocol to be complete we have the following lemma:
 \end{lemma}
 
 \begin{proof}
-First we start by defining an intermediate game:
+Start by defining an intermediate game:
 \begin{lstlisting}
 proc intermediate(h : input, w : witness) : bool = {
    e <$ dchallenge;
@@ -144,7 +136,7 @@ From this it is easy to prove equivalence between the two procedures
 the sampling to the first line of each program. This will make the two programs
 equivalent.
 
-Now, we can prove the lemma by instead proving:
+Next, we prove the lemma by showing:
 \begin{equation*}
   \Pr{\texttt{special} : true \implies res} = 1 \implies
   \Pr{\texttt{intermediate} : true \implies res} = 1.
@@ -195,8 +187,9 @@ module SpecialSoundness(S : SProtocol) = {
 \end{lstlisting}
 \end{definition}
 
-\begin{definition}[Special Honest Verifier Zero-Knowledge]
-  To define SHVZK we start by defining a module SHVZK containing two procedures:
+\begin{definition}[Special honest-verifier zero-knowledge]
+  To define SHVZK we start by defining a module SHVZK containing two procedures,
+  which can be seen in figure \ref{fig:sigma:shvzk}
 \label{def:sigma:shvzk}
   \begin{figure}[ht]
     \centering
@@ -219,6 +212,7 @@ proc ideal(h, e) = {
 \end{lstlisting}
     \end{subfigure}
     \caption{SHVZK module}
+    \label{fig:sigma:shvzk}
   \end{figure}
   We then say a $\Sigma$-Protocol S is special honest verifier zero-knowledge
   if:
@@ -230,37 +224,34 @@ proc ideal(h, e) = {
 
 \begin{definition}
 \label{def:sigma-protocol}
-  S is said to be a $\Sigma$-Protocol if it implements the procedures in figure
+  S is said to be a secure $\Sigma$-Protocol if it implements the procedures in figure
   \ref{lst:sigma_procedures} and satisfies the definitions of completeness,
   special soundness, and special honest-verifier zero-knowledge.
 \end{definition}
 
-We note that our definition of special-honest verifier zero-knowledge is not
+We note that our definition of special honest-verifier zero-knowledge is not
 expressive enough for all use cases. Since we are using \easycrypt's pRHL to
 distinguish the two procedures, our definition only captures perfect
 zero-knowledge. If we wanted a definition capable of expressing computational
 zero-knowledge, we would have to use an adversary to compare the two procedures.
-We opted to restrict shvzk to perfect zero-knowledge.
+We opted to restrict SHVZK to perfect zero-knowledge.
 
 \section{Compound Protocols}
 \label{sec:sigma_comp}
 Given our formalisation of $\Sigma$-Protocols we now show that our formalisation
 composes in various ways. More specifically, we show that it is possible to prove knowledge of
-relations compounded by the logical operators ``AND'' and ``OR'' by compounding
-$\Sigma$-Protocols together.
+relations compounded by the logical operators ``AND'' and ``OR''.
 
 Formalisations of compound $\Sigma$-Protocols already exists in other proof
 assistants \cite{cryptoeprint:2019:1185,certicrypt_sigma}, which we will also
-use as a basis for our \easycrypt\ formalisation, primarily the work of
-\cite{cryptoeprint:2019:1185}.
-By drawing on previous work we aim to make a
-formalisation that is workable and succinct within reason of what \easycrypt\
-allows us to do.
-Moreover, by recreating formalisations within new proof
+use as a basis for our \easycrypt\ formalisation. Primarily, we aim to reproduce
+the results of \citet{cryptoeprint:2019:1185}.
+By reproducing formalisations within a new proof
 assistant, we can gain valuable insight into how \easycrypt\ compares to other
 proof assistant while reflecting on how to improve previous work.
 
-\paragraph{Higher-order instances of theories} \todo{Unsure how?}
+\paragraph{Higher-order instances of theories}
+\begin{draft}
 We then define the AND construction as a module parametrised by
 $\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
 can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
@@ -278,6 +269,7 @@ types of modules we
 need to declare the types of the AND construction and ensure that the procedures
 are typeable. The only way of ensuring this is by fixing the types of the
 underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
+\end{draft}
 
 \subsection{AND}
 \label{subsec:sigma_AND}
@@ -286,7 +278,7 @@ $S_{2}$ with relation $R_{2}(h_{2},w_{2})$ we define the AND construction to be 
 $\Sigma$-Protocol proving knowledge of the relation
 $R((h_{1}, h_{2}), (w_{1}, w_{2})) = R_{1}(h_{1}, w_{1}) \land R_{2}(h_{2}, w_{2})$.
 
-The construction of AND protocol is a $\Sigma$-Protocol running both
+The construction of AND is itself a $\Sigma$-Protocol running both
 $S_{1}$ and $S_{2}$ as sub-procedures. To formalise this, we start by declaring
 the AND construction as an instantiation of a $\Sigma$-Protocol. To do this we
 first need to define the types of AND construction. However, before we
@@ -341,7 +333,7 @@ module ANDProtocol (P1 : S1, P2 : S2) = {
 \end{lstlisting}
 
 \paragraph{Security}
-Given the AND constructions instantiation of a $\Sigma$-Protocols we simply need
+Given that the AND constructions is a $\Sigma$-Protocols we need
 to prove the security definitions given in section \ref{sec:sigma:def} with
 regards to the module \texttt{ANDProtocol}
 
@@ -356,10 +348,11 @@ regards to the module \texttt{ANDProtocol}
   assumption of $P_{1}$ and $P_{2}$ being complete.
   We need to use the \texttt{special} definition of the completeness game here
   since the challenge $e$ is given by a Verifier running the AND construction.
-  And the sub-protocols are, therefore, not allowed to sample their own
-  challenges.
+  Where we to use the original definition of completeness, then the AND construction
+  would need randomly sample two challenges to prove equivalence with the
+  binding games, which is not the case.
 
-  Then by lemma \ref{lem:sigma:alt:completeness} we get that
+  By lemma \ref{lem:sigma:alt:completeness} we get that
   $\Pr{\texttt{Completeness(AND($P_{1}, P_{2}$)}.main} = 1$
 \end{proof}
 
@@ -392,9 +385,9 @@ proc witness_extractor(h : statement, a : message, e : challenge list, z : respo
   \end{align}
   Which follows directly from the definition of \texttt{AND.verify}.
 
-  Then, since the witness for the relation is a pair of witnesses satisfying the
-  relations of P1 and P2 $2$-special soundness follows directly from $2$-special
-  soundness of P1 and P2.
+  Then, since relation of AND requires a witness for both $R_{1}$ and $R_{2}$,
+  we can use the $2$-special soundness property of $P_{1}$ and $P_{2}$ to
+  conclude the proof.
 \end{proof}
 
 \begin{lemma}[AND SHVZK]
@@ -414,8 +407,8 @@ proc simulator(h : statement, e : challenge) : message * response = {
 \end{lstlisting}
 \end{lemma}
 \begin{proof}
-  Since the simulator for AND is simply running both simulator for P1 and P2,
-  we use \ref{eq:and:verify} to apply the shvzk of P1 and P2.
+  Since the simulator for AND is running both simulator for P1 and P2,
+  we use \ref{eq:and:verify} to apply the SHVZK property of P1 and P2.
   From this, we can conclude that the transcript of the simulator is
   indistinguishable from the transcript of running honest versions of P1 and P2.
   By correctness of AND the proof is then complete.
@@ -423,18 +416,18 @@ proc simulator(h : statement, e : challenge) : message * response = {
 
 \subsection{OR}
 \label{subsec:sigma_OR}
-For the OR construction we use the definition of the OR construction by \cite{on-sigma-protocols},
+For the OR construction we use the definition of the OR construction by \citet{on-sigma-protocols},
 which states that both sub-protocols must have the same witness type.
 
 Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w)$ and
-$S_{2}$ with relation $R_{2}(h_{2},w)$ we define the AND construction to be a
+$S_{2}$ with relation $R_{2}(h_{2},w)$ we define the OR construction to be a
 $\Sigma$-Protocol proving knowledge of the relation
 $$R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$$.
 
-However, this above relation is not strong enough \cite{cryptoeprint:2019:1185}.
+However, this relation makes it impossible to realise our security definitions \cite{cryptoeprint:2019:1185}.
 If the if public statement $h_{i}$ for which there is no witness is not in the
 domain of statements with a possible witness making the relation true, then it
-is possible for the verifier to guess for which relation the witness is true.
+is possible for the verifier to guess for which of the two underlying relations hold.
 To fix this we use the alternative relation:
 
 \begin{align*}
@@ -455,14 +448,14 @@ is the challenge produced by the Verifier.
 By producing accepting transcripts for both sub-protocols, it must be true that
 he knew the witness for at least one of the relations.
 
-To formalise this, we first need a way to express that the challenge type
+To formalise this, we need a way to express that the challenge type
 supports XOR operations. To do this, we add the following axioms, which will have
 to be proven true before our formalisation can be applied.
 
 \begin{gather}
   \textbf{op } (\oplus) \; c_{1} \; c_{2} : \text{challenge} \label{def:op:xor} \\
   \textbf{axiom xorK } x \; c : (x \oplus c) \oplus c = x \label{axiom:xorK} \\
-  \textbf{axiom xorA } x \; y : (x \oplus y) = y \oplus x \label{axiom:xorA}
+  \textbf{axiom xorA } x \; y : x \oplus y = y \oplus x \label{axiom:xorA}
 \end{gather}
 
 We then define the OR construction as a $\Sigma$-Protocol like in section
@@ -511,7 +504,7 @@ proc verify(h : statement, m : message, s : challenge, z : response) = {
 \end{lstlisting}
 
 \paragraph{Security}
-Given the OR constructions instantiation of a $\Sigma$-Protocols we need
+Given the OR constructions is a $\Sigma$-Protocols we need
 to prove the security definitions given in section \ref{sec:sigma:def} with
 regards to the module \texttt{ORProtocol}
 
@@ -533,11 +526,11 @@ regards to the module \texttt{ORProtocol}
   \[
     equiv[SHVZK(OR(P1, P2)).ideal \sim SHVZK(OR(P1, P2)).real]
   \]
-  With the pre and postcondition given by definition \ref{def:sigma:shvzk}.
+  With pre and postcondition given by definition \ref{def:sigma:shvzk}.
 
-  Where the simulator for the OR construction is given by
+  The simulator for the OR construction is given is listing \ref{lst:sigma:or:simulator}.
 
-\begin{lstlisting}
+\begin{lstlisting}[label=lst:sigma:or:simulator]
 proc simulator(h : statement, s : challenge) : message * response = {
   (h1, h2) = h;
   e2 <$ dchallenge;
@@ -553,11 +546,13 @@ proc simulator(h : statement, s : challenge) : message * response = {
 \begin{proof}
   We again split the proof based on which relation holds.
 
-  \noindent\textbf{case (R1 h1 w): } for this case we have to show the following.
+  \noindent\textbf{case (R1 h1 w): } for this case we further split the proof
+  into two steps:
 
-  \noindent\textbf{1)} that $e1$ and $e2$ are indistinguishable. This follows
-  trivially since we assume both procedures make the same random choices and
-  since the order in which the challenges are sampled they must be equal.
+  \noindent\textbf{1)} we show that $e1^{real} \sim e1^{ideal}$ and
+  $e2^{real} \sim e2^{ideal}$. This follows trivially since we assume both
+  procedures make the same random choices and since the order in which the
+  challenges are sampled is the same then they must be equal.
 
   \noindent\textbf{2)} that the transcript $(a1, e1, z1)$ made by running P1 on
   input (h1,w) is indistinguishable from the transcript produced by
@@ -565,15 +560,16 @@ proc simulator(h : statement, s : challenge) : message * response = {
   equivalent since they call the same procedures with the same arguments.
   This follows from the SHVZK property of P1.
 
-  Both of these facts allow us that the procedures are indistinguishable in this
-  case, since if the challenges are indistinguishable then the sub-procedures in
+  Both of these facts allow us to conclude that the procedures are indistinguishable,
+  since if the challenges are indistinguishable then the sub-procedures in
   both procedures are effectively called on the same inputs.
 
   \noindent\textbf{case (R2 h2 w): } This proof follows the same steps as the
   other case with the only exception being step \textbf{1)}. In this step, since
   the challenges are sampled in a different order, we cannot assume them to be
-  equal since they are sampled with different randomness. Instead we use
-  \easycrypt's coupling functionality to prove that
+  equal since they are sampled with different randomness. More specially, $e1$
+  is sampled at random and $e2 = s \oplus e1$ in this case.
+  To prove this we instead use \easycrypt's coupling functionality and prove that
   $e_{1}^{ideal} \sim e_{1}^{real} \oplus s$ and
   $e_{1}^{real} \sim e_{1}^{ideal} \oplus s$
   The indistinguishability follows trivially since the challenge distribution is
@@ -593,7 +589,7 @@ proc simulator(h : statement, s : challenge) : message * response = {
   Given secure $\Sigma$-Protocols P1 P2 then
   The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness}
   with $s = 2$ and witness extractor for the OR construction defined as:
-\begin{lstlisting}
+\begin{lstlisting}mathescape]
 proc witness_extractor(h, a, s : challenge list, z : response list) = {
   (h1, h2) = h;
   (a1, a2) = m;
@@ -614,8 +610,8 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
   \begin{itemize}
     \item $(e1 \neq e1')$: Here we must prove that \texttt{P1.witness\_extractor} produce a valid witness for R.
 
-      Here we use equation \ref{eq:sigma:or:verify} from the special soundness
-      proof of AND which lets us apply the
+      Here we use equation \ref{eq:and:verify} from the special soundness
+      proof of AND, which lets us apply the
       special soundness property of P1, which gives us that
       $R1 \; h1 \; w \implies R1 \; h1 \; w \lor R2 \; h2 \; w = R \; (h1, h2) \; w$
     \item $\neg(e1 \neq e1')$ Here we prove the same, but with the special
@@ -638,7 +634,7 @@ The verifier is replaced by an random oracle, which generates a uniformly random
 challenge based on the first message of the prover. The random oracle,
 therefore,  works exactly like an honest verifier in the interactive protocol.
 However, since the prover is responsible for obtaining the challenge from random
-oracle, and there is no interaction with the verifier, then he is free to call
+oracle, and there is no interaction with the verifier, he is free to call
 the oracle as many times as he wants. The only limitations is that the time
 complexity of the protocol must still be polynomial. Therefore, the prover can
 only make polynomially many calls to the oracle.
@@ -660,9 +656,9 @@ module type Oracle = {
 }.
 \end{lstlisting}
 
-In essence, an oracle should be able to initialise its state, which used to
+In essence, an oracle should be able to initialise its state, which is used to
 determine the random choices made by the oracle. Moreover, it exposes the
-procedure $\texttt{sample}$ which maps messages to challenges.
+procedure $\texttt{sample}$ which samples new challenges based on messages.
 
 In the case of a random oracle we require that oracle responds with the same
 challenge if sample is queried with the same message multiple times. This is
@@ -716,7 +712,7 @@ definition of a zero-knowledge protocol.
   By comparing the completeness from the underling $\Sigma$-protocol to the
   transformation we see that the only different is that underlying protocol
   waits for the verifier to sample a challenge for him. Since a honest verifier
-  will never fail to send the challenge (\ie he is lossless) and it will always
+  will never fail to send a challenge (\ie\ he is lossless) and it will always
   be uniformly chosen the two procedures are equivalent.
 \end{proof}
 
@@ -726,8 +722,8 @@ definition of a zero-knowledge protocol.
 \end{lemma}
 \begin{proof}
   To prove zero-knowledge in the random oracle model we must define a simulator
-  producing indistinguishable output from the real procedure. Moreover, the
-  simulator is allowed to choose the choices made by the oracle for the real
+  producing indistinguishable output from the real procedure. Here, the
+  simulator is allowed to dictate the random choices made by the oracle in the real
   protocol.
 
   From the correctness proof we know that the random oracle acts as a honest
@@ -742,7 +738,7 @@ forking lemma, which depends on rewinding and is still an open research topic to
 
 \section{Concrete instantiation: Schnorr protocol}
 \label{sec:schnorr}
-To show the workability of the proposed formalisation, we show that it can be
+To show the workability of our formalisation, we show that it can be
 used to instantiate Schnorr's protocol.
 Schnorr's protocol is run between a Prover P and a
 Verifier V. Both parties, before running the protocol, agree on a group

@@ -1,22 +1,26 @@
 \chapter{EasyCrypt}
 \label{ch:EasyCrypt}
-In this chapter, we introduce the \easycrypt proof assistant for proving the security
+In this chapter, we introduce the \easycrypt\ proof assistant for proving the security
 of cryptographic protocols. \easycrypt\ allows us to reason about cryptographic
 protocols as code/programs. We can then prove the security of programs by defining
 ``games'', where the protocol is said to be secure if the game is won.
 Another common technique for game-based security is to show that winning the game is
 equivalent to solving a hard computational problem. More formally, we can show
-this equivalence by showing program describing the game is indistinguishable
+the equivalence by proving that the program describing the game is indistinguishable
 from the program describing the hard computational problem.
-To do so \easycrypt provides us with three logics: a relational probabilistic
+To facilitate reasoning about programs, \easycrypt\ provides us with three
+logics: a relational probabilistic
 Hoare logic (\textbf{rPHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
-regular Hoare logic. The pHL allows us to reason about a program succeeding with
-some output/predicate. The rPHL allows us to reason about the
+regular Hoare logic.
+The pHL allows us to reason about the probability of a program terminating with
+some output/predicate.
+The rPHL allows us to reason about the
 indistinguishability of two programs.
-Furthermore, \easycrypt also has a Higher-order ambient logic, in which the three
-previous logics are encoded within. This Higher-order logic allows us to reason
-about mathematical constructs, which in turn lets us reason about them within
-the different Hoare logics.
+Furthermore, \easycrypt\ has a Higher-order ambient logic, in which the three
+previous logics are encoded.
+This Higher-order logic allows us to reason about mathematical constructs. This,
+in turn, allows us to reason about mathematical constructs used in programs
+since we can lift the program logics into the ambient logic.
 Moreover, the ambient logic offers strong tools for automation. Notably, the
 ambient logic can call various theorem provers, which will try to finish the
 current proof. This allows us to automatically prove complex mathematical
@@ -25,9 +29,11 @@ statements without having to recall the specific mathematical rules needed.
 \section{Types, Operators and Procedures}
 \label{sec:ec_types_and_operators}
 In \easycrypt\ we can view types as mathematical sets containing at least one
-element. Types and both be \textit{abstract} and \textit{aliases}. An abstract
-type is, in essence, a new type. Moreover, \easycrypt\ allows us to define
-inductive types and types with multiple members.
+element. Types can either be \textit{abstract} or \textit{aliases}. An abstract
+type is, in essence, a new type. While type aliases work on already defined
+types.
+Moreover, \easycrypt\ allows us to define inductive types and types with
+multiple members.
 \begin{lstlisting}
 type t. (* Definition of new type *)
 
@@ -41,8 +47,9 @@ type card = [
 
 \noindent
 Functions are declared with the ``op'' keyword in \easycrypt.
-Here functions are purely functional and are not allowed to make indeterministic
-choices. Additionally, functions allows us to pattern match on types with
+Here functions are not allowed to make indeterministic choices, which also
+implies that a function will always terminate.
+Furthermore, functions allows us to pattern match on types with
 multiple members:
 \begin{lstlisting}
 op is_red (c : card) =
@@ -61,7 +68,7 @@ in other files by ``requiring'' them. For example, to make use of \easycrypt's
 existing formalisation of integers, it can be made available in any giving file
 by writing:
 
-\begin{lstlisting}[float,label=lst:theory_require,caption=\easycrypt theories: importing definitions]
+\begin{lstlisting}[float,label=lst:theory_require,caption=\easycrypt\ theories: importing definitions]
 require Int.
 
 const two : int = Int.(+) Int.One Int.One.
@@ -76,35 +83,41 @@ Any \easycrypt file with the ``.ec'' file type is automatically declared as a
 theory.
 
 \paragraph{Abstract Theories}
-To model parametric protocols, i.e. protocols that can work on many different
-types, we use \easycrypt's abstract theory functionality. An abstract theory allows us to model
+To model protocols that can work on many different
+types we use \easycrypt's abstract theory functionality. An abstract theory allows us to model
 protocols and proof over generic types. In other words, in an abstract theory,
 all modules, functions and lemmas are quantified over the types declared in the file.
 There are currently two ways of declaring an abstract theory. First, by using the
-``theory'' keyword within any file allows the user to define abstract types,
-which can be used throughout the scope of the abstract theory, i.e. everything
-in-between the ``theory'' and ``end theory'' keywords. Second, an abstract
-theory file can be declared by using the ``.eca'' file extension.
+``theory'' keyword which declares all defined types to abstract.
+Second, an abstract theory file can be declared by using the ``.eca'' file extension.
+
+An abstract theory can then later be ``cloned'', which allows the user to define
+concrete types for the theory before importing it.
 
 \paragraph{Sections}
 Sections provide similar functionality to that of abstract theories, but instead of quantifying over
-types sections allows us to quantify everything within the section over modules and
-axioms provided by the user.
+types sections allows us to quantify everything within the section over programs
+with special properties and axioms provided, which are defined by the user.
 
 An example of this is proving that a protocol is secure given access to a
-uniformly random oracle.
-We can then add a section and declare the
-Oracle to be uniformly random. The rest of the lemmas in the section will then
-be quantified over the oracle.
+random oracle.
+To model a random oracle we can then start a section and declare a oracle who
+always samples values uniform random values.
+All lemmas declared within the section will then have access to the random
+oracle.
 
 An important note is that introducing axioms in a section cannot break the logic
 of \easycrypt, since if we axiomatise $true = false$ in a section, then all
 lemmas become on the form $true = false \implies \text{lemma}$, which only
 makes the proofs impossible to realise.
 
+Sections are particularly useful if many lemmas require the same assumptions. By
+using a section we can automatically make the assumption available in every
+proof without having to explicitly write it in the lemma.
+
 \section{Modules and procedures}
 \label{sec:ec_modules}
-To model algorithms within \easycrypt the module construct is provided.
+To model programs in \easycrypt\ the module construct is provided.
 A module is a set of procedures and a record of global variables, where all
 procedures are written in \easycrypt's embedded programming language, \texttt{pWhile}.
 
@@ -120,13 +133,13 @@ by \cite{zkcrypt}:
               &|\; \text{if } \mathcal{E} \text{ then } \mathcal{I} \text{ else } \mathcal{I} \\
               &|\; \text{while } \mathcal{E} \text{ do } \mathcal{I} \\
               &|\; \mathcal{V} = \mathcal{P}(\mathcal{E}, \dots, \mathcal{E}) \\
-              &|\; \text{skip}
+              &|\; \text{skip} \\
               &|\; \mathcal{I}; \mathcal{I}
 \end{align*}
 
-Modules are, by default, allowed to interact with all other defined modules.
-This is due to the fact that all procedures are executed within shared memory. This is to
-model an actual execution of procedures, where the procedure would have access to
+Modules are, by default, allowed to interact with all defined modules.
+This is due to the fact that all programs are executed within shared memory. This
+models a real execution of the programs in, where the program would have access to
 all memory not protected by the operating system.
 
 From this, the set of global variables for any given module is all its
@@ -139,10 +152,10 @@ in object-oriented programming languages.
 
 \paragraph{Modules Types}
 \label{sec:ec_module_types}
-Modules types is another feature of \easycrypt modelling system, which
-enables us to define general structures of modules, without having to implement
-the procedures. A procedure without implementation is abstract, while
-an implemented one (The ones provided by modules) are called concrete.
+Modules types is another feature of \easycrypt\ modelling system, which
+enables us to procedures of modules, without having to implement
+them. A procedure without implementation is abstract, while
+an implemented one, \ie\ The ones provided by modules, is concrete.
 
 An important distinction between abstract and non-abstract modules is that,
 while non-abstract modules define a global state for the procedures to work
@@ -152,107 +165,11 @@ variables/state of non-abstract modules.
 Moreover, it is also not possible to prove properties about an abstract modules, since
 there is no context to prove properties within.
 
-This allows us to quantitate over all possible implementations of an abstract
-module in our proofs. The implications of this are that it is possible to
-define adversaries and then to prove that no matter what choice the adversary
-makes during execution, he will not be able to break the security of the procedure.
-
-
-\section{Probabilistic Hoare Logic}
-\label{sec:pHL}
-To formally prove a cryptographic protocol secure we commonly have to argue
-that some procedure perform random choices will terminate with a certain event
-with some probability, regardless of the random choices made during execution.
-
-To this end, we have the probabilistic Hoare logic, which helps us express precisely this.
-To express running a procedure $p(x)$ which is part of a module $M$ we can use the
-following \easycrypt\ notation:
-\[
-  phoare[M.q :\; \Psi \implies \Phi] = p
-\]
-
-Which informally corresponds to: If the procedure with global variables from $M$
-is executed with any memory/state which satisfies the precondition $\Psi$, then the
-result of execution will satisfy $\Phi$ with probability $p$.
-
-Alternatively, this can be stated as:
-\begin{equation}
-  \label{eq:proc_pr}
-  \Psi \implies \forall x, \&m.\Pr{M.q(x) @ \&m : \Phi} = p
-\end{equation}
-
-Where we note that the first representation implicitly quantifies over all
-arguments to the procedure $q$ and memories while the latter requires us
-quantify over them explicitly.
-
-To understand how the pHL logic works, we adopt the notions by \citet{ec_intro},
-which states that procedures are ``distribution transformers''.
-When running the procedure, we know that it has an input distribution satisfying
-$\Psi$. Each statement in the procedure will then change the input distribution
-in some way. For example, when assigning to a variable, we change the
-distribution of potential values for that variable. When running the whole
-procedure, we need to argue that the procedure transforms the input distribution
-in a way that makes $\Phi$ satisfiable.
-
-\section{Probabilistic Relational Hoare Logic}
-\label{sec:pRHL}
-The pRHL logic allows us to reason about indistinguishability between two
-procedures under a specific pre- and postcondition. More formally, the pRHL logic
-allows us to determine if two procedures are perfectly indistinguishability w.r.t.
-to the given pre- and postcondition.
-
-We recall from section \ref{sec:pHL} that procedures can be seen as distribution
-transformers. By observing procedures as distribution transformers,
-indistinguishability between procedures equates to arguing that both procedures
-transform their output distributions in a way that makes the postcondition
-true.
-
-In \easycrypt we have the following notation for comparing two procedures:
-\[
-  equiv[P \sim Q :\; \Psi \implies \Phi ]
-\]
-
-Where $\Psi$ is the precondition and $\Phi$ is the postcondition.
-
-Formally we say that two procedures are indistinguishability if:
-
-\[
-  \Pr{P @ m_{1} : A} = \Pr{Q @ m_{2} : B} \land \Psi \implies (A \iff B) \land m_{1} \Psi m_{2}
-\]
-
-More informally this can be understood as: The procedures P and Q running in
-respective memories $m_{1}$ and $m_{2}$ are indistinguishability w.r.t. to
-precondition $\Psi$ and postcondition $\Phi$, if both memories satisfy the
-precondition. Moreover, if we can run procedure P and get event A and
-procedure Q to get event B, then the procedures are indistinguishable if the
-postcondition implies that the two events are isomorphic.
-
-
-When dealing with pRHL statement, we have two types of deduction rules; they are
-either one-sided or two-sided.
-The one-sided rules allow us to use the pHL deduction rules on either one of the
-two programs we are comparing in isolated. We refer to the two programs by their
-side of the $\sim$ operator. In the above example, P is the left side and Q is
-the right.
-These one-sided rules allow us to step one of the sides forward without
-reasoning about the other size. By doing this, we alter all the term relating to
-which side we called the rule on.
-
-The two-sided rules allow us to step both sides if they are both about to call
-a command of the same shape. In this sense, the two-sided rules are much more
-restrictive, since we can only use them if the programs are similar in structure.
-
-In particular, the two-sided rules allows us to reason about random assignments
-and adversarial calls.
-Since random assignment and adversarial call are inherently indeterminable and possibly
-non-terminate, our one-sided rules cannot be used to step the programs forward.
-By using the two-sided rules, this is not an issue,
-since if both procedures perform the same choice, then it does not
-matter what the choice was, or if it terminated, just that both procedures
-performed the same choice.
-
-This allows us to step both procedures forward under the assumption that both
-procedures transformed their output distribution in the same way.
+This allows us to quantify over all possible implementations of an abstract
+module in our proofs.
+The implications of this are that we can then prove that no matter what choice
+the adversary makes during execution, he will not be able to break the security
+of the procedure.
 
 \section{Distributions and dealing with randomness}
 \label{sec:easycrypt:distributions}
@@ -302,6 +219,108 @@ random value, for the rest of the procedure.
 
 \todo{Mention common distributions like bool and interval}
 
+\section{Probabilistic Hoare Logic}
+\label{sec:pHL}
+To formally prove a cryptographic protocol secure we commonly have to argue
+that a probabilistic procedure will terminate with a certain event,
+with some probability.
+
+To this end, we have the probabilistic Hoare logic, which helps us express precisely this.
+To express running a procedure $p(x)$, which is part of a module $M$, we have the
+following \easycrypt\ notation:
+\[
+  phoare[M.q :\; \Psi \implies \Phi] = p
+\]
+
+Which informally corresponds to: if the procedure with the global variables from $M$
+is executed with any memory/state which satisfies the precondition $\Psi$, then the
+result of the execution will satisfy $\Phi$ with probability $p$.
+
+Alternatively, this can be stated as:
+\begin{equation}
+  \label{eq:proc_pr}
+  \Psi \implies \forall x, \&m.\Pr{M.q(x) \; @ \; \&m : \Phi} = p
+\end{equation}
+
+We note that the first representation implicitly quantifies over all
+arguments to the procedure $q$ and memories while the latter requires us
+quantify over them explicitly.
+
+To understand how the pHL logic works, we adopt the notions by \citet{ec_intro},
+which states that procedures are ``distribution transformers''.
+When running the procedure, we know that it has an input distribution satisfying
+$\Psi$. Each statement in the procedure will then change the input distribution
+in some way. For example, when assigning to a variable, we change the
+distribution of potential values for that variable. When running the whole
+procedure, we need to argue that the procedure transforms the input distribution
+in a way that makes $\Phi$ satisfiable.
+
+\section{Probabilistic Relational Hoare Logic}
+\label{sec:pRHL}
+The pRHL logic allows us to reason about indistinguishability between two
+procedures w.r.t a pre- and postcondition. More formally, the pRHL logic
+allows us to determine if two procedures are perfectly indistinguishability w.r.t.
+to the given pre- and postcondition.
+
+We recall from section \ref{sec:pHL} that procedures can be seen as distribution
+transformers. By observing procedures as distribution transformers,
+indistinguishability between procedures equates to arguing that both procedures
+transform their output distributions in a way that makes the postcondition
+true.
+
+In \easycrypt we have the following notation for comparing two procedures:
+\[
+  equiv[P \sim Q :\; \Psi \implies \Phi ]
+\]
+
+Where $\Psi$ is the precondition and $\Phi$ is the postcondition.
+
+Alternatively, two procedures are indistinguishability if:
+
+\[
+  \Pr{P @ m_{1} : A} = \Pr{Q @ m_{2} : B} \land \Psi \implies (A \iff B) \land m_{1} \Psi m_{2}
+\]
+
+Informally, this can be understood as: The procedures P and Q running in
+respective memories $m_{1}$ and $m_{2}$ are indistinguishability w.r.t. to
+precondition $\Psi$ and postcondition $\Phi$, if both memories satisfy $\Psi$.
+Moreover, if we can run procedure P and get event A and
+procedure Q to get event B, then the procedures are indistinguishable if the
+postcondition implies that the two events are isomorphic. Alternatively, this is
+stated as:
+\[
+  \Phi \implies (A \iff B)
+\]
+
+
+When dealing with pRHL statement, there are two types of deduction rules;
+one-sided or two-sided.
+The one-sided rules allow us to use the pHL deduction rules on one of the
+two programs we are comparing. We refer to the two programs by their
+side of the $\sim$ operator. In the above example, P is the left side and Q is
+the right.
+These one-sided rules allow us to step the execution forward for one of the sides without
+reasoning about the other side.
+By doing this, we change all the term relating to pHL deduction rule, but only
+for side on which the rule was use on.
+
+The two-sided rules allow us to step both sides if they are both about to call
+a command of the same shape. In this sense, the two-sided rules are much more
+restrictive, since we can only use them if the programs are similar in structure.
+
+In particular, the two-sided rules allows us to reason about random assignments
+and adversarial calls.
+Since random assignment and adversarial call are inherently indeterminable and possibly
+non-terminate, our one-sided rules cannot be used to step the programs forward.
+By using the two-sided rules, this is not an issue,
+since if both procedures perform the same choice, then it does not
+matter what the choice was, or if it terminated, just that both procedures
+performed the same choice.
+
+This allows us to step both procedures forward, while ensuring that both
+procedures made the same random choices, hence transforming their output
+distribution is similar ways.
+
 \section{Easycrypt notation}
 \label{sec:label}
 
@@ -320,7 +339,9 @@ output value of a procedure.
 
 We use the notation $x^{P}$ to denote the value variable $x$ w.r.t. procedure P.
 Likewise, we let $x^{Q}$ denote the value of $x$ when observing the run of
-procedure Q. To express that $x^{P} \sim x^{Q}$ we use the notation $\indis{x}$.
+procedure Q. To express that $x^{P} \sim x^{Q}$ we use the notation $\indis{x}$,
+Furthermore, we use the notation \textbf{Glob M} to express all the global
+variables that M has access to.
 
 When stating probabilistic Hoare statements on the form of equation
 \ref{eq:proc_pr}, we omit the quantification of the arguments when the
