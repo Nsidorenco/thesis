@@ -1,143 +1,136 @@
 \chapter{Introduction}
 \label{ch:intro}
-\todo{Maybe add database example from CertiCrypt paper?}
+% \begin{draft}
+%   Outline
+%   \begin{itemize}
+%     \item Why is zk important?
+%     \item Why is formal verification important?
+%     \item What has been done already?
+%     \item How can it be improved upon?
+%     \item What is the work of this thesis?
+%     \item Why is it important
+%     \item Formalisation of circuits?
+%     \item MPC in the head
+%     \item Use MPC to get zk?
+%   \end{itemize}
+% \end{draft}
+Since their introduction zero-knowledge arguments/proofs has become
+an important building block for complex cryptographic protocols.
+Zero-knowledge have, for example, been used to enable anonymous board-room
+voting \cite{boardroom-voting} and to ensure privacy in blockchain applications \cite{concordium}.
+Moreover, zero-knowledge also has important theoretical applications, where it
+is used by the GMW-compiler to turn any passively secure protocol into an
+actively secure protocol.
 
-% In recent years, blockchains have been a breakthrough in the area of
-% secure, decentralized, computing on an open network.  At its core, a blockchain
-% provides a distributed ledger/database. Blockchain has in particular caught
-% interest from the financial sector, namely from bitcoins which were the first to use
-% the blockchain as a distributed ledger, where each monetary transaction is first
-% publicly verified and then appended to the blockchain. This function
-% is similar to how a bank would process transactions, but with two distinct differences;
-% all transactions are publicly available and the transactions are verified by
-% the user of the blockchain rather than a central authority, e.g. a bank
-% \cite{blockchain-overview}.
+Due to zero-knowledge being applied critical applications like
+blockchains which could have real-life financial consequences, if the security is
+broken, it is paramount that we can offer the highest levels of assurance in the
+protocols performing to specification.
+However, many proofs of security are considered unverifiable due their informal
+reasoning and implicit arguments. This was also remarked by Bellare and Rogaway \cite{game-playing}:
 
-% The introduction of bitcoins has since led to a myriad of different blockchains with unique
-% focal points.
-% Notably Ethereum, ZCash, and Concordium. Ethereum extends the original design of
-% the blockchain with a rich programming language to allow for so-called "smart
-% contracts". Programs written as a smart contract can then be added to the
-% blockchain and then computed by the joint computational power of the blockchain.
-% A recent example of this is the *Board-room voting protocol*
-% \cite{boardroom-voting}, which is a zero-knowledge based protocol that allows a
-% few people to participate in an online vote where the individual votes are
-% confidential but the final tally of the vote is accessible to the voters.
-% Moreover, smart contracts can be used to realise multi-party computation protocols,
-% which allows specific users to jointly compute on private data through the blockchain,
-% whilst only learning the result of the computation, but not the private data.
+\begin{quote}
+In our opinion, many proofs in cryptography have become essentially unverifiable. Our field may be approaching a crisis of rigor.
+\end{quote}
 
-% ZCash and Concordium more predominantly deal with the privacy issues relating
-% to the blockchain.
-% In ZCash every transaction has the possibility of being performed completely
-% anonymously. This is in contrast to bitcoins, where every transaction is
-% pseudonymous, meaning that every transaction can be traced back to an
-% identifier also called a pseudonym, but
-% the users' real identity cannot necessarily be identified.
+To harness this complexity Bellare and Rogaway suggests the code-based game-playing approach
+for doing security proofs of cryptographic protocols.
+However, game-playing security is not the end-all of security, and the approach
+still allows for unrigorous proofs. Many cryptographers proofs still lends
+themselves to informal arguments and human errors when proving security.
 
-% The level of privacy ZCash provides, however, lacks compliance
-% with regulations like "Know Your Customer" (KYC) and "Anti
-% Money Laundering" (AML), which require financial institutions to be able to trace
-% money of illicit origin. This is the problem that the Concordium
-% blockchain has tried to solve with its "ID-layer", which grants its
-% users total privacy under normal use but, also enables authorities to revoke the privacy of certain
-% users if they deem it necessary[fn:id-layer].
+However, with the code-based approach, we can apply research from
+formal verification to help us attain an even higher level of trust in our
+proofs by making them machine verifiable.
+This is approach has been made possible if the recent advance if proof assistant
+specialising in formal verification of probabilistic programs \cite{SOK:CAC}.
+It is important to remark, however, that formally verified does not imply
+absolute security. When formally proving cryptographic protocols, we do so in
+cryptographic models. These models help us reduce the complexity of our proves
+by limiting external influences of the protocol or giving access to idealised
+functionality. If the assumptions made in the model used are unsound, then the
+protocol would still be unsecure if formally proven. However, By applying formal
+reasoning to cryptographic proofs we can expel all informal reasoning and
+implicit knowledge, thus attaining much more precise definitions of security.
 
-Common for these three blockchains are their reliance on zero-knowledge.
-A zero-knowledge proof is a core primitive in cryptography which
-allows two parties, Alice and Bob, to share a relation R and public input x.
-Alice then knows some secret input y such that R(x, y) is true, i.e. Alice's
-secret makes the relation true.
-A zero-knowledge proof is then the result of running a protocol, which can be
-given to Bob to convince him that Alice indeed knows the value y, but without Bob
-attaining any information about the value y.
-
-For ZCash and Concordium zero-knowledge protocols are deeply embedded within the
-functionality of the blockchain itself: The zero-knowledge proofs are used to
-prove ownership of an account, without revealing your personal information.
-
-For Ethereum many protocols which depends on zero-knowledge can be implemented
-as smart contracts.
-The earlier example of board-room voting is such a smart contract, but many more
-exists, for example, the Ethereum Aztec library https://www.aztecprotocol.com.
-
-\vspace{3mm}
-
-Since zero-knowledge is essential for some blockchain applications, but also
-other cryptographic protocols,
-numerous techniques exist that proving zero-knowledge for
-any arbitrary relation. These are known as
-zero-knowledge compilers[fn:zk-overview].
-
-A zero-knowledge compiler takes in a triplet of (relation, public input, secret
-input), where the relation is usually expressed as a computable function or
-mathematical relation.
-The triplet is then translated into an intermediate representation,
-This representation is usually either an Arithmetic/Boolean circuit or a constraint system.
-This is process is referred to as the /front end/.
-
-The intermediate representation is then fed into the /back end/, which compiles it
-into a zero-knowledge argument that can be sent to the other parties to prove
-knowledge of the secret.
-
-Most zero-knowledge compilers differ in their combination of front end and back end.
-Different back ends usually offer significant run time differences, i.e. one back
-end might be more efficient for relations that are expressed as short functions.
-Front ends usually differ in what relation they accept. A front end like
-libsnark's[fn:libsnark] accepts relations written as c functions, while others
-target languages like Rust or JavaScript.
-
-\vspace{3mm}
-
-Formal verification of protocols like zero-knowledge compilers has recently
-become more attainable thanks to proof assistants like EasyCrypt and CryptHOL,
-which enables researchers to formally reason about cryptographic protocols using the
-"game-based" approach \cite{SOK:CAC}.
-
-In the game-based approach, security is
-modelled as a game against an adversary where the adversary's goal is to
-break the indented design of the protocol.
-This is usually done by a series of game reductions where it is proven that the
-probability of the initial game is equivalent to winning another game, which is
-easier to reason about.
-Ultimately a sequence of game reductions leads to a final game, which is either
-mathematically impossible for the adversary to win or equivalent to a
-difficult problem, like the discrete logarithm problem.
-
-The benefit of using tool supporting game-based security like EasyCrypt is that
+An additional benefit of using tool supporting game-based security like \easycrypt\ is that
 it becomes possible to formally verify protocols in a representation very close
 to the one in cryptographic literature. This gives a more direct connection between
 the formal proofs and how the protocols are used in practice.
 These proof assistants also open the possibility of extracting the verified
 protocol into an efficient language, which can be run on most computers.
-One example of this is EasyCrypt, where a low-level language called Jasmin has
+One example of this is \easycrypt, where a low-level language called Jasmin has
 been successfully embedded within \cite{easycrypt-jasmin}.
 Cryptographic protocols written in a low-level machine language can
 then, through EasyCrypt, be formally proven secure and extracted to assembly code.
 
-This would allow researchers to take a protocol description written in a
-cryptographic paper and then, almost directly, prove its security in a tool like EasyCrypt.
-The implementation done in EasyCrypt would then ultimately be extracted to an efficient implementation.
-This creates a direct link between the protocol description, the code run in
-practice, and the proof of security.
+This allows researchers to take a protocol description and then transfer their
+definitions to a tool like \easycrypt, which can help expose informal reasoning
+in their proofs.
 
 
-In this thesis we look at the ZKBoo protocol by \citet{zkboo},
-which can generate zero-knowledge proofs for any relation, assuming the relation
-can be expressed as a circuit, with a bound on the proof size.
+In an attempt to bring higher assurance to the field of cryptography formal
+verification of cryptographic primitives have commenced
+\cite{SOK:CAC,ec_intro,cryptoeprint:2019:1185,certicrypt_sigma}.
+Moreover, MPC...
 
-In doing so we will develop a rich formalisation of $\Sigma$-protocols they
-relate to Zero-knowledge. Moreover, we will show how to create a fully verified
-toolchain for constructing a generalised zero-knowledge compiler based on ZKBoo.
+The goal of this thesis is to further this formalisation effort by first improving the
+existing formalisation of $\Sigma$-Protocols in \easycrypt.
+$\Sigma$-Protocols has the desirable attribute of having code-based
+game-playing definitions of security, which allows us to use \easycrypt, a
+proof assistant for formal verification of cryptographic protocols, to formulate
+and prove their security. Moreover, $\Sigma$-Protocols can be turned into
+zero-knowledge proofs with limited overhead \cite{zkboo}.
+To achieve this, we reproduce the results of \citet{cryptoeprint:2019:1185} to
+develop a rich formalisation of $\Sigma$-Protocols in \easycrypt, which can be
+used to drive the formalisation effort of cryptographic protocols further.
 
-the main contribution of this thesis is \dots
+Additionally we reproduce the formalisation of commitment schemes by
+\citet{DBLP:journals/corr/MetereD17} and improve upon the work by offering
+alternative, yet equivalent, security definitions.
 
-\todo{Goal: Develop a rich formalisation that be the basis for future formal analysis of zero-knowledge protocols}
+We then use our formalisation of $\Sigma$-Protocols to a formalise ZKBoo by
+\citet{zkboo}, which uses multi-part computations and commitment schemes to make
+a generalised $\Sigma$-Protocol. With this work we aim to show how complex
+cryptographic protocol can be formally verified by using formalisations of
+cryptographic primitives. Moreover, we show how formal verification can help expose
+the implicit and informal assumptions often made in cryptographic papers.
+
+To formalise ZKBoo we also have formalise arithmetic circuits, which can help guide
+future formalisations. Moreover, formalisation of a special case of multi-party
+computation, where all parties are simulated locally, called the
+(2,3)-Decomposition is needed.
+
 
 \paragraph{Outline}
-In chapter \ref{ch:EasyCrypt} \dots
-Then in chapter \ref{ch:background} we introduce the relevant background
-in regards to $\Sigma$-Protocols, Commitment schemes and Multi-part computations.
+In \autoref{ch:EasyCrypt}. we introduce the code-based game playing approach to
+cryptographic security. Moreover, we introduce the \easycrypt\ proof assistant,
+and how it can be used to formally prove code-based protocols.
+\autoref{ch:background} introduce key concept and definitions.
+
+In \autoref{ch:formal_commitment} we reproduce the results of
+\citet{DBLP:journals/corr/MetereD17} to formalise commitment schemes and a
+concrete instantiation in the form of Pedersen's commitment scheme.
+Additionally, we formulate alternative security definitions, which can simply
+using this formalisation in more complex protocols.
+
+In \autoref{ch:formal_sigma} we explore the results by
+\citet{cryptoeprint:2019:1185}, which were formalised in the Isabelle/CryptHOL
+proof assistant. There results are then reproduced in \easycrypt.
+
+\autoref{ch:general_zk} introduces generalised zero-knowledge protocols and
+ZKBoo and an informal overview of the security proofs of ZKBoo given by \citet{zkboo}.
+
+Next, in \autoref{ch:formal_zkboo} we formalise arithmetic circuit and the
+(2,3)-Decomposition of arithmetic circuits. We then conclude the chapter by
+formally proving the security of ZKBoo.
+
+Last, we summarise our findings and their relation to other works within the
+area of formal verification.
+
+\paragraph{Implementation}
+The \easycrypt\ files of the work explored in this thesis
+are publicly available on Github\footnote{https://github.com/Nsidorenco/thesis}
 
 %%% Local Variables:
 %%% mode: latex

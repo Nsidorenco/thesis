@@ -1,8 +1,8 @@
-\chapter{EasyCrypt}
+\chapter{EasyCrypt and Game-based security}
 \label{ch:EasyCrypt}
 In this chapter, we introduce the \easycrypt\ proof assistant for proving the security
 of cryptographic protocols. \easycrypt\ allows us to reason about cryptographic
-protocols as code/programs. We can then prove the security of programs by defining
+protocols in the code-based game-playing paradigm. We can then prove the security of programs by defining
 ``games'', where the protocol is said to be secure if the game is won.
 Another common technique for game-based security is to show that winning the game is
 equivalent to solving a hard computational problem. More formally, we can show
@@ -26,7 +26,22 @@ ambient logic can call various theorem provers, which will try to finish the
 current proof. This allows us to automatically prove complex mathematical
 statements without having to recall the specific mathematical rules needed.
 
-\section{Types, Operators and Procedures}
+\section{Game-based security}
+\label{sec:game-based-sec}
+In the game-based approach, security is
+modelled as a game against an adversary where the adversary's goal is to
+break the indented design of the protocol.
+This is usually done by a series of game reductions where it is proven that the
+probability of the initial game is equivalent to winning another game, which is
+easier to reason about.
+Ultimately a sequence of game reductions leads to a final game, which is either
+mathematically impossible for the adversary to win or equivalent to a
+difficult problem, like the discrete logarithm problem.
+
+\section{Easycrypt}
+\label{sec:label}
+
+\subsection{Types, Operators and Procedures}
 \label{sec:ec_types_and_operators}
 In \easycrypt\ we can view types as mathematical sets containing at least one
 element. Types can either be \textit{abstract} or \textit{aliases}. An abstract
@@ -60,9 +75,9 @@ op is_red (c : card) =
 \end{lstlisting}
 
 
-\section{Theories, Abstract theories and Sections}
+\subsection{Theories, Abstract theories and Sections}
 \label{sec:ec_theories}
-To structure proofs and code \easycrypt uses a language construction called
+To structure proofs and code \easycrypt\ uses a language construction called
 theories. By grouping definitions and proofs into a theory, they become available
 in other files by ``requiring'' them. For example, to make use of \easycrypt's
 existing formalisation of integers, it can be made available in any giving file
@@ -79,7 +94,7 @@ used in place of ``require'', which will add all definitions and proof of the
 theory to the current scope without the prefix. Consequently, the ``export''
 keyword can be used in place on import to require the theory under a custom prefix.
 
-Any \easycrypt file with the ``.ec'' file type is automatically declared as a
+Any \easycrypt\ file with the ``.ec'' file type is automatically declared as a
 theory.
 
 \paragraph{Abstract Theories}
@@ -96,26 +111,26 @@ concrete types for the theory before importing it.
 
 \paragraph{Sections}
 Sections provide similar functionality to that of abstract theories, but instead of quantifying over
-types sections allows us to quantify everything within the section over programs
+types sections allows us to quantify everything within the subsection over programs
 with special properties and axioms provided, which are defined by the user.
 
 An example of this is proving that a protocol is secure given access to a
 random oracle.
-To model a random oracle we can then start a section and declare a oracle who
+To model a random oracle we can then start a subsection and declare a oracle who
 always samples values uniform random values.
-All lemmas declared within the section will then have access to the random
+All lemmas declared within the subsection will then have access to the random
 oracle.
 
-An important note is that introducing axioms in a section cannot break the logic
-of \easycrypt, since if we axiomatise $true = false$ in a section, then all
+An important note is that introducing axioms in a subsection cannot break the logic
+of \easycrypt, since if we axiomatise $true = false$ in a subsection, then all
 lemmas become on the form $true = false \implies \text{lemma}$, which only
 makes the proofs impossible to realise.
 
 Sections are particularly useful if many lemmas require the same assumptions. By
-using a section we can automatically make the assumption available in every
+using a subsection we can automatically make the assumption available in every
 proof without having to explicitly write it in the lemma.
 
-\section{Modules and procedures}
+\subsection{Modules and procedures}
 \label{sec:ec_modules}
 To model programs in \easycrypt\ the module construct is provided.
 A module is a set of procedures and a record of global variables, where all
@@ -171,14 +186,14 @@ The implications of this are that we can then prove that no matter what choice
 the adversary makes during execution, he will not be able to break the security
 of the procedure.
 
-\section{Distributions and dealing with randomness}
+\subsection{Distributions and dealing with randomness}
 \label{sec:easycrypt:distributions}
 To introduce randomness/non-determinism to procedures \easycrypt\ allows
 random assignments from distributions. \easycrypt\ support this functionality in
 two way: sampling from a distribution and calling an adversary.
 
 In \easycrypt\ distribution are themselves procedures with a fixed output
-distribution. More formally a distribution in easycrypt\ is a monad converting a
+distribution. More formally a distribution in \easycrypt\ is a monad converting a
 \textit{discrete} set of events into a sub-probability mass function over said events.
 
 When dealing with distribution, we have three important characteristics:
@@ -219,7 +234,7 @@ random value, for the rest of the procedure.
 
 \todo{Mention common distributions like bool and interval}
 
-\section{Probabilistic Hoare Logic}
+\subsection{Probabilistic Hoare Logic}
 \label{sec:pHL}
 To formally prove a cryptographic protocol secure we commonly have to argue
 that a probabilistic procedure will terminate with a certain event,
@@ -255,20 +270,20 @@ distribution of potential values for that variable. When running the whole
 procedure, we need to argue that the procedure transforms the input distribution
 in a way that makes $\Phi$ satisfiable.
 
-\section{Probabilistic Relational Hoare Logic}
+\subsection{Probabilistic Relational Hoare Logic}
 \label{sec:pRHL}
 The pRHL logic allows us to reason about indistinguishability between two
 procedures w.r.t a pre- and postcondition. More formally, the pRHL logic
 allows us to determine if two procedures are perfectly indistinguishability w.r.t.
 to the given pre- and postcondition.
 
-We recall from section \ref{sec:pHL} that procedures can be seen as distribution
+We recall from subsection \ref{sec:pHL} that procedures can be seen as distribution
 transformers. By observing procedures as distribution transformers,
 indistinguishability between procedures equates to arguing that both procedures
 transform their output distributions in a way that makes the postcondition
 true.
 
-In \easycrypt we have the following notation for comparing two procedures:
+In \easycrypt\ we have the following notation for comparing two procedures:
 \[
   equiv[P \sim Q :\; \Psi \implies \Phi ]
 \]
@@ -321,7 +336,7 @@ This allows us to step both procedures forward, while ensuring that both
 procedures made the same random choices, hence transforming their output
 distribution is similar ways.
 
-\section{Easycrypt notation}
+\subsection{Easycrypt notation}
 \label{sec:label}
 
 We use notation $\Pr{P = b} = p$ to express that procedure P can be run with
