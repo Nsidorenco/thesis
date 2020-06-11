@@ -101,11 +101,10 @@ problem we introduce a alternative definition of completeness:
 \label{def:sigma:alt_completeness}
   We say that a $\Sigma$-protocol, S, is complete if:
   \begin{equation}
-    \label{eq:sigma_completeness}
     \forall h,w,e. \text{R } h \; w \implies \Pr{\text{Completeness(S).special}(h,w,e) = true} = 1.
   \end{equation}
   Where the procedure ``Completeness(S).special'' is defined in listing \ref{lst:sigma:special}.
-  \lstinputlisting[float, label=lst:sigma:special, linerange={40-48}]{../code/SigmaProtocols.eca}
+  \lstinputlisting[float, label=lst:sigma:special, caption=Special Completeness, linerange={40-48}]{../code/SigmaProtocols.eca}
 \end{definition}
 
 However, since the alternative procedure no longer samples from a random
@@ -863,11 +862,11 @@ proc witness_extractor(h : statement, m : message, e : challenge list, z : respo
 \begin{lstlisting}[mathescape]
 proc simulator(h : statement, e : challenge) = {
   z <$\$$ FDistr.dt;
-  a = $g^z * h ^ (-e)$;
+  a = $g^z \cdot h ^{(-e)}$;
   return (a, z);
 }
 \end{lstlisting}
-  To prove SHVZK be must the prove output indistinguishability of the following procedures:
+  To prove SHVZK be must the prove output indistinguishability of the procedures in figure \ref{fig:schnorr:shvzk}.
   \begin{figure}[ht]
     \centering
     \begin{subfigure}{0.48\textwidth }
@@ -885,13 +884,15 @@ proc real(h, w, e) = {
 \begin{lstlisting}[mathescape]
 proc ideal(h, e) = {
   z <$\$$ FDistr.dt;
-  a = $g^z * h^{(-e)}$;
+  a = $g^z \cdot h^{(-e)}$;
   return (a, e, z);
 }
 \end{lstlisting}
     \end{subfigure}
+    \caption{SHVZK procedures}
+    \label{fig:schnorr:shvzk}
   \end{figure}
-  To prove this we use \easycrypt\ coupling functionality to show that $r^{real} \equiv z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \equiv r^{real} + e \cdot w^{real}$.
+  To prove this we use \easycrypt\ coupling functionality to show that $r^{real} \sim z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \sim r^{real} + e \cdot w^{real}$.
   This is easily prove, since the distribution is full and uniform, and the group is closed under addition and multiplication. All these facts follow directly from the cyclic group theory in \easycrypt.
   We then use this to show output indistinguishability:
   \begin{align*}
@@ -904,7 +905,6 @@ proc ideal(h, e) = {
   \end{align*}
   Which can easily be proven by \easycrypt's automation tools.
 \end{proof}
-\todo{The proofs have been relatively easy thanks to the strong support for algebraic groups in EC}
 
 %%% Local Variables:
 %%% mode: latex
