@@ -693,8 +693,8 @@ This is stated as the following lemma:
   $e$ and witness $x$:
 
   \begin{align*}
-    equiv[&\texttt{compute} \sim \texttt{simulated} : \; =\!\{h, e, w_{e}, w_{e+1}\} \\
-           &\implies =\!\{w'_{e}, w'_{e+1}\} \land \sum_{i \in \{1,2,3\}} \textbf{last } w'_{i} = \texttt{eval\_{circuit}} \; c \; x]
+    equiv[&\texttt{compute} \sim \texttt{simulated} : \; =\!\{c, e, w_{e}, w_{e+1}\} \\
+           &\implies =\!\{w_{e}, w_{e+1}\} \land \sum_{i \in \{1,2,3\}} \textbf{last } w^{compute}_{i} = \texttt{eval\_{circuit}} \; c \; x]
   \end{align*}
 
   Moreover, we require that the input views $w_{1}, w_{2}, w_{3}$ satisfies the
@@ -706,18 +706,18 @@ This is stated as the following lemma:
     \centering
     \begin{subfigure}{0.48\textwidth }
     \begin{lstlisting}[mathescape]
-$(w'_{1},w'_{2},w'_{3})$ = compute$([g], w_{1}, w_{2}, w_{3})$;
-$(w''_{1},w''_{2},w''_{3})$ = compute$(c', w'_{1}, w'_{2}, w'_{3})$;
-return $(w''_{1}, w''_{2}, w''_{3})$
+$(w_{1}, w_{2}, w_{3})$ = compute$([g], [x_{1}], [x_{2}], [x_{3}])$;
+$(w_{1},w_{2},w_{3})$ = compute$(c', w_{1}, w_{2}, w_{3})$;
+return $(w_{1}, w_{2}, w_{3})$
     \end{lstlisting}
       \caption{expanded compute procedure}
     \end{subfigure}
     \hfill
     \begin{subfigure}{ 0.48\textwidth }
     \begin{lstlisting}[mathescape]
-$(w'_{e}, w'_{e+1})$ = simulate$([g], e, w_{e}, w_{e+1})$;
-$(w''_{e}, w''_{e+1})$ = simulate$(c', e, w'_{e}, w'_{e+1})$;
-return $(w''_{e}, w''_{e+1})$
+$(w_{e}, w_{e+1})$ = simulate$([g], e, [x_{e}], [x_{e+1}])$;
+$(w_{e}, w_{e+1})$ = simulate$(c', e, w_{e}, w_{e+1})$;
+return $(w_{e}, w_{e+1})$
     \end{lstlisting}
       \caption{expanded simulate procedure}
     \end{subfigure}
@@ -764,11 +764,12 @@ $r_{e+1} <\$$ dinput;
 $r_{e+2} <\$$ dinput;
 $k_{e}$ = (rcons $k_{e}$ $r_{e}$);
 $k_{e+1}$ = (rcons $k_{e+1}$ $r_{e+1}$);
-$k_{e+1}$ = (rcons $k_{e+1}$ $r_{e+1}$);
+$k_{e+2}$ = (rcons $k_{e+2}$ $r_{e+2}$);
 $v_{e}$ = simulator_eval g e $w_{e}$ $w_{e+1}$ $k_{e}$ $k_{e+1}$ $k_{e+2}$;
 $v_{e+1}$ = simulator_eval g $e+1$ $w_{e+1}$ $w_{e}$ $k_{e}$ $k_{e+1}$ $k_{e+2}$;
 $w_{e}$ = (rcons $w_{e}$ $v_{e}$);
 $w_{e+1}$ = (rcons $w_{e+1}$ $v_{e+1}$);
+return $(k_e, k_{e+1} k_{e+2}, w_e, w_{e+1})$;
     \end{lstlisting}
       \caption{inlined simulate procedure}
     \end{subfigure}
@@ -776,6 +777,7 @@ $w_{e+1}$ = (rcons $w_{e+1}$ $v_{e+1}$);
 
   We proceed by inlining both procedures and explicitly stating the random tapes
   on which the procedures operate. This can be seen in figure \ref{lst:privacy:inlined}.
+  We then start by applying the induction hypothesis, which states that \texttt{compute} and \texttt{simulate} called on $c'$ is indistinguishable given that the view from running the procedures on the gate $g$ are indistinguishable.
   The proof is then split based on the value of the challenge:
 
   \noindent$e=1$ : We then further split the proof based on the type of the
@@ -787,34 +789,42 @@ $w_{e+1}$ = (rcons $w_{e+1}$ $v_{e+1}$);
   We, therefore, only
   need to look at the case of MULT.
 
-  When simulating MULT $w_{e}$ is constructed by calling \texttt{compute}
+  When simulating MULT $w_{1}$ is constructed by calling \texttt{compute}
   and is therefore trivially indistinguishable. For the construction of
-  $w_{e+1}$ the value is sampled at random by the simulator. More
-  specially, the value of $r_{e+2}$ is used as the share of party $e_{2}$.
-  Based on this we need the computation perform for MULT by \texttt{compute}
-  to be indistinguishable from a random sampled share:
+  $w_{2}$ the value is sampled at random by the simulator. More
+  specially, the value of $r_{2}$ is used as the share of party $2$.
+
+  Since the randomness is sampled is sampled at the beginning of both procedures
+  we can use \easycrypt's coupling functionality to reason about
+  indistinguishability of the sampled values.
+  In this case, we prove that the computation perform for MULT by
+  \texttt{compute} is indistinguishable from the share $r^{simulate}_{3}$:
   \begin{align*}
     (&w_{2}^{compute}[l] \cdot  w_{2}^{compute}[r] \\
      &+ w_{3}^{compute}[l] \cdot w_{2}^{compute}[r] \\
      &+ w_{2}^{compute}[l] \cdot w_{3}^{compute}[r] \\
-     &+ r^{compute}_{2} - r^{compute}_{3}) \sim r^{simulate}_{e+2}.
+     &+ r^{compute}_{2} - r^{compute}_{3}) \sim r^{simulate}_{3}.
   \end{align*}
   where $l$ and $r$ are the indexed of the left and right input wire,
   respectively.
-  To prove, this we use the fact that randomness is sampled right before the gate
-  evaluation is done. This allows us to utilise \easycrypt\ coupling functionality
-  to sample randomness that is provably indistinguishable from the real computation.
+  Indistinguishability here follows from the fact that \texttt{dinput} in full
+  and uniform, and that field from which the shares are sampled from is closed
+  under arithmetic operations.
+
   Had the randomness been sampled before running the protocol, this would not have been possible,
   since \easycrypt\ can only reason about indistinguishable of sampled values at
   the time of sampling.
-  With this, we can conclude that the two are indistinguishable since our
-  distribution is full and uniform and our finite field is closed under addition
-  and multiplication.
+
+  From this we can conclude that views $w_{1}$ and $w_{2}$ are indistinguishable
+  between the two protocols. Moreover, we have that
+  $\sum_{i \in \{1,2,3\}} \textbf{last } w^{compute}_{i} = \texttt{eval\_{circuit}} \; [g] \; x$,
+  by the correctness property of \texttt{compute}.
 
   \noindent$e=2 \land e=3$ The rest of the cases proceeded like the case for
   $e=1$ except when proving MULT to be indistinguishable we show
   indistinguishability between the random value and the view of $w_{3}$ and
   $w_{1}$ respectively.
+
 \end{proof}
 
 \begin{proof}[Proof of lemma \ref{lem:zkboo:decomposition:privacy}]

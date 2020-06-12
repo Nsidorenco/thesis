@@ -1,16 +1,41 @@
-\chapter{EasyCrypt and Game-based security}
 \label{ch:EasyCrypt}
 In this chapter, we introduce the \easycrypt\ proof assistant for proving the security
 of cryptographic protocols. \easycrypt\ allows us to reason about cryptographic
-protocols in the code-based game-playing paradigm. We can then prove the security of programs by defining
-``games'', where the protocol is said to be secure if the game is won.
-Another common technique for game-based security is to show that winning the game is
-equivalent to solving a hard computational problem. More formally, we can show
-the equivalence by proving that the program describing the game is indistinguishable
-from the program describing the hard computational problem.
-To facilitate reasoning about programs, \easycrypt\ provides us with three
-logics: a relational probabilistic
-Hoare logic (\textbf{rPHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
+protocols in the code-based game-playing paradigm.
+
+\section{The game-playing approach}
+\label{sec:game-based-sec}
+In the game-playing approach, security is traditionally defined as a game, where
+the game expresses property of the protocol, which is run with an
+\textit{adversary} \cite{game-playing}. Most commonly, a cryptographic protocol
+is an interaction of two or more participants. In the example of commitment schemes
+the protocol is run with a committer and a verifier. The adversary is then
+allowed to take control of one of the participants and then tries to break the
+intended design of the protocol.
+Formally speaking, we say that the adversary
+wins the game if the protocol outputs some event $E$. The goal of the adversary
+is then to maximize the probability of $E$.
+We then define some target probability, which is the probability of $E$
+occurring, given that the protocol is completely secure. The difference between
+target probability and the actual probability of $E$ then denotes the actual
+security of the protocol and is called the \textit{advantage} of the adversary.
+
+To bound the probability of the adversary breaking the protocol we have to
+reason about all the possible choices he would make. To reduce the complexity of
+this \textit{game reductions} are used. By formulating intermediate games, where
+we reduce the set of possible choices, it becomes easier to reason
+about the security of the protocol.
+
+These game reductions all have some advantage for the adversary. The probability
+of the adversary winning the original game is then the probability of winning
+the game of the last reduction plus all accumulated advantage of all the
+previous game reductions.
+
+\section{Easycrypt}
+\label{sec:label}
+\easycrypt\ provides us with three logics, which allows us to reason about game
+reductions between adverbially defined games: a probabilistic relational
+Hoare logic (\textbf{pRHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
 regular Hoare logic.
 The pHL allows us to reason about the probability of a program terminating with
 some output/predicate.
@@ -26,20 +51,12 @@ ambient logic can call various theorem provers, which will try to finish the
 current proof. This allows us to automatically prove complex mathematical
 statements without having to recall the specific mathematical rules needed.
 
-\section{Game-based security}
-\label{sec:game-based-sec}
-In the game-based approach, security is
-modelled as a game against an adversary where the adversary's goal is to
-break the indented design of the protocol.
-This is usually done by a series of game reductions where it is proven that the
-probability of the initial game is equivalent to winning another game, which is
-easier to reason about.
-Ultimately a sequence of game reductions leads to a final game, which is either
-mathematically impossible for the adversary to win or equivalent to a
-difficult problem, like the discrete logarithm problem.
+To model security in the code-based game-playing approach in \easycrypt\ we
+first formulate the original security definition as a game in \easycrypt's embedded
+programming language. We then prove a number of game reductions using the pRHL.
+Last, we reason about the probability of the last game in the series of
+reduction using the pHL.
 
-\section{Easycrypt}
-\label{sec:label}
 
 \subsection{Types, Operators and Procedures}
 \label{sec:ec_types_and_operators}
@@ -64,7 +81,7 @@ type card = [
 Functions are declared with the ``op'' keyword in \easycrypt.
 Here functions are not allowed to make indeterministic choices, which also
 implies that a function will always terminate.
-Furthermore, functions allows us to pattern match on types with
+Furthermore, functions allow us to pattern match on types with
 multiple members:
 \begin{lstlisting}
 op is_red (c : card) =
@@ -77,13 +94,14 @@ op is_red (c : card) =
 
 \subsection{Theories, Abstract theories and Sections}
 \label{sec:ec_theories}
-To structure proofs and code \easycrypt\ uses a language construction called
+To structure proofs and code, \easycrypt\ uses a language construction called
 theories. By grouping definitions and proofs into a theory, they become available
 in other files by ``requiring'' them. For example, to make use of \easycrypt's
 existing formalisation of integers, it can be made available in any giving file
 by writing:
 
-\begin{lstlisting}[float,label=lst:theory_require,caption=\easycrypt\ theories: importing definitions]
+% [label=lst:theory_require,caption=\easycrypt\ theories: importing definitions]
+\begin{lstlisting}
 require Int.
 
 const two : int = Int.(+) Int.One Int.One.
@@ -99,7 +117,7 @@ theory.
 
 \paragraph{Abstract Theories}
 To model protocols that can work on many different
-types we use \easycrypt's abstract theory functionality. An abstract theory allows us to model
+types, we use \easycrypt's abstract theory functionality. An abstract theory allows us to model
 protocols and proof over generic types. In other words, in an abstract theory,
 all modules, functions and lemmas are quantified over the types declared in the file.
 There are currently two ways of declaring an abstract theory. First, by using the
@@ -111,13 +129,13 @@ concrete types for the theory before importing it.
 
 \paragraph{Sections}
 Sections provide similar functionality to that of abstract theories, but instead of quantifying over
-types sections allows us to quantify everything within the subsection over programs
+types, sections allows us to quantify everything within the subsection over programs
 with special properties and axioms provided, which are defined by the user.
 
-An example of this is proving that a protocol is secure given access to a
+An example of this is proving a protocol secure given access to a
 random oracle.
-To model a random oracle we can then start a subsection and declare a oracle who
-always samples values uniform random values.
+To model a random oracle, we can then start a subsection and declare an oracle who
+always sample uniformly random values.
 All lemmas declared within the subsection will then have access to the random
 oracle.
 
@@ -132,7 +150,7 @@ proof without having to explicitly write it in the lemma.
 
 \subsection{Modules and procedures}
 \label{sec:ec_modules}
-To model programs in \easycrypt\ the module construct is provided.
+To model programs in \easycrypt, the module construct is provided.
 A module is a set of procedures and a record of global variables, where all
 procedures are written in \easycrypt's embedded programming language, \texttt{pWhile}.
 
@@ -154,11 +172,11 @@ by \cite{zkcrypt}:
 
 Modules are, by default, allowed to interact with all defined modules.
 This is due to the fact that all programs are executed within shared memory. This
-models a real execution of the programs in, where the program would have access to
+models a real execution where the program would have access to
 all memory not protected by the operating system.
 
-From this, the set of global variables for any given module is all its
-internally defined global variables and all variables the modules procedures
+From this, the set of global variables for any given module is the set of all
+global variables defined by the modules and all variables the procedures of the module
 could potentially read or write during execution. This is checked by a simple
 static analysis, which looks at all execution branches within all procedures of the module.
 
@@ -170,7 +188,7 @@ in object-oriented programming languages.
 Modules types is another feature of \easycrypt\ modelling system, which
 enables us to procedures of modules, without having to implement
 them. A procedure without implementation is abstract, while
-an implemented one, \ie\ The ones provided by modules, is concrete.
+an implemented one, \ie\ the ones provided by modules, is concrete.
 
 An important distinction between abstract and non-abstract modules is that,
 while non-abstract modules define a global state for the procedures to work
@@ -186,9 +204,11 @@ The implications of this are that we can then prove that no matter what choice
 the adversary makes during execution, he will not be able to break the security
 of the procedure.
 
+\todo{explain clone}
+
 \subsection{Distributions and dealing with randomness}
 \label{sec:easycrypt:distributions}
-To introduce randomness/non-determinism to procedures \easycrypt\ allows
+To introduce randomness/non-determinism to procedures, \easycrypt\ allows
 random assignments from distributions. \easycrypt\ support this functionality in
 two way: sampling from a distribution and calling an adversary.
 
@@ -219,7 +239,7 @@ Furthermore, we specify the distribution to be lossless, full and uniform as:
   \textbf{axiom: } \text{is\_funiform dt}.
 \end{gather*}
 
-We can then express a random assignment form the distribution as $x \text{ <\$} \text{ dt}$
+We can then express a random assignment from a distribution as $x \text{ <\$} \text{ dt}$
 
 
 By introducing random assignments to our procedures, we change
@@ -236,9 +256,8 @@ random value, for the rest of the procedure.
 
 \subsection{Probabilistic Hoare Logic}
 \label{sec:pHL}
-To formally prove a cryptographic protocol secure we commonly have to argue
-that a probabilistic procedure will terminate with a certain event,
-with some probability.
+To formally prove a cryptographic protocol secure, we commonly have to argue
+that with some probability a probabilistic procedure will terminate with a certain event.
 
 To this end, we have the probabilistic Hoare logic, which helps us express precisely this.
 To express running a procedure $p(x)$, which is part of a module $M$, we have the
@@ -258,8 +277,8 @@ Alternatively, this can be stated as:
 \end{equation}
 
 We note that the first representation implicitly quantifies over all
-arguments to the procedure $q$ and memories while the latter requires us
-quantify over them explicitly.
+arguments to the procedure $q$ and memories while the latter requires us to
+explicitly quantify over them.
 
 To understand how the pHL logic works, we adopt the notions by \citet{ec_intro},
 which states that procedures are ``distribution transformers''.
@@ -316,10 +335,10 @@ side of the $\sim$ operator. In the above example, P is the left side and Q is
 the right.
 These one-sided rules allow us to step the execution forward for one of the sides without
 reasoning about the other side.
-By doing this, we change all the term relating to pHL deduction rule, but only
-for side on which the rule was use on.
+By doing this, we change all the term in the output distribution of the side on
+which the pHL deduction rule was applied.
 
-The two-sided rules allow us to step both sides if they are both about to call
+The two-sided rules allow us to step forward both sides/procedures if they are both about to call
 a command of the same shape. In this sense, the two-sided rules are much more
 restrictive, since we can only use them if the programs are similar in structure.
 
@@ -334,7 +353,7 @@ performed the same choice.
 
 This allows us to step both procedures forward, while ensuring that both
 procedures made the same random choices, hence transforming their output
-distribution is similar ways.
+distribution in similar ways.
 
 \subsection{Easycrypt notation}
 \label{sec:label}
@@ -349,7 +368,7 @@ When comparing two procedures P and Q in the relational logic, i.e:
   equiv[P \sim Q :\; \Psi \implies \Phi]
 \]
 
-Moreover, we adopt the \easycrypt\ notation of \textbf{res} the signify the
+Moreover, we adopt the \easycrypt\ notation of \textbf{res} to signify the
 output value of a procedure.
 
 We use the notation $x^{P}$ to denote the value variable $x$ w.r.t. procedure P.

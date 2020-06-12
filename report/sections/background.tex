@@ -36,8 +36,8 @@ the most part, we will avoid \easycrypt\ specific notation when writing procedur
 and solely focus on the tools \easycrypt\ provides for reasoning about procedures.
 
 Most notably we adopt the list indexing notation of $l[i]$ to mean the i'th
-index of the list $l$. Formally this notation is not sound since it does not
-specify what will happen if the index not exists. The is solved in \easycrypt\
+index of the list $l$. Formally, this notation is not sound since it does not
+specify what will happen if the index does not exist. The is solved in \easycrypt\
 by declaring a default element should the indexing fail. We omit
 the default value from our code examples.
 Moreover, we define $x::xs$ to mean that we prepend $x$ to the list $xs$,
@@ -64,7 +64,7 @@ him or not.
 We require that a verifier following the protocol always output
 \textbf{accept} if P knew $w$ and followed the protocol.
 This is known as \textit{correctness}.
-Moreover, we require that a cheating adversary who does not know $w$ can
+Moreover, we require that a cheating adversary, who does not know $w$, can
 only make the verifier output \textbf{accept} with some negligible probability $\epsilon$.
 
 \textit{Proofs-of-knowledge} shares the same definitions
@@ -80,8 +80,8 @@ information, whatsoever, about w:
   \label{def:zk}
   Any proof-of-knowledge or argument with parties (P, V) is said to be
   zero-knowledge if for every PPT verifier V$^{*}$ there exists a
-  simulator $\text{Sim}_{V^{*}}$ running in expected polynomial time can output a
-  conversation indistinguishable from a real conversation between (P, V$^{*}$).
+  simulator $\text{Sim}_{V^{*}}$ running in expected polynomial time which outputs
+  conversations indistinguishable from a real conversation between (P, V$^{*}$).
 \end{definition}
 
 
@@ -134,9 +134,9 @@ Given a $\Sigma$-Protocol $S$ for some relation $R$ with public input $h$
 and two any accepting transcripts $(a,e,z)$ and $(a,e',z')$
 where both transcripts have the same initial message, $a$ and $e \neq e'$.
 
-Then $S$ satisfies $2$-special soundness if, there exists an
-efficient algorithm, called the ``witness extractor'',
-which given the two transcripts outputs a valid witness for the relation $R$.
+Then $S$ satisfies $2$-special soundness given an efficient
+algorithm, called the ``witness extractor'' exists, that
+given the two accepting transcripts outputs a valid witness for the relation $R$.
 \end{definition}
 
 The special soundness property is important for ensuring that a cheating prover
@@ -211,10 +211,10 @@ $$
 \end{definition}
 
 \begin{definition}[binding]
-The binding property states that a party committing to a message will not be
-able to successfully convince another party, that he has committed to different
-from the original message, \ie $(c, d) \leftarrow Com(ck, m)$, will not be able
-to find an alternative opening key $d'$ and message $m'$ such that
+The binding property states that a party committing to a message cannot
+convince the verifier that he has committed to a message different from the
+original message, \ie $(c, d) \leftarrow Com(ck, m)$, will
+not be able to find an alternative opening key $d'$ and message $m'$ such that
 $(c, d') \leftarrow Com(ck, m')$.
 
 The scheme is said to have \textit{perfect binding} if it is impossible to change the
@@ -243,7 +243,7 @@ corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ where the parties
 are allowed to communicate with each other over a secure channel freely.
 The parties then want to compute a public function,
 $f : (\text{input})^{n} \rightarrow \text{output}$, where each party contribute
-their input to the function and after computing the function ever party will
+their input to the function and after computing the function every party will
 have the same output. However, none of the participant are allowed to learn
 about any of the inputs to the function, barring their own.
 

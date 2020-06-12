@@ -90,7 +90,7 @@ We then model security as a series of games:
 
 One problem with definition $\ref{def:sigma:completeness}$ is that
 quantification over challenges is implicitly done when sampling from the random
-distribution of challenges. This mean that reasoning about the challenges are
+distribution of challenges. This means that reasoning about the challenges are
 done within the probabilistic Hoare logic, and not the ambient logic. If we, at
 some later point, need the completeness property to hold for a specific
 challenge, then that is not true by this definition of completeness, since
@@ -108,9 +108,9 @@ problem we introduce a alternative definition of completeness:
 \end{definition}
 
 However, since the alternative procedure no longer samples from a random
-distribution it is not possible to prove equivalence between the two procedure,
-but to show that this alternative definition is still captures what is means for
-a protocol to be complete we have the following lemma:
+distribution, it is not possible to prove equivalence between the two procedure. Instead,
+we show the alternative definition still captures what it means for
+a protocol to be complete:
 
 \begin{lemma}
   \label{lem:sigma:alt:completeness}
@@ -188,7 +188,7 @@ module SpecialSoundness(S : SProtocol) = {
 
 \begin{definition}[Special honest-verifier zero-knowledge]
   To define SHVZK we start by defining a module SHVZK containing two procedures,
-  which can be seen in figure \ref{fig:sigma:shvzk}
+  which can be seen in figure \ref{fig:sigma:shvzk}.
 \label{def:sigma:shvzk}
   \begin{figure}[ht]
     \centering
@@ -247,7 +247,7 @@ use as a basis for our \easycrypt\ formalisation. Primarily, we aim to reproduce
 the results of \citet{cryptoeprint:2019:1185}.
 By reproducing formalisations within a new proof
 assistant, we can gain valuable insight into how \easycrypt\ compares to other
-proof assistant while reflecting on how to improve previous work.
+proof assistants while reflecting on how to improve previous work.
 
 \paragraph{Higher-order instances of theories}
 Before formalising the constructions we remark on how to express modules
@@ -255,7 +255,7 @@ depending on other modules in \easycrypt.
 We note that this section is not important for the proofs presented in this
 section, but outlines a workaround need to express this type of construction in \easycrypt.
 
-In \easycrypt modules can be parametrised by abstract modules \ie, we can define
+In \easycrypt\ modules can be parametrised by abstract modules, \ie\ we can define
 the module of the AND
 construction as:
 \begin{lstlisting}[mathescape]
@@ -340,18 +340,11 @@ $R((h_{1}, h_{2}), (w_{1}, w_{2})) = R_{1}(h_{1}, w_{1}) \land R_{2}(h_{2}, w_{2
 
 The construction of AND is itself a $\Sigma$-Protocol running both
 $S_{1}$ and $S_{2}$ as sub-procedures. To formalise this, we start by declaring
-the AND construction as an instantiation of a $\Sigma$-Protocol. To do this we
-first need to define the types of AND construction. However, before we
-can define the types we need to know the types of the
-underlying $\Sigma$-Protocols $S_{1}$ and $S_{2}$. To denote the types of
-$S_{i}$ we use the notation: $\text{type}_i$
-\begin{align*}
-  \textbf{Type: } &\text{statement = statement}_{1} \times \text{statement}_{2} \\
-                  &\text{witness = witness}_{1} \times \text{witness}_{2} \\
-                  &\text{message = message}_{1} \times \text{message}_{2} \\
-                  &\text{challenge = challenge}_{1} = \text{challenge}_{2} \\
-                  &\text{response = response}_{1} \times \text{response}_{2} \\
-\end{align*}
+the AND construction as an instantiation of a $\Sigma$-Protocol following the
+steps of the previous section. We then overload $S_{1}$ and $S_{2}$ to also mean
+any $\Sigma$-Protocol with types matching $S_{1}$ or $S_{2}$. Therefore, when we
+write $P_{i} : S_{i}$ we are referring to any protocol $P_{i}$, which satisfy the
+types of $S_{i}$.
 
 We then define the procedures of the AND construction as seen in listing \ref{lst:and-procedures}.
 The AND construction works by running both protocols in parallel. The first
@@ -403,13 +396,16 @@ regards to the module \texttt{ANDProtocol}
 \end{lemma}
 \begin{proof}
   By inlining the procedures of $\texttt{ANDProtocol}(P_{1}, P_{2})$ in
-  \texttt{Completeness(ANDProtocol).special} we see that it is equivalent to:
-  \texttt{Completeness($P_{1}$).special; Completeness($P_{2}$).special}. Which is true by our
-  assumption of $P_{1}$ and $P_{2}$ being complete.
-  We need to use the \texttt{special} definition of the completeness game here
+  \texttt{Completeness(ANDProtocol).special} we see that it is equivalent first
+  running the completeness game of $P_{1}$ and then the completeness game of
+  $P_{2}$, \ie\ \texttt{Completeness($P_{1}$).special; Completeness($P_{2}$).special}.
+  We then concluded that the \texttt{special} definition of completeness must
+  return true with probability one by our assumption of completeness of $P_{1}$ and $P_{2}$.
+
+  We need to use the \texttt{special} definition of completeness
   since the challenge $e$ is given by a Verifier running the AND construction.
-  Where we to use the original definition of completeness, then the AND construction
-  would need randomly sample two challenges to prove equivalence with the
+  Were we to use the original definition of completeness, then the AND construction
+  would need to randomly sample two challenges to prove equivalence with the
   binding games, which is not the case.
 
   By lemma \ref{lem:sigma:alt:completeness} we get that
@@ -418,7 +414,7 @@ regards to the module \texttt{ANDProtocol}
 
 \begin{lemma}[AND special soundness]
   Given secure $\Sigma$-Protocols P1 and P2
-  the AND construction AND(P1, P2) satisfy definition \ref{def:sigma:soundness}
+  the \texttt{ANDProtocol(P1, P2)} satisfy definition \ref{def:sigma:soundness}
   with $s = 2$.
 
   The witness extractor is defined in listing \ref{lst:AND:extractor}
@@ -485,9 +481,9 @@ $\Sigma$-Protocol proving knowledge of the relation
 $$R((h_{1}, h_{2}), w) = R_{1}(h_{1}, w) \lor R_{2}(h_{2}, w)$$.
 
 However, this relation makes it impossible to realise our security definitions \cite{cryptoeprint:2019:1185}.
-If the if public statement $h_{i}$ for which there is no witness is not in the
+If the public statement $h_{i}$, for which there is no witness, is not in the
 domain of statements with a possible witness making the relation true, then it
-is possible for the verifier to guess for which of the two underlying relations hold.
+is possible for the verifier to guess which of the two underlying relations held.
 To fix this we use the alternative relation:
 
 \begin{align*}
@@ -586,7 +582,7 @@ regards to the module \texttt{ORProtocol}
   \[
     equiv[SHVZK(OR(P1, P2)).ideal \sim SHVZK(OR(P1, P2)).real]
   \]
-  With pre and postcondition given by definition \ref{def:sigma:shvzk}.
+  With pre- and post-condition given by definition \ref{def:sigma:shvzk}.
 
   The simulator for the OR construction is given is listing \ref{lst:sigma:or:simulator}.
 
@@ -611,8 +607,8 @@ proc simulator(h : statement, s : challenge) : message * response = {
 
   \noindent\textbf{1)} we show that $e1^{real} \sim e1^{ideal}$ and
   $e2^{real} \sim e2^{ideal}$. This follows trivially since we assume both
-  procedures make the same random choices and since the order in which the
-  challenges are sampled is the same then they must be equal.
+  procedures make the same random choices, and since the order in which the
+  challenges are sampled is the same, then they must be equal.
 
   \noindent\textbf{2)} that the transcript $(a1, e1, z1)$ made by running P1 on
   input (h1,w) is indistinguishable from the transcript produced by
@@ -649,7 +645,7 @@ proc simulator(h : statement, s : challenge) : message * response = {
   Given secure $\Sigma$-Protocols P1 P2 then
   The OR construction OR(P1,P2) satisfy definition \ref{def:sigma:soundness}
   with $s = 2$ and witness extractor for the OR construction defined as:
-\begin{lstlisting}mathescape]
+\begin{lstlisting}[mathescape]
 proc witness_extractor(h, a, s : challenge list, z : response list) = {
   (h1, h2) = h;
   (a1, a2) = m;
@@ -683,7 +679,7 @@ proc witness_extractor(h, a, s : challenge list, z : response list) = {
 \label{subsec:fiat-shamir}
 The Fiat-Shamir transformation is a technique for converting $\Sigma$-protocols
 into zero-knowledge protocols. $\Sigma$-Protocols almost satisfy the definition
-of zero-knowledge, the only problem is that $\Sigma$-Protocols only guarantee
+of zero-knowledge, the only problem being that $\Sigma$-Protocols only guarantee
 zero-knowledge in the presence of a honest verifier. This is stated by the special
 honest-verifier zero-knowledge property. However, if we can alter the protocol slightly
 to force the verifier to always be honest, then the protocol, by definition,
@@ -770,10 +766,10 @@ definition of a zero-knowledge protocol.
 \end{lemma}
 \begin{proof}
   By comparing the completeness from the underling $\Sigma$-protocol to the
-  transformation we see that the only different is that underlying protocol
-  waits for the verifier to sample a challenge for him. Since a honest verifier
-  will never fail to send a challenge (\ie\ he is lossless) and it will always
-  be uniformly chosen the two procedures are equivalent.
+  transformation, we see that the only difference is that underlying protocol
+  waits for the verifier to sample a challenge for him. Since an honest verifier
+  will never fail to send a challenge (\ie\ he is lossless) and the challenge is always
+  uniformly chosen, the two procedures are equivalent.
 \end{proof}
 
 \begin{lemma}
@@ -781,7 +777,7 @@ definition of a zero-knowledge protocol.
   lossless then the Fiat-Shamir transformation is zero-knowledge
 \end{lemma}
 \begin{proof}
-  To prove zero-knowledge in the random oracle model we must define a simulator
+  To prove zero-knowledge in the random oracle model, we must define a simulator
   producing indistinguishable output from the real procedure. Here, the
   simulator is allowed to dictate the random choices made by the oracle in the real
   protocol.
@@ -862,14 +858,15 @@ definitions from section \ref{sec:sigma:def}.
 \begin{proof}
   To prove correctness we need to prove two things:
   \begin{enumerate}
-    \item That the procedure always terminates
-    \item That it always outputs true
+    \item The procedure always terminates
+    \item The output of the procedure is always true.
   \end{enumerate}
-  \textbf{1)} Since all procedures bar the random sampling in $\texttt{Schnorr}$ are arithmetic
-  operations they can never fail. The random sampling have been proven to be
-  lossless. Therefore the procedures always terminates.
+  \textbf{1)} Since all instructions of the game, bar the random sampling, are arithmetic
+  operations they can never fail and the random sampling was proven to be
+  lossless when instantiating the $\Sigma$-Protocol formalisation we can
+  conclude that the procedure always terminates.
 
-  \noindent\textbf{2)} After running all sub-procedures of the correctness game
+  \noindent\textbf{2)} After running all sub-procedures of the correctness game,
   the output of the procedure is
   \begin{align*}
          &g^{r + e \cdot w} = g^{r} \cdot h^{e} \\
@@ -901,7 +898,7 @@ proc witness_extractor(h : statement, m : message, e : challenge list, z : respo
     \item The witness extractor produces a valid witness for the relation R
   \end{enumerate}
 
-  \textbf{1)} By stepping though the while loop of the soundness game we can
+  \textbf{1)} By iterating through the while-loop of the soundness game we can
   show that all transcripts must be accepting by our assumptions.
 
   \noindent \textbf{2)} Running all procedures of the soundness game we are left
@@ -953,8 +950,10 @@ proc ideal(h, e) = {
     \caption{SHVZK procedures}
     \label{fig:schnorr:shvzk}
   \end{figure}
-  To prove this we use \easycrypt\ coupling functionality to show that $r^{real} \sim z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \sim r^{real} + e \cdot w^{real}$.
-  This is easily prove, since the distribution is full and uniform, and the group is closed under addition and multiplication. All these facts follow directly from the cyclic group theory in \easycrypt.
+  To prove this we use \easycrypt\ coupling functionality to show that $r^{real}
+  \sim z^{ideal} - e \cdot w^{real}$ and that $z^{ideal} \sim r^{real} + e \cdot w^{real}$.
+  This follows from the distribution being full and uniform, and the group is closed under addition and multiplication.
+  All these facts follow from the cyclic group theory in \easycrypt.
   We then use this to show output indistinguishability:
   \begin{align*}
     (a^{real}, e, z^{real}) &= (g^{r^{real}}, e, r^{real} + e \cdot w^{real}) \\

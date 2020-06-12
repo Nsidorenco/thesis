@@ -4,7 +4,7 @@ In this section, we formalise commitment schemes and their security definitions.
 Our formalisation of commitment schemes provides two variants; key-based and
 key-less commitment schemes.
 The key-based formalisation requires the two parties to share a key.
-The other variant, does not require the parties to share any keys between them, and
+The other variant does not require the parties to share any keys between them, and
 only assumes they share the function specification of the commitment schemes.
 The latter variant is usually instantiated by one-way/hash functions.
 
@@ -45,30 +45,29 @@ When verifying a commitment, for example, there should be no need to sample
 additional randomness. A simple deterministic function on the commitment and its
 opening should suffice. Moreover, if the
 verification algorithms cannot terminate within a reasonable amount of time,
-then it is probably not wroth studying the commitment scheme further.
+then it is probably not worth studying the commitment scheme further.
 
 The committer is modelled as a module with two procedures; one for generating
-key pairs and another for committing to messages. This models the fact that the Committer
-is able to keep state and make random choice, while the commitments he makes
-should be easily verifiable by anyone knowing the public key, without having to
-keep any additional state about the committer.
+key pairs and another for committing to messages. This allows the Committer
+to keep state and make random choice, while verifying commitments is a
+deterministic function given access to the public key.
 
 By separating the verification functions from the committers procedures we get a
 formalisation closer to the real world, where the verifiers functions should not
 be able to read/alter any of the state of the committer. This could alternatively have
 been modelled with the verifier being a separate module.
 However, if \texttt{verify} is expressed as a procedure
-then we allow \texttt{verify} to read/alter state. By introducing state we
+then we allow \texttt{verify} to read/alter state. By introducing state, we
 unnecessarily complicate reasoning about verification of multiple messages.
-Consider the case, where the verifier is given two commitment and two openings;
+Consider the case where the verifier is given two commitment and two openings;
 if \texttt{verify} is allowed to alter state, then the order of which we verify
 the commitments matter. It is, therefore, not possible to change to order of
 verifying commitments, unless it is explicitly proven that \texttt{verify} does
 not access the state of the module.
 Implementing \texttt{verify} as a function alleviates the problem of reasoning
 about state.
-This is in contrast to previous work \cite{DBLP:journals/corr/MetereD17}, which
-has to implemented the functionality of the verifier as procedures in the same
+This is in contrast to previous work by \citet{DBLP:journals/corr/MetereD17}, which
+implemented the functionality of the verifier as procedures in the same
 module as the committers functionality.
 
 We define a commitment scheme to be an implementation of the functions and
@@ -83,13 +82,13 @@ formalisation. They could potentially be merged into one formalisation, which
 allows for both to be used whenever a commitment scheme is required. The main
 reason for not doing this is that proofs of protocols depending on commitment
 schemes can become easier when it is not necessary to reason about the sampling
-and distribution of the keys. Ideally it should be
+and distribution of the keys. Ideally, it should be
 proven that the two formalisation are compatible w.r.t. security, and one can be
 used in place of the other, but this is beyond the scope of this thesis.
 
 The functions and procedures used by the key-less commitment schemes are
 identical to the ones listed in Figure \ref{lst:commitment-procedures} for the
-key-based commitment schemes with the only except all references to
+key-based commitment schemes except that all references to
 the public and secret keys has been removed. Furthermore, the Committer module
 now only contains one procedure \texttt{commit}, since there is no longer a need
 to generate key pairs.
@@ -99,7 +98,9 @@ generation removed along with the references to the secret and public keys.
 
 \section{Security}
 \label{sec:commitment:sec}
-For both the key-based and key-less variant of the give the same definitions of security, which is based on the work of \citet{DBLP:journals/corr/MetereD17}.
+For both the key-based and key-less variant of commitment schemes we use the
+same definitions of security, which is based on the work of
+\citet{DBLP:journals/corr/MetereD17}.
 
 \begin{definition}[Correctness]
   \label{def:commitment:correctness}
@@ -280,7 +281,7 @@ procedures rather than constructing an adversary.
 \section{Concrete instantiation: Pedersen Commitment}
 \label{sec:pedersen}
 
-To show the workability of the proposed formalisation we show that it can be
+To show the workability of the proposed formalisation, we show that it can be
 used to reproduce the results of \citet{DBLP:journals/corr/MetereD17}. Pedersens
 commitment scheme is based on the discrete logarithm assumption
 
@@ -340,11 +341,11 @@ module Pedersen : Committer = {
 
 \end{lstlisting}
 
-Here our formalisation assumes that the Committer samples the keys but as we
-will see in the following section we are still able to prove security of the
+Here our formalisation assumes that the Committer samples the keys but, as we
+will see in the following section, we are still able to prove security of the
 scheme regardless of who generates the keys.
-Here we use the Cyclic Group theory from EC to generate the agreed upon group
-and model uniform distributions of messages and randomness by the provided
+Here, we use the Cyclic Group theory from EC to generate the agreed upon group
+and model the uniform distributions of messages and randomness by the provided
 distributions of field elements.
 
 \paragraph{Security}
@@ -382,7 +383,7 @@ module HidingIdeal(A : HidingAdv) = {
 
   \noindent\textbf{1) }
   $\forall Adv. \Pr{\texttt{HidingGame(Pedersen, Adv)}.main = true} = \Pr{\texttt{HidingIdeal(Adv)}.main = true}$.
-  We prove that for any choice of $b$ the two procedures and
+  We prove that for any choice of $b$ the two procedures are
   indistinguishable. We start by proving indistinguishability with $b = 0$.
   To prove this we have to prove that $g^{r} \sim g^{r'} \cdot \text{sk}^{m}$
   Here we use \easycrypt's coupling functionality to prove that
