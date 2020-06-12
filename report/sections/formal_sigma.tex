@@ -250,25 +250,86 @@ assistant, we can gain valuable insight into how \easycrypt\ compares to other
 proof assistant while reflecting on how to improve previous work.
 
 \paragraph{Higher-order instances of theories}
-\begin{draft}
-We then define the AND construction as a module parametrised by
-$\Sigma$-Protocols satisfying the type signatures of $S_{1}$ and $S_{2}$, which
-can be seen in Listing \ref{lst:and-procedures}. This might seem restrictive,
-since the AND construction can now only be made from $\Sigma$-Protocol with the
-specific type signature of $S_{1}$ and $S_{2}$, but recall that the entire AND
-construction is quantified over the types given in the type declaration. This
-means that the types of $S_{1}$ and $S_{2}$ can be fixed to any arbitrary types
-and therefore can express any $\Sigma$-Protocol.
-Nevertheless, if $S_{1}$ and $S_{2}$ are any arbitrary $\Sigma$-Protocols, then why are
-the AND construction parametrised by $\Sigma$-Protocols satisfying the type
-signatures of $S_{1}$ and $S_{2}$ rather than just parametrising the AND
-construction be any two $\Sigma$-protocols? Ideally, the AND
-construction would be formalised in this way, but due to how \easycrypt\ handles
-types of modules we
-need to declare the types of the AND construction and ensure that the procedures
-are typeable. The only way of ensuring this is by fixing the types of the
-underlying $\Sigma$-Protocols before instantiation the AND construction as a $\Sigma$-Protocol.
-\end{draft}
+Before formalising the constructions we remark on how to express modules
+depending on other modules in \easycrypt.
+We note that this section is not important for the proofs presented in this
+section, but outlines a workaround need to express this type of construction in \easycrypt.
+
+In \easycrypt modules can be parametrised by abstract modules \ie, we can define
+the module of the AND
+construction as:
+\begin{lstlisting}[mathescape]
+module ANDProtocol($S_1$ : SProtocol, $s_{2}$ : SProtocol) : SProtocol = { ... }
+\end{lstlisting}
+
+The problem with this, however, is our formalisation of $\Sigma$-Protocols is
+more than just a module; it is a theory abstracted over the types of
+$\Sigma$-Protocols and a fixed distribution of challenges.
+
+The above notation of parametrising modules does encapsulate
+the functionality of the $\Sigma$-Protocol theory and only exposes the
+procedures of the modules. This in turn, means that the above code listing will
+not type check, since we have no way of knowing that the types of $S_{1}$ and
+$S_{2}$ will be.
+
+To overcome this limitation, we let the AND construction be an abstract theory
+quantified over the types of two $\Sigma$-Protocols, and instantiations with
+those types. This mean that the types of $S_{1}$ and $S_{2}$ will be fixed at
+the time when declaring the module ANDProtocol.
+
+The code for this can be seen in listing \ref{lst:higher-order-theories}.
+Similarly, the construction of OR follows the same outline.
+
+\begin{lstlisting}[float,label=lst:higher-order-theories,caption=AND construction theory]
+theory ANDProtocol.
+  type statement1. (* type of statement in protocol 1 *)
+  type statement2. (* type of statement in protocol 2 *)
+  type witness1.
+  type witness2.
+  type message1.
+  type message2.
+  type challenge.
+  type response1.
+  type response2.
+
+  (* define the relations *)
+  op R1 (x : statement1, w : witness1) : bool.
+  op R2 (x : statement2, w : witness2) : bool.
+  op R = fun x w => (R1 (fst x) (fst w)) /\ (R2 (snd x) (snd w)).
+
+  (* fix the challenge distribution *)
+  op dchallenge : {challenge distr | is_lossless dchallenge /\ is_funiform dchallenge} as dchallenge_llfuni.
+
+clone SigmaProtocols as S1 with
+  type statement <- statement1,
+  type witness <- witness1,
+  type message <- message1,
+  type challenge <- challenge,
+  type response <- response1,
+  op R = R1,
+  op dchallenge = dchallenge
+
+(* Define AND construction as Sigma-Protocol with the types of the underlying protocols *)
+clone SigmaProtocols as S2 with
+  type statement <- statement2,
+  type witness <- witness2,
+  type message <- message2,
+  type challenge <- challenge,
+  type response <- response2,
+  op R = R2,
+  op dchallenge = dchallenge
+
+clone export SigmaProtocols as Sigma with
+  type statement <- (statement1 * statement2),
+  type message   <- (message1 * message2),
+  type witness   <- (witness1 * witness2),
+  type response  <- (response1  * response2),
+
+  op R = R,
+  op dchallenge = dchallenge
+
+module ANDProtocol (P1 : S1.SProtocol, P2 : S2.SProtocol) : Sigma.SProtocol = { ... }
+\end{lstlisting}
 
 \subsection{AND}
 \label{subsec:sigma_AND}
