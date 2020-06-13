@@ -22,11 +22,11 @@ Moreover, zero-knowledge also has important theoretical applications, where it
 is used by the GMW-compiler to turn any passively secure protocol into an
 actively secure protocol.
 
-Due to zero-knowledge being applied critical applications like
+Due to zero-knowledge being applied in critical applications like
 blockchains which could have real-life financial consequences, if the security is
 broken, it is paramount that we can offer the highest levels of assurance in the
 protocols performing to specification.
-However, many proofs of security are considered unverifiable due their informal
+However, many proofs of security are considered unverifiable, partly due to informal
 reasoning and implicit arguments. This was also remarked by Bellare and Rogaway \cite{game-playing}:
 
 \begin{quote}
@@ -34,26 +34,28 @@ In our opinion, many proofs in cryptography have become essentially unverifiable
 \end{quote}
 
 To harness this complexity Bellare and Rogaway suggests the code-based game-playing approach
-for doing security proofs of cryptographic protocols.
+for doing security proofs.
 However, game-playing security is not the end-all of security, and the approach
 still allows for unrigorous proofs. Many cryptographers proofs still lends
 themselves to informal arguments and human errors when proving security.
 
-However, with the code-based approach, we can apply research from
+However, with the code-based approach, apply
 formal verification to help us attain an even higher level of trust in our
 proofs by making them machine verifiable.
-This is approach has been made possible if the recent advance if proof assistant
+This is approach has been made possible by the recent advances in proof assistants
 specialising in formal verification of probabilistic programs \cite{SOK:CAC}.
 It is important to remark, however, that formally verified does not imply
 absolute security. When formally proving cryptographic protocols, we do so in
-cryptographic models. These models help us reduce the complexity of our proves
-by limiting external influences of the protocol or giving access to idealised
-functionality. If the assumptions made in the model used are unsound, then the
-protocol would still be unsecure if formally proven. However, By applying formal
+the context of a cryptographic model.
+Such a model help us by reducing the complexity of our protocols
+by limiting external influences or by giving access to idealised
+functionalities. If the assumptions made in the model used are unsound, then the
+protocol would still be insecure, even through it has been formally proven.
+However, By applying formal
 reasoning to cryptographic proofs we can expel all informal reasoning and
 implicit knowledge, thus attaining much more precise definitions of security.
 
-An additional benefit of using tool supporting game-based security like \easycrypt\ is that
+An additional benefit of using tools supporting game-based security like \easycrypt\ is that
 it becomes possible to formally verify protocols in a representation very close
 to the one in cryptographic literature. This gives a more direct connection between
 the formal proofs and how the protocols are used in practice.
@@ -64,15 +66,16 @@ been successfully embedded within \cite{easycrypt-jasmin}.
 Cryptographic protocols written in a low-level machine language can
 then, through EasyCrypt, be formally proven secure and extracted to assembly code.
 
+\todo{Studying these tools are, therefore, important because...}
+
 This allows researchers to take a protocol description and then transfer their
 definitions to a tool like \easycrypt, which can help expose informal reasoning
 in their proofs.
 
 
 In an attempt to bring higher assurance to the field of cryptography formal
-verification of cryptographic primitives have commenced
+verification of various cryptographic primitives have commenced
 \cite{SOK:CAC,ec_intro,cryptoeprint:2019:1185,certicrypt_sigma}.
-Moreover, MPC...
 
 The goal of this thesis is to further this formalisation effort by first improving the
 existing formalisation of $\Sigma$-Protocols in \easycrypt.

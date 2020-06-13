@@ -1,7 +1,6 @@
 \chapter{Generalised Zero-Knowledge protocols}
 \label{ch:general_zk}
-In this chapter, we introduce the concept of generalised zero-knowledge
-protocols. We also introduce the ZKBoo protocol, which is a generalised $\Sigma$-Protocol.
+In this chapter, we introduce generalised zero-knowledge protocols.
 In the previous section, we have seen a concrete instantiation of a
 $\Sigma$-protocol with the relation being the discrete logarithm problem, namely
 Schnorr's protocol (Section \ref{sec:schnorr}).
@@ -16,19 +15,19 @@ additional information to verify the certificate.
 A user of this system would then like to prove that he is above the age of 18.
 However, the user is not willing to reveal his birthday. To alleviate this,
 we could define a $\Sigma$ protocol for proving knowledge of the birthday matching
-a certificate with the name and income valid.
+a valid certificate with the name and income.
 We could then image another user being interesting in proving their wealth is
 above 5000, but not their precise income. Here, we have the same problem as
 before, but with a slightly different relation.
 
-To solve this problem, we could either pre-determine all the relations for which
+To solve this problem, we could pre-determine all the relations for which
 we need zero-knowledge proofs. However, another approach is that of generalised
 zero-knowledge protocols.
 A generalised zero-knowledge protocol is, like the name suggests, a
 protocol able to prove zero-knowledge for an entire class of relations.
 One example of such a class of relations is every relation that can be
-described as the pre-image of a group homomorphism, \ie that the user knows the
-input to some function, which results in a specific output.
+described as the pre-image of a group homomorphism, \ie\ that the user knows the
+input to some function which results in a specific output.
 
 To explore the field of generalised zero-knowledge protocols, we introduce ZKBoo
 by \citet{zkboo}.
@@ -58,14 +57,14 @@ which is not in the interest of the person running the protocol.
 These two facts contribute to the ``MPC in the head'' approach being significantly
 more efficient than a normal MPC protocol.
 
-We can distribute $x$ to all the local parties, such that the output of the MPC
-protocol will be $y$. In a sense, this corresponds to splitting the computation
-into $n$ branches. Consequently, if all $n$ branches are then later recombined
+We then distribute $x$ into shares $x_1, \dots x_{n}$ for each of the parties. $x$ should be
+distributed in such a way, that we can reconstruct $x$ from the shares. This
+allow us to compute $f(x_{1}, \dots x_{n}) = y$ with the MPC protocol.
+In a sense, this corresponds to splitting the computation
+into $n$ branches. Consequently, if the branches are then later recombined
 we get the actual evaluation of $f$.
-Then, if we reveal $d$ branches to a verifier, he
-would not be able to reconstruct the original input. Reconstructing the input
-requires all the computational branches and by the $d$-privacy
-property we know that $d$ of the views reveal no information about the other views.
+Moreover, if we only reveal $d$ of the computational branches, then the inputs
+cannot be recovered by the privacy property of the MPC protocol.
 
 In the following section, we introduce the concept of the $(2,3)$-Decomposition,
 which is an ``MPC in the head'' protocol for splitting the evaluation of a
@@ -75,7 +74,7 @@ used to prove knowledge of $x$.
 
 \subsection{(2,3)-Function Decomposition}
 \label{subsec:decomposition}
-(2,3)-Function decomposition is a general technique for computing the output of
+The (2,3)-Function decomposition is a general technique for computing the output of
 a circuit $f : X \rightarrow Y$ on input value $x \in X$.
 The decomposition works by splitting the function evaluation into three
 computational branches where each computation branch is a party in an MPC
@@ -89,13 +88,14 @@ decomposition then works by splitting the input into an input share for each
 party, where the original input can be obtained if all three input shares are
 acquired.
 Each party then evaluates all the gates of the circuit to a value, as described by
-the MPC protocol. Here, we mimic the communication of the parties by simply letting
+the MPC protocol. Here, we mimic the communication of the parties by letting
 them access each other's views. As a general rule, we only allow party $P_{i}$ to
 communicate with party $P_{i+1 \mod 3}$.
 The view of a party is a list of values that the party has computed so far.
 The view of party $P_{i}$ is referred to as $w_{i}$.
 For the rest of this chapter, we will omit the $\mod 3$ from the
-indexing. Moreover, we assume that each party has access to a random tape $k_{i}$
+indexing for the sake of brevity.
+Moreover, we assume that each party has access to a random tape $k_{i}$
 which describes what the party should do if the protocol asks for a random
 choice.
 
@@ -157,7 +157,7 @@ as in \citet{zkboo}.
 We assume the circuit is expressed in some arbitrary finite field
 $\mathbb{Z}_{q}$ such that the circuit can be expressed by gates: addition by constant,
 multiplication by constant, binary addition, and binary multiplication.
-Assume that every gate in the circuit is labelled as $[1 \dots N]$ where $N$ is
+Moreover, we assume that every gate in the circuit is labelled as $[1 \dots N]$ where $N$ is
 the total number of gates.
 We then implement $\decomp_{\text{ARITH}}$ as:
 
@@ -174,29 +174,29 @@ We then implement $\decomp_{\text{ARITH}}$ as:
     \begin{itemize}
       \item Addition by constant: where $a$ is the input wire to the gate
         and $\alpha$ is the constant.
-        $$ w[j+1]_{i} =
+        $$ w_{i}[j] =
         \begin{cases} w_{i}[a] + \alpha & \text{if } i = 1 \\
                       w_{i}[a]          & \text{else}       %
         \end{cases}$$
       \item Multiplication by constant: where $a$ is the input wire to the gate
         and $alpha$ is the constant
-        $$ w_{i}[j+1] = w_{i}[a] \cdot \alpha$$
+        $$ w_{i}[j] = w_{i}[a] \cdot \alpha$$
       \item Binary addition: where $a, b$ are the input wires.
         $$
-        w_{i}[j+1] = w_{i}[a] + w_{i}[b]
+        w_{i}[j] = w_{i}[a] + w_{i}[b]
         $$
       \item Binary multiplication: where $a, b$ are the input wires.
         $$
-        w_{i}[j+1] = w_{i}[a] \cdot w_{i}[b] + w_{i+1}[a] \cdot w_{i}[b] + w_{i}[a] \cdot w_{i+1}[b] + R_{i}(j+1) - R_{i+1}(j+1)
+        w_{i}[j] = w_{i}[a] \cdot w_{i}[b] + w_{i+1}[a] \cdot w_{i}[b] + w_{i}[a] \cdot w_{i+1}[b] + R_{i}(j) - R_{i+1}(j)
         $$
-        Where $R_{i}(j+1)$ is a uniformly random function sampling values using $k_{i}$
+        Where $R_{i}(j)$ is a uniformly random function sampling values using $k_{i}$
     \end{itemize}
 \end{itemize}
 
 Here the binary multiplication gate is the most interesting since it needs the
 share from another party to compute. The random values are added to hide what
-the share of the other party where. If the random values where not added then if
-would be easy to deduce what the share of $P_{i+1}$ where given access to the
+the share of the other party were. If the random values were not added then it
+would be easy to deduce what the share of $P_{i+1}$ is, given access to the
 view of party $P_{i}$.
 
 \subsection{ZKBoo}
@@ -219,8 +219,10 @@ The protocol proceeds as follows:
     \end{itemize}
 \end{itemize}
 
-From this protocol we can see that if get access to all three views and $\decomp_{C_{f}}$ is correct, then we would be able to extract the witness of the relation
-since the output of decomposition is equivalent to the result of the function it decomposes.
+From this protocol we can see that if the verifier gets access to all three views and
+$\decomp_{C_{f}}$ is correct, then we would be able to extract the witness from
+the relation since the output of decomposition is equivalent to the result of
+the function it decomposes.
 By only revealing 2 of the three views, we are ensured by the 2-privacy property
 of $\decomp_{C_{f}}$ that the protocol is zero-knowledge. This
 property is stronger than the one given by $\Sigma$-protocols, which only offers
@@ -240,8 +242,8 @@ successfully cheated him. It is, therefore, necessary to run the protocol
 multiple times.
 
 To prove that the above claims hold and that the ZKBoo protocol is secure we will
-in the following chapter use the work laid out in this thesis to develop a
-formalisation of the ZKBoo protocol that captures the aforementioned security aspects.
+in the following chapter formalise ZKBoo by utilising our formalisation of
+$\Sigma$-Protocols and Commitment Schemes.
 
 %%% Local Variables:
 %%% mode: latex

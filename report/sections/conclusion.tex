@@ -7,11 +7,10 @@ This work exists in the field of formal verification of cryptographic protocols.
 Notably our work has been heavily influenced by similar formalisations
 \cite{cryptoeprint:2019:1185,DBLP:journals/corr/MetereD17,certicrypt_sigma,zkcrypt,Yao}
 
-\citet{cryptoeprint:2019:1185} managed to formalise both $\Sigma$-Protocols and
-commitment schemes within Isabelle/CryptoHOL. Additionally, they have managed to
-prove that commitment schemes can be build directly from $\Sigma$-Protocols.
-Their formalisation of $\Sigma$-Protocols also include various concrete
-instantiations.
+\citet{cryptoeprint:2019:1185} formalises both $\Sigma$-Protocols and
+commitment schemes within Isabelle/CryptoHOL. Additionally, they formalises
+the proof that commitment schemes can be build directly from $\Sigma$-Protocols.
+Their formalisation of $\Sigma$-Protocols also include various concrete instantiations.
 The main difference between the results obtained in their work compared to our
 has been the tool usage. Isabelle/CryptHOL is a tool similar to \easycrypt\ that
 offers a higher-order logic for dealing with cryptographic game-based proofs.
@@ -19,7 +18,7 @@ The fundamental difference between the two tools is that Isabelle/CryptHOL
 programs are written in a functional style, where as \easycrypt\ allows the user
 to write programs in an imperative style. This ultimately leads to the same
 understanding of programs as distribution transformers as discussed in chapter
-\ref{ch:EasyCrypt}. Moreover, \easycrypt\ offers strong automation tactics...
+\ref{ch:EasyCrypt}.
 
 Other formalisations of $\Sigma$-Protocols also exists. \citet{certicrypt_sigma}
 successfully formalised $\Sigma$-Protocols with CertiCrypt. They work includes a
@@ -28,7 +27,7 @@ homomorphism with certain restrictions or a claw-free permutation. This has
 allowed them to define and prove the security for a whole class of
 $\Sigma$-Protocols. This result is similar to the one we achieved with out
 formalisation of ZKBoo. ZKBoo, however, defines a more general class of
-$\Sigma$-Protocols than the one defined in the paper.
+$\Sigma$-Protocols than the one defined in this paper.
 
 Moreover, commitment schemes has been formalised in \easycrypt\ by
 \citet{DBLP:journals/corr/MetereD17}. Their work differs from our by offering
@@ -44,11 +43,11 @@ than ZKBoo, in the sense that it does not use MPC or commitment scheme.
 Last, secure function evaluation has been studied by \citet{Yao}, which
 formalised Yao protocol in \easycrypt. This work also included a formalisation
 of circuits.
+\todo{MPC papers}
 
 
 \section{Discussion}
 \label{sec:discussion}
-\todo{Needs a semi-honest MPC protocol}
 Throughout the work of this thesis we have used the \easycrypt\ proof assistant
 to formally verify the proofs presented herein.
 The work has been an iterative process between formulating a lemma and then
@@ -60,10 +59,9 @@ proofs, thus enabling us to spend more time working on the complex lemmas seen
 within this thesis.
 
 Overall, we feel that \easycrypt\ captures the models used by cryptographers
-quite well; our formalisation of ZKBoo has a structure similar to that presented
+quite well; our formalisation of ZKBoo has a structure akin to the one presented
 in the original paper by \citet{zkboo}. This has enabled us to spend less time
-formulating the protocol and the proof steps and more time on formalising
-important security criteria.
+formulating the protocol and more time on formalising important security criteria.
 This has been capacitated, in part, by \easycrypt\ \textit{pWhile} language for
 implementing procedures. This language follow a structure closely resembling the
 pseudo-code seen in cryptographic papers.
@@ -85,14 +83,14 @@ offers two techniques for dealing with cryptographic proofs. The first is the
 traditional adversaries game-hopping technique where we reason about an
 adversary being able to break to security of the protocol. These adversaries can
 then be used to construct new adversaries that can break the security of other protocols.
-The other techniques observably indistinguishability with \easycrypt's rPHL
-logic.
+The other techniques is showing indistinguishability of the output distributions
+of the programs with \easycrypt's relational logic.
 Both of these techniques are perfectly valid for proving security of
 cryptographic protocols. However, at the time of writing this thesis it is not
 clear to us how to formally prove the relation between the two techniques.
-The schism became apparent in chapter \ref{ch:formal_zkboo} where the
+The gap between the two techniques became apparent in chapter \ref{ch:formal_zkboo} where the
 adversarial-based security definitions of our commitment schemes did not conform
-to our the goals needed to prove security in our $\Sigma$-Protocol formalisation.
+to the goals needed to prove security of our $\Sigma$-Protocol formalisation.
 
 The steep leaning curve is primarily caused by the lack of documentation of new
 tactics. At the time of writing this thesis the last update to the \easycrypt\
@@ -123,13 +121,13 @@ execution order in section \ref{subsec:arith-representation} being semantic pres
 Moreover we saw in section \ref{subsec:fiat-shamir} that there is a need for
 formalising the rewinding lemma to reason about soundness of the Fiat-Shamir
 transformation. Moreover, rewinding is a common technique for proving soundness
-of zero-knowledge protocols. Formalising the rewinding lemma would then allows
+of zero-knowledge protocols. Formalising the rewinding lemma would allow
 us to reason about more general zero-knowledge protocols than the sub-class of
 $\Sigma$-Protocol which we have explored in this thesis.
 
 \section{Conclusion}
 \label{sec:conclusion}
-
+\begin{draft}
 In this thesis we have successfully managed to develop a rich formalisation of
 $\Sigma$-Protocols and commitment schemes, whilst reproducing some of the key results of
 formalisation done in other proof assistant \cite{cryptoeprint:2019:1185,certicrypt_sigma}.
@@ -153,6 +151,7 @@ all proofs in the aforementioned section would not hold. These assumption are
 often left out when discussing cryptographic protocol design, but are important
 when reasoning about the security of the protocols when implemented in a
 programming language.
+\end{draft}
 
 %%% Local Variables:
 %%% mode: latex
