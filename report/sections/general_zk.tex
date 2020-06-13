@@ -49,7 +49,7 @@ The principle idea of this protocol is based on a technique called ``MPC in the
 head''. The idea of ``MPC in the head'' is to run a secure $n$ party MPC protocol for computing
 $f$, but with every party being locally simulated, rather than run as part of
 the protocol.
-By running every party locally, we also remove any communicate overhead the MPC
+By running every party locally, we also remove any communication overhead that the MPC
 protocol might incur. Moreover, since the protocol is run locally, we can assume
 every party of the MPC protocol to be semi-honest. If the parties where not
 semi-honest, then it might be easier to extract the secret input of the parties,
@@ -59,7 +59,7 @@ more efficient than a normal MPC protocol.
 
 We then distribute $x$ into shares $x_1, \dots x_{n}$ for each of the parties. $x$ should be
 distributed in such a way, that we can reconstruct $x$ from the shares. This
-allow us to compute $f(x_{1}, \dots x_{n}) = y$ with the MPC protocol.
+allows us to compute $f(x_{1}, \dots x_{n}) = y$ with the MPC protocol.
 In a sense, this corresponds to splitting the computation
 into $n$ branches. Consequently, if the branches are then later recombined
 we get the actual evaluation of $f$.
@@ -93,7 +93,7 @@ them access each other's views. As a general rule, we only allow party $P_{i}$ t
 communicate with party $P_{i+1 \mod 3}$.
 The view of a party is a list of values that the party has computed so far.
 The view of party $P_{i}$ is referred to as $w_{i}$.
-For the rest of this chapter, we will omit the $\mod 3$ from the
+For the rest of this chapter, we will omit the ``mod 3'' from the
 indexing for the sake of brevity.
 Moreover, we assume that each party has access to a random tape $k_{i}$
 which describes what the party should do if the protocol asks for a random
@@ -105,15 +105,16 @@ choice.
     \decomp = \{\text{Share}, \text{Output}, \text{Rec}, \text{Update}\}
   \]
 
-  Where Share is a procedure for computing the three inputs shares based on an
-  input to $f$.
-  Moreover, it should be possible to invert the Share procedure such that the
-  original input can be recovered from the three input shares.
-  Output is a function returning the output share from the view of a party.
-  Rec is a function reconstructing the output of the function $f$ based on the
+  \texttt{Share} is a procedure for computing the three input shares based on an
+  input to $f$. Conceptually, \texttt{Share} takes a value $x$ and splits into
+  $n$ shares, called $x_{1}, \dots, x_{n}$. The $n$ shares can the be used to
+  reconstruct $x$ by applying the inverse function of share:
+  $\texttt{Share}^{-1}(x_{1}, \dots , x_{n}) = x$.
+  \texttt{Output} is a function returning the output share from the view of a party.
+  \texttt{Rec} is a function reconstructing the output of the function $f$ based on the
   output values of the parties.
 
-  Last, we have Update(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
+  Last, we have \texttt{Update}(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
   is the function used to evaluate the j'th gate of the circuit from the point
   of view of $P_{i}$. Here
   $j$ also refers to the size of the view, i.e. how many shares has been
@@ -127,7 +128,7 @@ evaluated.
 \paragraph{Security}
 Based on the security definitions from MPC (Section \ref{sec:background:mpc}) we
 can then define the two fundamental properties from \cite{zkboo} for showing security of
-our (2,3)-Function decomposition, namely, correctness and privacy.
+our (2,3)-Function decomposition, namely correctness and privacy.
 
 \begin{definition}[Correctness]
 \label{def:decomp_correctness}
@@ -193,9 +194,10 @@ We then implement $\decomp_{\text{ARITH}}$ as:
     \end{itemize}
 \end{itemize}
 
-Here the binary multiplication gate is the most interesting since it needs the
-share from another party to compute. The random values are added to hide what
-the share of the other party were. If the random values were not added then it
+Here, the binary multiplication gate is the most interesting since it needs the
+share from another party to compute. The random values are added to hide value
+of the share supplied by the other party.
+If the random values were not added then it
 would be easy to deduce what the share of $P_{i+1}$ is, given access to the
 view of party $P_{i}$.
 
@@ -233,16 +235,17 @@ does not hold.
 
 Lastly, if the prover is to cheat the verifier he must produce three views where
 the output is $y$.
-The only way for the prover is if he changes some of
-the shares in one of the views; thus coercing the output to the value he wants.
-By doing so, one of the
-views will deviate from the procedures of $\decomp_{f}$, which the prove can quickly
-verify if he picked the correct challenge. If not, then the prover has
-successfully cheated him. It is, therefore, necessary to run the protocol
+The only option for the prover is if he changes some of
+the shares in one of the views, thereby coercing the output to the value he wants.
+By doing so, one of the views will deviate from the procedures of $\decomp_{f}$,
+and the prove can quickly detect this if he picked the challenge exposing the
+view the prover coerced.
+If not, then the prover has successfully cheated him.
+It is, therefore, necessary to run the protocol
 multiple times.
 
-To prove that the above claims hold and that the ZKBoo protocol is secure we will
-in the following chapter formalise ZKBoo by utilising our formalisation of
+To prove that the above claims hold and that the ZKBoo protocol is secure, we will,
+in the following chapter, formalise ZKBoo by utilising our formalisation of
 $\Sigma$-Protocols and Commitment Schemes.
 
 %%% Local Variables:

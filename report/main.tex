@@ -34,6 +34,7 @@
 \usepackage{epstopdf}
 % \usepackage{microtype}
 \usepackage{hyperref}
+\usepackage{ragged2e}
 \usepackage[square,numbers,sort&compress]{natbib}
 \usepackage[useregional]{datetime2}
 \DTMlangsetup[en-US]{showdayofmonth=false}
@@ -79,6 +80,7 @@
 \definecolor{mygreen}{rgb}{0,0.6,0}
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
 \definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{aublue}{HTML}{193b77}
 
 \lstset{
   morecomment=[s]{(*}{*)},
@@ -115,29 +117,81 @@
   % title=\lstname                   % show the filename of files included with
   % \lstinputlisting; also try caption instead of title
 }
+\newcommand{\myTitle}{Formalising Sigma-Protocols and Commitment Schemes in EasyCrypt\xspace}
+\newcommand{\mySubtitle}{A Guide for Content \& Style\xspace}
+\newcommand{\myDegree}{Master's Thesis\xspace}
+\newcommand{\myName}{Nikolaj Sidorenco\xspace}
+\newcommand{\myStudentId}{201504729\xspace}
+\newcommand{\myProf}{Bas Spitters\xspace}
+\newcommand{\myOtherProf}{Sabine Oechsner\xspace}
+\newcommand{\myFaculty}{Natural Sciences\xspace}
+\newcommand{\myDepartment}{Department of Computer Science\xspace}
+\newcommand{\myUni}{Aarhus University\xspace}
+\newcommand{\myLocation}{Aarhus\xspace}
+\newcommand{\myTime}{\monthname\ \the\year\xspace}
+
 
 \begin{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\pagestyle{empty} 
-\pagenumbering{roman} 
-\vspace*{\fill}\noindent{\rule{\linewidth}{1mm}\\[4ex]
-{\Huge\sf Formalising Sigma-Protocols and commitment schemes within \easycrypt}\\[2ex]
-{\huge\sf Nikolaj Sidorenco, 201504729}\\[2ex]
-\noindent\rule{\linewidth}{1mm}\\[4ex]
-\noindent{\Large\sf Master's Thesis, Computer Science\\[1ex]
-  \today \\[1ex] Advisor: Bas Spitters\\[1ex]
-  Co-advisor: Sabine Oechsner\\[15ex]}\\[\fill]}
-\epsfig{file=logo.eps}\clearpage
+%*******************************************************
+\pagestyle{empty}
+\pagenumbering{roman}
+\vspace*{\fill}\noindent{\color{aublue}\rule{\linewidth}{1mm}\\[4ex]\color{black}
+  \begin{RaggedRight}
+\Large \spacedallcaps \myTitle\\ \vspace*{1.5em}
+% \large \spacedallcaps \mySubtitle\\ \vspace*{3em}
+\end{RaggedRight}
+{\noindent\Large \spacedlowsmallcaps \myName, \myStudentId }\\[1ex]
+\noindent\color{aublue}\rule{\linewidth}{1mm}\\[4ex]\color{black}
+\noindent{\large \spacedlowsmallcaps \myDegree\\[1ex]
+June \the\year  \\[1ex] Advisor: \myProf\\[1ex] Co-advisor: \myOtherProf \\[23ex]}\\[\fill]}
+\includegraphics[width=\linewidth]{logo}\clearpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagestyle{plain}
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
+When applying cryptographic protocols in real-line applications it is paramount
+that we can trust them to work as specified. However, many cryptographic proofs
+are based on informal reasoning and implicit knowledge. Moreover, many
+cryptographic proofs have become so complex, that they are considered
+unverifiable.
 
-\todo{in English\dots}
+Advances in formal reasoning of cryptographic protocols has provided a methodology
+for constructing more rigours proofs which can eliminate informal reasoning.
+Moreover, formal reasoning allow us to construct machine-verifiable proofs.
+
+In this thesis we use the EasyCrypt proof assistant to formally reason about two
+cryptographic primitives; Commitment Schemes and $\Sigma$-Protocols.
+First, we consider Commitment Schemes, which allows a
+Committer to bind himself to a chosen message. The Committer can then later
+reveal the message to a Verifier, which can be ensured that the Committer
+revealed the same message as the one the bound himself to.
+Next, we consider $\Sigma$-Protocols, which allows a Prover to convince a
+Verifier, that he knows some secret $x$, without ever revealing the secret to
+the Verifier. Additionally, we also consider compound $\Sigma$-Protocol, which
+allow us to combine $\Sigma$-Protocols.
+To formalise these two primitives we reproduce the results of previous
+formalisations to develop abstract specification, which can be used to
+instantiate secure concrete protocols. We show the workability by instantiating
+Pedersen Commitment Schemes and Schnorr's $\Sigma$-Protocol.
+
+Using the formalisations of $\Sigma$-Protocols and Commitment schemes we
+formalise the ZKBoo protocol, which is a generalised $\Sigma$-Protocol, based on Multi-Part
+Computations, for proven knowledge for the pre-image of any group homomorphism.
+In formalising ZKBoo we successfully formalised arithmetic circuits and an MPC
+protocol on arithmetic circuits called the (2,3)-Decomposition.
+We then use our abstract specification to prove ZKBoo to be a secure $\Sigma$-Protocol.
+With this work we show the discrepancy between the security proofs in
+cryptographic papers compared to the reasoning requires to prove a protocol
+secure in the formal context.
+
+A highlight of our formalisation, is the security proofs of ZKBoo. Here we show how to
+formally prove a complex cryptographic protocol, which depend on the abstract
+specifications of $\Sigma$-Protocols, Commitment Schemes, and Multi-Part Computations.
 
 \chapter*{Resum\'e}
 \addcontentsline{toc}{chapter}{Resum\'e}
@@ -170,11 +224,9 @@
 
 \input{sections/background.tex}
 
-\input{sections/formal_commitment.tex} % Schnorr's protocol should also be here somewhere.
+\input{sections/formal_commitment.tex}
 
-\input{sections/formal_sigma.tex} % Schnorr's protocol should also be here somewhere.
-
-%% Here goes Schnorr - say it is not important to ZKboo
+\input{sections/formal_sigma.tex}
 
 \input{sections/general_zk.tex}
 

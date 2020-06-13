@@ -34,8 +34,9 @@ Moreover, we fix a lossless, full, and uniform distribution over challenges spac
 distribution is used to model an honest verifier which will always generate a
 uniformly random challenge.
 
-We define a $\Sigma$-protocol to be a series of probabilistic procedures, which
-can be seen in listing \ref{lst:sigma_procedures}.
+We define a $\Sigma$-protocol to be a series of probabilistic procedures, based
+on the outline of $\Sigma$-Protocols given in \autoref{fig:proto_sigma}. The
+procedures can be seen in \autoref{lst:sigma_procedures}.
 \begin{lstlisting}[label=lst:sigma_procedures,caption=Abstract procedures of $\Sigma$-Protocols]
 module type SProtocol = {
   proc init(h : statement, w : witness) : message
@@ -160,7 +161,7 @@ Which then is proven by the hypothesis of the ``special'' procedure being comple
   holds that:
 \begin{align*}
     & \forall (i \neq j). c[i] \neq c[j] \\
-    \land &\forall (i \in [1 \dots s]). \Pr{S.verify(h, a, c[i], z[i])} = 1 \\
+    \land &\forall (i \in [1, \dots, s]). \Pr{S.verify(h, a, c[i], z[i])} = 1 \\
     &\implies \Pr{SpecialSoundness(\texttt{ANDProtocol}(S)).main(h, a, c, z)} = 1
 \end{align*}
 
@@ -259,7 +260,7 @@ In \easycrypt\ modules can be parametrised by abstract modules, \ie\ we can defi
 the module of the AND
 construction as:
 \begin{lstlisting}[mathescape]
-module ANDProtocol($S_1$ : SProtocol, $s_{2}$ : SProtocol) : SProtocol = { ... }
+module ANDProtocol($S_1$ : SProtocol, $S_{2}$ : SProtocol) : SProtocol = { ... }
 \end{lstlisting}
 
 The problem with this, however, is our formalisation of $\Sigma$-Protocols is
@@ -472,7 +473,7 @@ proc simulator(h : statement, e : challenge) : message * response = {
 
 \subsection{OR}
 \label{subsec:sigma_OR}
-For the OR construction we use the definition of the OR construction by \citet{on-sigma-protocols},
+For the OR construction we use the definition by \citet{on-sigma-protocols},
 which states that both sub-protocols must have the same witness type.
 
 Given two $\Sigma$-Protocols, $S_{1}$ with relation $R_{1}(h_{1},w)$ and

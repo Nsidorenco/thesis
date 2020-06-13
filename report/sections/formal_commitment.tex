@@ -21,14 +21,13 @@ For Key-based commitment schemes we fix to following types:
 
 Here we specifically fix a type ``randomness'' which is responsible for making two
 commitments to the same message look different. Technically this randomness
-could just be part of the ``commitment'' type, which is the type defining space
-of commitments.
+could just be part of the ``commitment'' type.
 Separating the two types, however, makes
 our formalisation of security easier to work with, which we will see later in
 this section.
 
 With the types fixed we then define a key-based commitment scheme as the
-functions and procedures seen in listing \ref{lst:commitment-procedures}.
+functions and procedures seen in \autoref{lst:commitment-procedures}.
 
 \begin{lstlisting}[float,label=lst:commitment-procedures,caption= Key-Based commitment specification]
 op validate_key (sk : secret_key, pk : public_key) : bool.
@@ -47,9 +46,9 @@ opening should suffice. Moreover, if the
 verification algorithms cannot terminate within a reasonable amount of time,
 then it is probably not worth studying the commitment scheme further.
 
-The committer is modelled as a module with two procedures; one for generating
-key pairs and another for committing to messages. This allows the Committer
-to keep state and make random choice, while verifying commitments is a
+The committer is modelled as a module with two procedures; \texttt{key\_gen} for generating
+key pairs and \texttt{commit} for committing to messages. This allows the Committer
+to keep state and make random choice, while \texttt{verify} can be kept as a
 deterministic function given access to the public key.
 
 By separating the verification functions from the committers procedures we get a
@@ -109,9 +108,9 @@ same definitions of security, which is based on the work of
     \forall m. \Pr{ Correctness(C).main(m) = true } = 1.
   \]
 
-  where Correctness(C) is defined as:
+  where Correctness(C) is defined in \autoref{lst:commit:correctness}
 
-\begin{lstlisting}
+\begin{lstlisting}[float,label=lst:commit:correctness, caption=Correctness Game]
 module Correctness(C : Committer) = {
   main(m : message) = {
     (sk, pk) = C.key_gen(); (* Omitted in the key-less case *)
@@ -161,8 +160,8 @@ module HidingGame(C : Committer, A : HidingAdv) = {
   \textit{perfect binding:} $\forall Adv. \Pr{BindingGame(C, Adv).main() = true} = 0$
   \textit{computational binding:} $\forall Adv. \Pr{BindingGame(C, Adv).main() = true} = \epsilon$
 
-  The adversary Adv and the procedure BindingGame is defined in listing \ref{lst:commit:binding}.
-\begin{lstlisting}[label=lst:commit:binding]
+  The adversary Adv and the procedure BindingGame is defined in \autoref{lst:commit:binding}.
+\begin{lstlisting}[label=lst:commit:binding, float, caption=Binding Game]
 module type BindingAdv = {
   proc bind(sk : secret_key, pk : public_key) : commitment * message * message * randomness * randomness
 }.
@@ -320,11 +319,11 @@ clone export Commitment as Com with
 
   op dm = FDistr.dt, (* Distribution of messages *)
   op dr = FDistr.dt, (* Distribution of randomness *)
-  op verify pk (m : message) c (r : randomness) = g^r * pk^m = c,
-  op valid_key (sk : secret_key) (pk : public_key) = (sk = pk).
+
+  op verify pk (m : message) c (r : randomness) = $g^r \cdot pk^m = c$,
 
 module Pedersen : Committer = {
-  proc key_gen() : secret_key * public_key = {
+  proc key_gen() = {
     a <$\$$ dr;
     $h = g ^ a$;
 
