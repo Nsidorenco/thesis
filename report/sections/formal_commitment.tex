@@ -65,7 +65,7 @@ verifying commitments, unless it is explicitly proven that \texttt{verify} does
 not access the state of the module.
 Implementing \texttt{verify} as a function alleviates the problem of reasoning
 about state.
-This is in contrast to previous work by \citet{DBLP:journals/corr/MetereD17}, which
+This is in contrast to previous work by \cite{DBLP:journals/corr/MetereD17}, which
 implemented the functionality of the verifier as procedures in the same
 module as the committers functionality.
 
@@ -99,7 +99,7 @@ generation removed along with the references to the secret and public keys.
 \label{sec:commitment:sec}
 For both the key-based and key-less variant of commitment schemes we use the
 same definitions of security, which is based on the work of
-\citet{DBLP:journals/corr/MetereD17}.
+\cite{DBLP:journals/corr/MetereD17}.
 
 \begin{definition}[Correctness]
   \label{def:commitment:correctness}
@@ -217,8 +217,8 @@ proc intermediate(m : message) = {
 }
 \end{lstlisting}
   We then prove that \texttt{intermediate} is equivalent to
-  \texttt{Completeness(C).main} by inlining all procedures and observing that
-  both procedures are semantically equivalent.
+  \texttt{Completeness(C).main} by inlining \texttt{key\_fixed} and observing
+  that both procedures are semantically equivalent.
 
   We are then left with showing:
   \begin{align*}
@@ -236,7 +236,7 @@ proc intermediate(m : message) = {
 \begin{definition}[Perfect Hiding]
   \label{def:commitment:perfect-hiding}
   A commitment scheme C offers perfect hiding, if the output distribution of two
-  committers with the same state but different messages are perfectly
+  commitments made with the same state but different messages are perfectly
   indistinguishable.
 
   \[
@@ -281,7 +281,7 @@ procedures rather than constructing an adversary.
 \label{sec:pedersen}
 
 To show the workability of the proposed formalisation, we show that it can be
-used to reproduce the results of \citet{DBLP:journals/corr/MetereD17}. Pedersens
+used to reproduce the results of \cite{DBLP:journals/corr/MetereD17}. Pedersens
 commitment scheme is based on the discrete logarithm assumption
 
 The Pedersen commitment scheme is a protocol run between a committer C and a
@@ -309,7 +309,7 @@ deterministic computations. This fits perfectly within our formalisation of the
 Receiver. We, therefore, instantiate our commitment scheme framework as seen in
 listing \ref{lst:commitment:pedersen}.
 
-\begin{lstlisting}[mathescape,label=lst:commitment:pedersen,caption=Pedersen instantiation]
+\begin{lstlisting}[mathescape,label=lst:commitment:pedersen,caption=Pedersen instantiation,float]
 clone export Commitment as Com with
   type public_key <- group
   type secret_key <- group
@@ -407,9 +407,11 @@ module HidingIdeal(A : HidingAdv) = {
 \end{lemma}
 \begin{proof}
   We prove computation binding of Pedersen commitment by showing that an
-  adversary breaking binding can be used to construct an adversary solving the discrete logarithm.
+  adversary breaking binding can be used to construct an adversary solving the
+  discrete logarithm. We describe the implementation of this adversary in \autoref{lst:pedersen:dlog}
 
-\begin{lstlisting}
+\begin{lstlisting}[label=lst:pedersen:dlog, caption=Discrete logarithm from
+binding, float]
 module DLogPedersen(B : BindingAdv) : Adversary = {
   proc guess(h : group) = {
     (c, m, m', r, r') = B.bind(h, h);

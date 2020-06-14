@@ -30,7 +30,7 @@ The security parameter, however, is usually left implicit, which we have also
 done in the definitions below.
 
 \paragraph{Notations}
-While this thesis has been performed entirely in \easycrypt, the code in this
+While this thesis has been implemented entirely in \easycrypt, the code in this
 thesis will be given in a more pseudo-code style. For
 the most part, we will avoid \easycrypt\ specific notation when writing procedures
 and solely focus on the tools \easycrypt\ provides for reasoning about procedures.
@@ -41,7 +41,7 @@ specify what will happen if the index does not exist. The is solved in \easycryp
 by declaring a default element should the indexing fail. We omit
 the default value from our code examples.
 Moreover, we define $x::xs$ to mean that we prepend $x$ to the list $xs$,
-$l_{1} ++ l_{2}$ means we concatenate two lists, and $\texttt{rcons} \; x \; xs$ means we
+$l_{1} ++ l_{2}$ means we concatenate two lists, and $\texttt{rcons} \; xs \; x$ means we
 append x to the list $xs$.
 
 Lastly, when referring to indistinguishability, we are referring the perfect
@@ -53,7 +53,7 @@ Zero-knowledge can be separated into two categories: \textit{arguments} and
 \textit{proofs-of-knowledge}. We start by defining the former.
 
 A Zero-knowledge argument is a protocol run between a probabilistic polynomial
-time (PPT) prover P and a PPT verifier V. The prover and verifier then both
+time (PPT) prover P and a PPT verifier V. The prover and verifier both
 know a relation $R \subseteq \{0,1\}^{*} \times \{0,1\}^*$, which expresses a
 computational problem. We refer to the first argument of the relation as $h$ and
 to the second argument as $w$.
@@ -65,7 +65,8 @@ We require that a verifier following the protocol always output
 \textbf{accept} if P knew $w$ and followed the protocol.
 This is known as \textit{correctness}.
 Moreover, we require that a cheating adversary, who does not know $w$, can
-only make the verifier output \textbf{accept} with some negligible probability $\epsilon$.
+only make the verifier output \textbf{accept} with some negligible probability
+$\epsilon$. This is known as \textit{soundness}.
 
 \textit{Proofs-of-knowledge} shares the same definitions
 as above, but require that the verifier only output \textbf{accept} if the
@@ -76,7 +77,7 @@ variant is proven by assuming the prover has infinite computational power.
 Common amongst both variants is that they require that verifier learns no
 information, whatsoever, about w:
 
-\begin{definition}[Zero-knowledge from \citet{on-sigma-protocols}]
+\begin{definition}[Zero-knowledge from \cite{on-sigma-protocols}]
   \label{def:zk}
   Any proof-of-knowledge or argument with parties (P, V) is said to be
   zero-knowledge if for every PPT verifier V$^{*}$ there exists a
@@ -88,15 +89,15 @@ information, whatsoever, about w:
 \section{Sigma Protocols}
 \label{sec:background:sigma_protocols}
 The following section introduce $\Sigma$-protocols,
-and their definition of security. The definitions given in the section is
-inspired by presentation of $\Sigma$-protocols by \citet{on-sigma-protocols}.
+and their definition of security. The definitions given in the section are
+inspired by presentation of $\Sigma$-protocols by \cite{on-sigma-protocols}.
 $\Sigma$-protocols are two-party protocols on a three-move-form, with a
 computationally hard, relation $R$, such that $(h, w) \in R$ if $h$ is an
 instance of a computationally hard problem, and $w$ is the solution to $h$.
 This relation can also be expressed as a function, such that
 $(h,w) \in \text{R} \iff \text{R}_{f} \; h \; w = 1$.
 A $\Sigma$-protocol allows a prover who knows $w$ to convince a
-verify, without revealing $w$ to him.
+the verifier that he knows $w$, without ever revealing $w$ to him.
 
 
 \begin{figure}[ht]
@@ -152,7 +153,7 @@ times to make his probability $\frac{1}{c}^{n}$, where n is the amount of runs.
 
 The special soundness definition can also be generalised to $s$-Special
 Soundness. This definition requires that the witness can be constructed, given
-$s$ accepting conversations.
+$s$ accepting transcripts.
 
 \begin{definition}[Special honest-verifier zero-knowledge]
   A $\Sigma$-Protocol $S$ is said to be SHVZK if there exists a polynomial-time
@@ -193,7 +194,7 @@ A commitment scheme is a tuple of algorithms (Gen, Com, Ver), where:
   \item $(ck, vk) \leftarrow Gen()$, provides key generation.
   \item $(c, d) \leftarrow Com(ck, m)$ generates a commitment $c$ of the message
     $m$ along with an opening key $d$ which can be revealed at a later time.
-  \item $\{true, false\} \leftarrow Ver(vk, c, m, d)$ checked whether the
+  \item $\{true, false\} \leftarrow Ver(vk, c, m, d)$ checks whether the
     commitment $c$ was generated from $m$ and opening key $d$.
 \end{itemize}
 \end{definition}
@@ -239,13 +240,14 @@ distinguishing the commitments is equivalent to a hard computational problem.
 \section{Multi-Part Computation (MPC)}
 \label{sec:background:mpc}
 Consider the problem with $n$ parties, called $P_{1}, \dots, P_{n}$, with
-corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$ where the parties
-are allowed to communicate with each other over a secure channel freely.
+corresponding input values $\textbf{x} = x_{1}, \dots, x_{n}$.
 The parties then want to compute a public function,
 $f : (\text{input})^{n} \rightarrow \text{output}$, where each party contribute
 their input to the function and after computing the function every party will
 have the same output. However, none of the participant are allowed to learn
 about any of the inputs to the function, barring their own.
+
+each party is allowed to communicate with each other over a secure channel, freely.
 
 To achieve this, the parties jointly run an MPC protocol $\Phi_{f}$. This protocol
 is defined in the term of rounds.
@@ -274,7 +276,7 @@ directly computed based on $\text{view}_{i}$.
 
   More formally, the protocol has $d$-privacy if it is possible to define a
   simulator $S_{A}$ which is given access to the output of the protocol,
-  producing views that are indistinguishable from the views of the $d$ colluding
+  can produce views that are indistinguishable from the views of the $d$ colluding
   parties.
 \end{definition}
 

@@ -1,15 +1,15 @@
 \chapter{Formalising ZKBoo}
 \label{ch:formal_zkboo}
 In this chapter, we formalise the ZKBoo protocol along with the security proofs by
-\citet{zkboo}. To formalise this, we utilise our formalisations of
+\cite{zkboo}. To formalise this, we utilise our formalisations of
 $\Sigma$-Protocols and commitment schemes.
 % ZKBoo is a $\Sigma$-Protocol, so we
 % use our formalisation to instantiate this. We then use our formalisation of commitment
 % schemes to prove the security definitions for ZKBoo.
 The definitions and proofs formalised in the chapter all come from
-\citet{zkboo}. In order to formalise these, we have had to make definitions more
+\cite{zkboo}. In order to formalise these, however, we had to make the definitions more
 precise and prove certain predicates about the different procedures of
-the protocol in order to prove it secure. These changes have been necessary since crucial
+the protocol in order to prove them secure. These changes have been necessary since crucial
 assumptions have been kept implicit in the original paper.
 By formalising the proofs of security, we make these assumptions explicit,
 which can help improve implementation-level security by exposing edge-cases
@@ -18,7 +18,7 @@ where the security definitions could break down.
 The goal of formalising ZKBoo is two-fold. First, we show that our previous
 formalisations are indeed applicable to more extensive protocols. Second, we aim to
 gather insight into the security of the ZKBoo protocol itself, and how formal
-verification can help us find pitfalls in informal proofs.
+verification can help us identify pitfalls in informal proofs.
 
 To formalise the work of ZKBoo, we first start by developing a formalisation of
 arithmetic circuits within \easycrypt. This formalisation allows us the reason about
@@ -57,7 +57,7 @@ follow the notation of the original paper here.
 Before we can reason about the decomposition of an arithmetic circuit, we need a clear
 definition of what an arithmetic circuit is, and how we can compute values from it.
 Primarily, we recall the definition of circuits as
-graphs which is also used in the original paper by \citet{zkboo} and discuss how
+graphs which is also used in the original paper by \cite{zkboo} and discuss how
 to evaluate circuits programmatically.
 Lastly, we introduce an alternative representation of arithmetic
 circuits and provide several definitions, enabling us to reason
@@ -70,7 +70,7 @@ arbitrary finite field $\mathbb{Z}_{q}$, where
 $f : \mathbb{Z}_{q} \rightarrow \mathbb{Z}_{q}$
 
 To express arbitrary (arithmetic) computations in a finite field we
-use the following four gates, addition by constant (ADDC), multiplication by constant
+use the following four gates: addition by constant (ADDC), multiplication by constant
 (MULTC), addition of two wires (ADD), and multiplication of two wires (MULT).
 
 The goal of this section is to formulate a representation of the function
@@ -100,8 +100,8 @@ We now recall the graph representation of a circuit:
 
   Finally, for all gates, $g \in G$ there must exist a path in W from $in$ to $o$ going
   through $g$.
-  If this was not the case, then the gate could be removed from the graph without changing the
-  semantic meaning of the circuit.
+  If this was not the case, then the gate could be removed from the graph
+  without changing the semantics of the circuit.
 \end{definition}
 
 To define the evaluation of the circuit, we would then need to compute the values of the
@@ -175,7 +175,7 @@ type encoded_gate = [
   indexes (From the linear ordering) of the gates, whose out-going wires are the
   in-going wires of the gate. \eg\ If we have an addition gate with wires coming
   from the gate with index $i$ and a gate with index $j$ we express this as an
-  encoded gate $MULT (i, j)$.
+  encoded gate $ADD (i, j)$.
 \end{definition}
 
 \begin{figure}[ht]
@@ -252,7 +252,7 @@ op eval_circuit (c : circuit, s : state) : output =
     last (eval_circuit_aux c s).
 \end{lstlisting}
 
-It is then possible to define the semantic meaning of the list representation of
+It is then possible to define the semantics of the list representation of
 a circuit by defining an evaluation function, which can be seen in \autoref{lst:circuit_eval}.
 The evaluation is broken into two parts: First, we have a function for evaluating
 one gate to an intermediate value. Second, we have a procedure for evaluating
@@ -365,7 +365,7 @@ More formally the reconstructed output is:
   \sum_{i \in \{1,2,3\}} \text{last } w_{i}
 \end{equation}
 
-Based on procedure defined in \autoref{lst:decomp_aux} we then define what
+Based on the procedure defined in \autoref{lst:decomp_aux} we then define what
 it means to correctly decompose the circuit into three computational branches:
 
 \begin{definition}[Correctness of views]
@@ -382,18 +382,17 @@ it means to correctly decompose the circuit into three computational branches:
   where s is the list of intermediate values produces by calling
   \texttt{eval\_circuit\_aux} in \autoref{lst:circuit_eval}.
 
-  Consequently, a share is only valid if it has been produced by decomposition.
-  Namely, if $p_{i}$ computes a share $s$ then for any other party using $s$ in
-  their computation \eg\ when computing a MULT gate, then the share used by
-  the other parties was indeed $s$.
-
+  Consequently, a share is only valid if it has been produced by the decomposition.
+  \eg\ when computing a MULT gate, where party $p$ used the shares
+  $w_{p}[i]$ and $w_{p}[j]$ to compute his next share, then the shares used by
+  the other parties did indeed match $w_{p}[i]$ and $w_{p}[j]$.
   \begin{equation}
     \label{eq:decomp:valid}
       \forall 0 \leq i < \text{size
                                                    } c - 1,  w_{e}[i+1] = \texttt{eval\_gate } c[i]\; w_{e} \; w_{e+1}
   \end{equation}
 
-  To express that the views satisfy the above definition we use the notation
+  To express that the views satisfy the above equations we use the notation
   \validviews{c,w1,w2,w3} to express that $w1, w2, w3$ are valid views for the
   decomposition of $c$
 
@@ -458,7 +457,7 @@ In most proofs, it is not essential to verify the shares of previously computed 
 Specifically, when considering the correctness and 2-privacy properties it is only
 important that the views produced by the decomposition, which we are currently
 computing, is going to be valid.
-This can be stated as an invariant on the
+This can be stated as an invariant of the
 decomposition rather than verifying it by re-running the decomposition.
 
 Moreover, if we observe \texttt{Update} as defined in section
@@ -511,9 +510,9 @@ We then give the following lemmas for describing the relation between
   \end{align*}
 \end{lemma}
 \begin{proof}
-  We show that while-loop will never break the invariant given by the
+  We show the while-loop will never break the invariant given by the
   postcondition.
-  We prove this by induction on the number of step iterated through the
+  We prove this by induction in the number of step iterated through the
   while-loop.
   Now, since we know by definition of \texttt{Update} that the randomness has no
   influence on the output shares, the proof is trivially true.
@@ -599,11 +598,17 @@ To prove the above lemma we first introduce a helper lemma:
 \end{proof}
 
 In some sense, our work imposes stricter restrictions on the correctness of decomposition than
-the proof by \citet{zkboo} since we require that every share computed can be
+the proof by \cite{zkboo} since we require that every share computed can be
 proven correct by decomposition, while the original proof of the correctness only
 requires that the output shares sum to the output of the circuit evaluation.
-This additional restriction on the views become essential for proving the
-security of ZKBoo.
+The original proof does satisfy the definition of MPC correctness, however, if
+we do not add this additional restriction then it is not possible
+to prove the security of the ZKBoo protocol.
+This restriction is implicitly implied by \cite{zkboo} since all parties are
+assumed honest. However, we need state to this restriction explicitly since we
+otherwise have no way to argue that the validation step described in section
+\ref{subsec:general:zkboo} will succeed if it is not a property of the
+decomposition that all shares are correctly produced.
 
 \subsection{2-Privacy}
 \label{sec:decomp_privacy}
@@ -613,7 +618,7 @@ The simulator is given by the
 procedure \texttt{simulate} and function \texttt{simulator\_eval} in \autoref{lst:zkboo:simulator}.
 \texttt{simulator\_eval} is a function that evaluates a single gate from the
 point of view of party ``p''. In the cases of evaluating ADDC, ADD, and MULTC gates,
-the simulator simply calls the \texttt{Update} function just like
+the simulator calls the \texttt{Update} function just like
 \texttt{compute}.
 When evaluating MULT gates shares needs to be distributed amongst the parties,
 as seen in section \ref{subsec:general:arith}.
@@ -624,7 +629,7 @@ $e$ can be computed normally with the \texttt{Update} function.
 For simulating the view of party $e+1$, we use the fact that shares should be
 uniformly random distributed, and sample a random value.
 
-\texttt{simulate} is the a wrapper around \texttt{simulator\_eval}, which is
+\texttt{simulate} is a wrapper around \texttt{simulator\_eval}, which is
 responsible for calling \texttt{simulator\_eval} on each gate in the circuit and
 appending the newly computed shares to the views.
 
@@ -689,7 +694,7 @@ We are then ready to state 2-privacy as the following lemma:
 \begin{lemma}[Decomposition 2-Privacy]
   \label{lem:zkboo:decomposition:privacy}
   \[
-    equiv[real \sim simulated : \indis{e, x, c} \land y^{simulated} = \texttt{eval\_{circuit}} \; c \; x^{real} \implies =\{w_{e}, w_{e+1}, y_{e+2}\}].
+    equiv[real \sim simulated : \indis{e, x, c} \land y^{simulated} = \texttt{eval\_{circuit}} \; c \; x^{real} \implies \indis{w_{e}, w_{e+1}, y_{e+2}}].
   \]
 
 \end{lemma}
@@ -829,12 +834,8 @@ return $(k_e, k_{e+1} k_{e+2}, w_e, w_{e+1})$;
   where $l$ and $r$ are the indexed of the left and right input wire,
   respectively.
   Indistinguishability here follows from the fact that \texttt{dinput} is full
-  and uniform, and that field, from which the shares are sampled, is closed
-  under arithmetic operations.
-
-  Had the randomness been sampled before running the protocol, this would not have been possible,
-  since \easycrypt\ can only reason about indistinguishability of sampled values at
-  the time of sampling.
+  and uniform, and the field, from which the shares are sampled, is closed
+  under algebraic operations.
 
   From this we can conclude that views $w_{1}$ and $w_{2}$ are indistinguishable
   between the two protocols. Moreover, we have that
@@ -845,8 +846,31 @@ return $(k_e, k_{e+1} k_{e+2}, w_e, w_{e+1})$;
   $e=1$ except when proving MULT to be indistinguishable we show
   indistinguishability between the random value and the view of $w_{3}$ and
   $w_{1}$ respectively.
-
 \end{proof}
+
+For the proof the above lemma we used the fact that randomness is sampled when
+needed by the computations. This allowed us to use \easycrypt's coupling
+functionality to manipulate the values of the random samplings.
+Had the randomness been sampled before running the protocol, this would not have
+been possible, since \easycrypt\ can only reason about indistinguishability of
+sampled values at the time of sampling.
+The reason for this, is that random values are not expressed as random values in
+\easycrypt. Instead, when sampling a random value we change the output
+distribution to quantify over all values, which can be sampled from the
+distribution. What the coupling functionality, in essence, does is that it allow
+us to fix a specific value for the randomly sampled value if we can prove the
+value we fix is indistinguishable from a randomly sampled value.
+
+In other words, when we sample a random values we introduce a new value where
+the only constraint on the value is that it must sampled from the distribution.
+However, \easycrypt\ offers no functionality for manipulating the value after it
+has been sampled, since if we could just change the value we could potentially
+prove contractionary statements.
+Consider the same where we sample a random boolean, and then check the value of
+it. By the coupling functionality we could fix the value to be the negation of
+the sampled value. If we could change the randomly value again we could
+change it back to the original value, thus arriving at a contradiction where the
+variable is both true and false.
 
 \begin{proof}[Proof of lemma \ref{lem:zkboo:decomposition:privacy}]
   By applying lemma \ref{lem:zkboo:decomposition:privacy_aux} we have that the
@@ -873,9 +897,10 @@ return $(k_e, k_{e+1} k_{e+2}, w_e, w_{e+1})$;
 Having formalised both arithmetic circuits and their (2,3)-Decomposition
 we are now ready to formalise the ZKBoo protocol.
 Since ZKBoo is a $\Sigma$-Protocol we start by
-defining its types as specified in section \ref{ch:formal_sigma}.
+defining its types as specified in section \ref{ch:formal_sigma}, which can be
+seen in \autoref{lst:zkboo:types}.
 
-\begin{lstlisting}[mathescape]
+\begin{lstlisting}[mathescape, float, label=lst:zkboo:types, caption=Type definitions for ZKBoo]
 type statement = circuit $\times$ int.
 type witness   = int.
 type statement = share $\times$ share $\times$ share $\times$ commitment $\times$ commitment
@@ -932,7 +957,7 @@ to reason about every computational step of the function before we can assert
 the truthiness of the property.
 We, therefore, need to use \texttt{valid\_view\_op} in our procedures to check
 validity, but we would much rather use \texttt{valid\_view} in our pre/postconditions.
-To achieve this we introduce a specialized version of a lemma proven by \citet{Yao},
+To achieve this we introduce a specialized version of a reflection lemma proven by \cite{Yao},
 which allows us to replace the result of the function with the predicate:
 \begin{lemma}[valid\_view predicate/op equivalence]
   $\forall$ p, w1, w2, c, k1, k2:
@@ -941,8 +966,8 @@ which allows us to replace the result of the function with the predicate:
 
 With a way to validate the views, we can instantiate the ZKBoo protocol from
 section \ref{sec:zkboo} as a $\Sigma$-Protocol in our formalisation by
-implementing the algorithms from figure \ref{lst:sigma_procedures}, which can be
-seen in figure \ref{lst:zkboo_procedures}.
+implementing the algorithms from \autoref{lst:sigma_procedures}, which can be
+seen in \autoref{lst:zkboo_procedures}.
 
 \begin{lstlisting}[float, mathescape,label=lst:zkboo_procedures,caption= ZKBoo $\Sigma$-Protocol instantiation]
 global variables = w1, w2, w3, k1, k2, k3.
@@ -1025,8 +1050,7 @@ do so. If, however, \texttt{Com.verify} had been a procedure we could not change
 the order of the calls,
 since one verification could potentially change the state of another.
 
-\begin{lstlisting}[mathescape, label=lst:zkboo-inter-completeness,caption=
-Intermediate game for completeness]
+\begin{lstlisting}[mathescape, label=lst:zkboo-inter-completeness,caption= Intermediate game for completeness, float]
 proc intermediate_main(h : statement, x : witness, e : challenge) = {
   (c, y) = h;
   x1 <$\$$ dinput;
@@ -1133,7 +1157,7 @@ proc ideal(h, e) = {
   \end{figure}
 
   From the 2-Privacy of the decomposition we have that \texttt{compute} and
-  \texttt{simulate} are indistinguishable, buy only when observing the views
+  \texttt{simulate} are indistinguishable, but only when observing the views
   $w_{e}, w_{e+1}$ and output share $y_{e+2}$. By this indistinguishability we
   can then apply the correctness lemma to both sides, thus making both procedures
   return true.
@@ -1158,7 +1182,7 @@ the form:
   equiv[\texttt{Com.commit}(m_{1}) \sim \texttt{Com.commit}(m_{2}) :\; \indis{\textbf{glob } Com} \implies \indis{res}]
 \]
 
-If we were given the original hiding definition based on an adversary,
+If we were using the original hiding definition based on an adversary (definition \ref{def:commitment:hiding}),
 it is not immediately clear how to apply this notion of indistinguishability in
 relation to the pRHL statement above.
 
@@ -1168,11 +1192,24 @@ to be an adversary-based game. Proving this, however, would require more
 intermediate steps, since we would have to construct an adversary breaking the
 SHVZK property based on one that violates the hiding property.
 
+An interesting property of this dilemma is that the alternative definition actually
+implies the original definition. Given the proof of procedure
+indistinguishability we can use it to rewrite the adversarial game to the
+adversary comparing two commitments to randomly chosen messages, which there is
+no way for the adversary to distinguish.
+The other direction, however, is not clear. Intuitively, the adversarial game
+should also imply the pRHL statement since if there is no way for any adversary
+to distinguish them, then it must be because the output of the procedures are
+indistinguishable. However, since there is no way to using statements
+of adversarial indistinguishability to substitute procedures calls with each
+other in \easycrypt\ we cannot directly use the adversarial game to prove the
+pRHL statement.
+
 \vspace{3mm}
 \noindent Lastly, we want to prove the 3-special soundness property of ZKBoo. To do so, we
 first inline the procedures of the soundness game. We then group the procedures
 into a procedure, \texttt{extract\_views}, which verifies that the views
-are accepting. To verify the views it uses the binding game, which only checks
+are accepting. To verify the views it uses the binding game, which also checks
 that the responses does not break the binding property.
 This is seen in \autoref{lst:zkboo:alt-soundness}
 
@@ -1212,7 +1249,7 @@ local module SoundnessInter = {
 Here, we replace the calls to \texttt{Com.verify} with the alternative binding
 game from definition \ref{def:commitment:alt-binding}. This replacement does not
 change the output distribution of the soundness game since the output
-distribution of verifying a commitment and the alternative binding game is identical.
+distributions of verifying a commitment and the alternative binding game are identical.
 
 From the new soundness game, we then prove two helper lemmas. First we
 introduce a lemma that allows us to reason about openings given by:
@@ -1238,11 +1275,10 @@ When $\forall i. w_{i} = w'_{i}$ we refer to the responses as begin \textit{cons
   \]
 \end{lemma}
 \begin{proof}
-  This follows directly from inlining all procedures and applying our assumptions.
+  This follows directly from applying our assumptions.
 \end{proof}
 
-Consequently, since \texttt{extract\_views} returns true for all calls to
-\texttt{verify} we can conclude \validviews{c, w_1, w_2, w_3} and
+Consequently, since \texttt{extract\_views} returns true we can conclude \validviews{c, w_1, w_2, w_3} and
 $\sum_{i \in \{1,2,3\}} \text{last } w_{i} = y$
 
 Next, we prove that if the responses are consistent then
@@ -1279,7 +1315,7 @@ we can extract a witness satisfying R.
   the while-loop then it will also hold after the iteration.
 
   This follows directly from \validviews{c, w_1, w_2, w_3} since at any iteration of
-  the while-loop it will perform exactly the same computation as the ones
+  the while-loop it will perform exactly the same computations as the ones
   performed to compute views $w_{1}, w_{2}, w_{3}$. Next, we have to show that
   the invariant is true after the first iteration of the while-loop. This is again
   true by \validviews{c, w_1, w_2, w_3}.

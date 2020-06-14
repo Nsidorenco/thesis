@@ -4,51 +4,64 @@
 \section{Related Works}
 \label{sec:related_works}
 This work exists in the field of formal verification of cryptographic protocols.
-Notably our work has been heavily influenced by similar formalisations
+Notably our work has been influenced by similar formalisations
 \cite{cryptoeprint:2019:1185,DBLP:journals/corr/MetereD17,certicrypt_sigma,zkcrypt,Yao}
 
-\citet{cryptoeprint:2019:1185} formalises both $\Sigma$-Protocols and
+\cite{cryptoeprint:2019:1185} formalises both $\Sigma$-Protocols and
 commitment schemes within Isabelle/CryptoHOL. Additionally, they formalise
 the proof that commitment schemes can be build directly from $\Sigma$-Protocols.
 Their formalisation of $\Sigma$-Protocols also include various concrete instantiations.
 The main difference between the results obtained in their work compared to ours
 has been the tool usage. Isabelle/CryptHOL is a tool similar to \easycrypt\ that
 offers a higher-order logic for dealing with cryptographic game-based proofs.
-The fundamental difference between the two tools is that Isabelle/CryptHOL
-programs are written in a functional style, where as \easycrypt\ allows the user
-to write programs in an imperative style. This ultimately leads to the same
-understanding of programs as distribution transformers as discussed in chapter
-\ref{ch:EasyCrypt}.
+There are two fundamental difference between the two tools.
+First, Isabelle/CryptHOL programs are written in a functional style, where as
+\easycrypt\ allows the user to write programs in an imperative style. This
+ultimately leads to the same understanding of programs as distribution
+transformers as discussed in chapter \ref{ch:EasyCrypt}.
 
-Other formalisations of $\Sigma$-Protocols also exists. \citet{certicrypt_sigma}
-successfully formalised $\Sigma$-Protocols with CertiCrypt. Their work include a
+Second, CryptHOL is a foundational framework built on top of Isabelle, which
+means that all CryptHOL rules are derived from the underlying rules of Isabelle.
+To trust CryptHOL, it is, therefore, enough to trust Isabelle, which is a much
+larger project with more contributors. \easycrypt, however, is a strand-alone
+tool and depends on axioms and SMT solvers to validate its deduction rules.
+The benefit of this, however, is that by having a tighter integration with SMT
+solvers we can achieve higher levels of automations. The downside, however, is
+that the trusted computing base of \easycrypt is larger.
+
+Other formalisations of $\Sigma$-Protocols also exists. \cite{certicrypt_sigma}
+successfully formalised $\Sigma$-Protocols using CertiCrypt. Their work include a
 formalisation of $\Sigma$-Protocols where the relation is the pre-image of a
 homomorphism with certain restrictions or a claw-free permutation. This has
 allowed them to define and prove the security for a whole class of
-$\Sigma$-Protocols. This result is similar to the one we achieved without
-formalisation of ZKBoo. ZKBoo, however, defines a more general class of
+$\Sigma$-Protocols.
+This result is similar to the one we achieved with our
+formalisation of ZKBoo. ZKBoo, however, works on a less restrictive class of
 $\Sigma$-Protocols than the one defined in this paper.
 
 Moreover, commitment schemes have been formalised in \easycrypt\ by
-\citet{DBLP:journals/corr/MetereD17}. Their work differs from ours by offering
-fewer definitions of security, which we described the need for in chapter \ref{ch:formal_commitment}
+\cite{DBLP:journals/corr/MetereD17}. Their work differs from ours by offering
+fewer definitions of security, which we described in section
+\ref{sec:commitment:alt-sec} and show the need of in the special soundness and
+SHVZK proofs in section \ref{subsec:zkboo:sec}
 
 Notable work also exists for formalising generalised zero-knowledge compilers.
-\citet{zkcrypt} developed a fully verified zero-knowledge compiler in CertiCrypt
+\cite{zkcrypt} developed a verified zero-knowledge compiler in CertiCrypt
 which uses the generalised Schnorr protocol to produce zero-knowledge proofs of
 any relation defined by the pre-image of a group homomorphism, just like ZKBoo.
 The generalised Schnorr protocol, however, is a fundamentally different protocol
-than ZKBoo, in the sense that it does not use MPC or commitment scheme.
+than ZKBoo, in the sense that it does not use MPC or commitment scheme, which
+also contribute to vastly different communication costs.
 
-Last, numerous formalisation of Multi-Part Computations exists.
-\citet{Yao} formalised secure function evaluation with Yao's protocol in
+Last, numerous formalisation of Multi-Party Computations exists.
+\cite{Yao} formalised secure function evaluation with Yao's protocol in
 \easycrypt.
 Their work also included a formalisation of circuits.
-\citet{DBLP:journals/corr/abs-1805-12482} formalised a two party MPC protocol
+\cite{DBLP:journals/corr/abs-1805-12482} formalised a two party MPC protocol
 based on secret sharing against a semi-honest adversary. Their work also manage
 to formally prove the privacy property with a simulator, akin to our work on the
 (2,3)-Decomposition in section \ref{sec:decomposition}.
-\citet{DBLP:journals/corr/abs-1806-07197} then formalised security of
+\cite{DBLP:journals/corr/abs-1806-07197} then formalised security of
 secret-sharing based MPC, but in the presence of an active adversary in \easycrypt.
 
 \section{Discussion}
@@ -65,23 +78,24 @@ within this thesis.
 
 Overall, we feel that \easycrypt\ captures the models used by cryptographers
 quite well; our formalisation of ZKBoo has a structure akin to the one presented
-in the original paper by \citet{zkboo}. This has enabled us to spend less time
+in the original paper by \cite{zkboo}. This has enabled us to spend less time
 formulating the protocol and more time on formalising important security criteria.
 This has been capacitated, in part, by \easycrypt\ \textit{pWhile} language for
 implementing procedures. This language follow a structure closely resembling the
 pseudo-code seen in cryptographic papers.
 
 Ultimately, the tool offers the possibility of writing programs both in a
-functional style and in an imperative style. It is, however, only programs
-written in the imperative style that is allowed to make random choices.
+functional style and in an imperative style. It is, however, only the programs
+written in the imperative style that are allowed to make random choices.
 
-Our main problems with using this tool has been the schism between computation
-and perfect indistinguishability and the tool's steep learning curve.
+Our main problems with using this tool has been the schism between perfect
+indistinguishability proven in pRHL and indistinguishability based on an
+adversarial game and the tool's steep learning curve.
 
 In particular \easycrypt\ offers its rPHL for proving procedures to be perfectly
 indistinguishable. If, however, computational indistinguishability is needed then
 the rPHL logic cannot directly be used, and we instead have to deal with
-adversaries comparing procedures.
+adversaries comparing the procedures.
 
 This problem is part of a more general problem where \easycrypt\ in essence
 offers two techniques for dealing with cryptographic proofs. The first is the
@@ -91,7 +105,8 @@ then be used to construct new adversaries that can break the security of other p
 The other techniques is showing indistinguishability of the output distributions
 of the programs with \easycrypt's relational logic.
 Both of these techniques are perfectly valid for proving security of
-cryptographic protocols. However, at the time of writing this thesis it is not
+cryptographic protocols.
+However, at the time of writing this thesis it is not
 clear to us how to formally prove the relation between the two techniques.
 The gap between the two techniques became apparent in chapter \ref{ch:formal_zkboo} where the
 adversarial-based security definitions of our commitment schemes did not conform
@@ -101,8 +116,17 @@ The steep leaning curve is primarily caused by the lack of documentation of new
 tactics. At the time of writing this thesis the last update to the \easycrypt\
 reference manual \cite{ec_refman} was in 2018. Moreover, the deduction rules by
 the different logics that \easycrypt\ provides are not documented anywhere, but
-instead have to be found in the papers describing \textbf{CertiCrypt} which is
+instead have to be found in the papers describing \texttt{CertiCrypt} which is
 the Coq-based proof assistant antecedent to \easycrypt.
+Overall, the work of this thesis proved that it is possible to formalise research papers in a
+reasonable time frame with no prior knowledge of \easycrypt.
+
+Other difficulties with \easycrypt\ have been described throughout this thesis.
+In section \ref{sec:commitment:sec}, we outlines the problem of expressing
+statistical security in \easycrypt. Then, in section \ref{sec:sigma_comp}, we
+outlined the workaround needed to work with \easycrypt\ theories quantifying
+over other theories. In section \ref{subsec:fiat-shamir} we outlined the problem
+of rewinding in \easycrypt, which limits the constructions we can directly prove.
 
 \section{Future work}
 \label{sec:future_work}
@@ -121,7 +145,7 @@ Mainly ZKBoo requires a circuit with a definable execution order to be secure.
 In our formalisation, we have assumed the function to represented as a circuit
 and then defined an execution order. However, to complete the tool chain we would need a formalisation of
 a procedure converting functions to circuits and a formal proof of the induced
-execution order in section \ref{subsec:arith-representation} being semantic preserving.
+execution order in section \ref{subsec:arith-representation} being semantics preserving.
 
 Moreover, we saw in section \ref{subsec:fiat-shamir} that there is a need for
 formalising the rewinding lemma to reason about soundness of the Fiat-Shamir
@@ -132,31 +156,26 @@ $\Sigma$-Protocol which we have explored in this thesis.
 
 \section{Conclusion}
 \label{sec:conclusion}
-\begin{draft}
-In this thesis we have successfully managed to develop a rich formalisation of
-$\Sigma$-Protocols and commitment schemes, whilst reproducing some of the key results of
-formalisation done in other proof assistant \cite{cryptoeprint:2019:1185,certicrypt_sigma}.
-From this formalisation we have managed to take MPC-based zero-knowledge
-compiler for general relations and managed to prove it to be secure in a formal
-setting by using our formalisations of both $\Sigma$-Protocols and commitments
-schemes. In doing so we showed how important details for achieving security is
-often glossed over in cryptographic literature...
-\end{draft}
+In this thesis, we have successfully managed to develop a rich formalisation of
+$\Sigma$-Protocols and commitment schemes, while reproducing some of the key
+results of formalisation done in other proof assistants.
+Moreover, we have formalised a particular class of Multi-Party Computation
+protocols on arithmetic circuits called the (2,3)-Decomposition.
+This Multi-Party computational formalisation, in turn, has enabled us to formally
+verify a generalised $\Sigma$-Protocol called ZKBoo.
+In doing so, we showed how essential details for achieving security are
+often glossed over in cryptographic literature.
+Particularly we saw in section \ref{subsec:zkboo:sec} how important small
+assumptions are for the security of implementations of cryptographic protocols.
+If one procedure was allowed to observe the state of another running on the
+system, then all proofs in the aforementioned section would not hold. These
+assumptions are often left out when discussing cryptographic protocol design
+but are essential when reasoning about the security of the protocols when
+implemented in a programming language.
 
-The main contributions of this work has been recreating key results from other
-proof assistants and showing the workability of \easycrypt, whilst also showing
-how our formalisation can be used to fuel future works by showing how it is
-possible to prove security of a more complex cryptographic protocol.
-Moreover, we have gained key insights into how \easycrypt works and how to
-develop workable formalisations
-
-Particularly we have seen in section \ref{subsec:zkboo:sec} how important small
-assumption are for security of implementations of cryptographic protocols. If
-one procedure is allowed to observe the state of another running on the system
-all proofs in the aforementioned section would not hold. These assumptions are
-often left out when discussing cryptographic protocol design, but are important
-when reasoning about the security of the protocols when implemented in a
-programming language.
+Additionally, we remarked on the usability of the \easycrypt\ proof
+assistant and have shown that it is possible to formalise a research paper with
+no prior knowledge of the tool.
 
 %%% Local Variables:
 %%% mode: latex

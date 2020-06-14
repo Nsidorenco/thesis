@@ -14,7 +14,7 @@ certificate consisting of his name, income, and birthday. This certificate also 
 additional information to verify the certificate.
 A user of this system would then like to prove that he is above the age of 18.
 However, the user is not willing to reveal his birthday. To alleviate this,
-we could define a $\Sigma$ protocol for proving knowledge of the birthday matching
+we could define a $\Sigma$-protocol for proving knowledge of the birthday matching
 a valid certificate with the name and income.
 We could then image another user being interesting in proving their wealth is
 above 5000, but not their precise income. Here, we have the same problem as
@@ -30,7 +30,7 @@ described as the pre-image of a group homomorphism, \ie\ that the user knows the
 input to some function which results in a specific output.
 
 To explore the field of generalised zero-knowledge protocols, we introduce ZKBoo
-by \citet{zkboo}.
+by \cite{zkboo}.
 ZKBoo is a $\Sigma$-Protocol for any relation expressed as the
 pre-image of a group homomorphism.
 \section{ZKBOO}
@@ -77,7 +77,7 @@ used to prove knowledge of $x$.
 The (2,3)-Function decomposition is a general technique for computing the output of
 a circuit $f : X \rightarrow Y$ on input value $x \in X$.
 The decomposition works by splitting the function evaluation into three
-computational branches where each computation branch is a party in an MPC
+computational branches where each computational branch is a party in an MPC
 protocol. The $(2,3)$-Decomposition is essentially a $3$ party MPC protocol with
 $2$-privacy that has been altered such that every party is run locally.
 Throughout this section, we will refer the (2,3)-Function decomposition
@@ -112,7 +112,7 @@ choice.
   $\texttt{Share}^{-1}(x_{1}, \dots , x_{n}) = x$.
   \texttt{Output} is a function returning the output share from the view of a party.
   \texttt{Rec} is a function reconstructing the output of the function $f$ based on the
-  output values of the parties.
+  output shares of the parties.
 
   Last, we have \texttt{Update}(w$^{j}_{i}$, w$^{j}_{i+1}$, k$_{i}$, k$_{i+1}$) $= w^{j+1}_{i}$ which
   is the function used to evaluate the j'th gate of the circuit from the point
@@ -143,20 +143,20 @@ $e \in \{1,2,3\}$ there exists a probabilistic polynomial time simulator $S_{e}$
 such that:
 \[
   \forall x \in x, \left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2} \right)
-  \equiv S_{e}(x)
+  \equiv S_{e}(x, y)
 \]
 Where $\left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2}
-\right)$ is produced by running $\decomp$ on input $x$
+\right)$ is produced by running $\decomp$ on input $x$ and $y$ is the result of computing $f(x) = y$
 \end{definition}
 
 \subsection{(2,3)-Function Decomposition for Arithmetic circuits}
 \label{subsec:general:arith}
 Based on the general description of the (2,3)-Decomposition from the previous
 section we can now define a concrete (2,3)-Decomposition of arithmetic circuits
-as in \citet{zkboo}.
+as in \cite{zkboo}.
 
 We assume the circuit is expressed in some arbitrary finite field
-$\mathbb{Z}_{q}$ such that the circuit can be expressed by gates: addition by constant,
+$\mathbb{Z}_{q}$ such that the circuit can be expressed by the following gates: addition by constant,
 multiplication by constant, binary addition, and binary multiplication.
 Moreover, we assume that every gate in the circuit is labelled as $[1 \dots N]$ where $N$ is
 the total number of gates.

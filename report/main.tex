@@ -35,7 +35,15 @@
 % \usepackage{microtype}
 \usepackage{hyperref}
 \usepackage{ragged2e}
-\usepackage[square,numbers,sort&compress]{natbib}
+
+\usepackage[
+backend=biber,
+style=alphabetic,
+sorting=ynt,
+citestyle=alphabetic
+]{biblatex}
+\addbibresource{refs.bib}
+
 \usepackage[useregional]{datetime2}
 \DTMlangsetup[en-US]{showdayofmonth=false}
 % \usepackage{lipsum}
@@ -44,6 +52,7 @@
 \usetikzlibrary{matrix,backgrounds}
 \usepackage{lstautogobble}
 \usepackage{subcaption}
+
 
 \usepackage{amsthm}                                % Theorem package
 \theoremstyle{definition}                          % plain, definition, remark
@@ -109,7 +118,7 @@
   keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
   % language=Octave,                 % the language of the code
   morekeywords={*,module,type,proc,Pr,equiv,hoare,lemma,forall, phoare,
-    res,op,with,let,in,require,const,var,return,pred,None,Some,clone,export,as,realize,by,split},            % if you want to add more keywords to the set
+    res,op,with,let,in,require,const,var,return,pred,None,Some,clone,export,as,realize,by,split,theory,import,local},            % if you want to add more keywords to the set
   rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
   showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
   showtabs=false,                  % show tabs within strings adding particular underscores
@@ -117,7 +126,7 @@
   % title=\lstname                   % show the filename of files included with
   % \lstinputlisting; also try caption instead of title
 }
-\newcommand{\myTitle}{Formalising Sigma-Protocols and Commitment Schemes in EasyCrypt\xspace}
+\newcommand{\myTitle}{Formalising Sigma-Protocols and Commitment Schemes using EasyCrypt\xspace}
 \newcommand{\mySubtitle}{A Guide for Content \& Style\xspace}
 \newcommand{\myDegree}{Master's Thesis\xspace}
 \newcommand{\myName}{Nikolaj Sidorenco\xspace}
@@ -154,49 +163,96 @@ June \the\year  \\[1ex] Advisor: \myProf\\[1ex] Co-advisor: \myOtherProf \\[23ex
 \pagestyle{plain}
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-When applying cryptographic protocols in real-line applications it is paramount
+When applying cryptographic protocols in important applications, it is paramount
 that we can trust them to work as specified. However, many cryptographic proofs
-are based on informal reasoning and implicit knowledge. Moreover, many
-cryptographic proofs have become so complex, that they are considered
+apply informal reasoning and implicit knowledge. Moreover,
+cryptographic proofs can become so complex that they are considered
 unverifiable.
 
-Advances in formal reasoning of cryptographic protocols has provided a methodology
+Advances in formal reasoning of cryptographic protocols have provided a methodology
 for constructing more rigours proofs which can eliminate informal reasoning.
-Moreover, formal reasoning allow us to construct machine-verifiable proofs.
+Moreover, formal reasoning allows us to construct machine-verifiable proofs.
 
-In this thesis we use the EasyCrypt proof assistant to formally reason about two
+In this thesis, we use the EasyCrypt proof assistant to formally reason about two
 cryptographic primitives; Commitment Schemes and $\Sigma$-Protocols.
 First, we consider Commitment Schemes, which allows a
 Committer to bind himself to a chosen message. The Committer can then later
-reveal the message to a Verifier, which can be ensured that the Committer
-revealed the same message as the one the bound himself to.
+reveal the message to a Verifier, which can be ensured that the
+message revealed is the same as the one the Committer bound himself to earlier.
+
 Next, we consider $\Sigma$-Protocols, which allows a Prover to convince a
-Verifier, that he knows some secret $x$, without ever revealing the secret to
-the Verifier. Additionally, we also consider compound $\Sigma$-Protocol, which
-allow us to combine $\Sigma$-Protocols.
-To formalise these two primitives we reproduce the results of previous
-formalisations to develop abstract specification, which can be used to
-instantiate secure concrete protocols. We show the workability by instantiating
-Pedersen Commitment Schemes and Schnorr's $\Sigma$-Protocol.
+Verifier, that he knows some secret without ever revealing the secret to
+the Verifier.
+To formalise these two primitives, we reproduce the results of previous
+formalisations to develop abstract specifications, which can be used to
+instantiate secure concrete protocols.
+In addition to the abstract specifiction of $\Sigma$-Protocols, we formalise compound $\Sigma$-Protocol, which
+allows us to combine $\Sigma$-Protocols.
+We then show the workability of our formalisation by instantiating
+Pedersen's Commitment Schemes and Schnorr's $\Sigma$-Protocol.
 
 Using the formalisations of $\Sigma$-Protocols and Commitment schemes we
 formalise the ZKBoo protocol, which is a generalised $\Sigma$-Protocol, based on Multi-Part
-Computations, for proven knowledge for the pre-image of any group homomorphism.
+Computations, for proven knowledge of the pre-image of any group homomorphism.
 In formalising ZKBoo we successfully formalised arithmetic circuits and an MPC
 protocol on arithmetic circuits called the (2,3)-Decomposition.
-We then use our abstract specification to prove ZKBoo to be a secure $\Sigma$-Protocol.
-With this work we show the discrepancy between the security proofs in
-cryptographic papers compared to the reasoning requires to prove a protocol
+We then use our abstract specifications to prove ZKBoo to be a secure $\Sigma$-Protocol.
+With this work, we show the discrepancy between the security proofs in
+cryptographic papers compared to the reasoning required to prove a protocol
 secure in the formal context.
 
-A highlight of our formalisation, is the security proofs of ZKBoo. Here we show how to
-formally prove a complex cryptographic protocol, which depend on the abstract
-specifications of $\Sigma$-Protocols, Commitment Schemes, and Multi-Part Computations.
+A highlight of our formalisation is the security proofs of ZKBoo. Here we show
+how that it is possible to formally verify a cryptographic research paper with
+no prior knowledge of \easycrypt.
 
 \chapter*{Resum\'e}
 \addcontentsline{toc}{chapter}{Resum\'e}
 
-\todo{in Danish\dots}
+Når kryptografiske protokoller anvendes i kritiske applikationer, så er det
+altoverskyggende, at vi kan stole på protokollere til at opføre sig som
+forventet.
+Dog er mange kryptografiske beviser baseret på informelle argumenter og implicit
+ekspertviden. Derudover, er mange kryptografiske beviser blevet så komplekse,
+at de anses for umulige at verificere.
+
+Gennembrud indenfor formel verifikation af kryptografiske protokoller har dog
+muliggjort en ny metodologi, hvor vi kan konstruerer stringente beviser, som er
+maskinelt verificerbare.
+
+I dette speciale anvender vi værktøjet EasyCrypt til formelt at beskrive two
+kryptografiske primitiver: ``Commitment Schemes'' og $\Sigma$-Protokoller.
+
+``Commitment Schemes'' tillader en bruger, kaldet ``Committer'', at binde sig
+selv til en besked overfor en anden bruger. Denne bruger lærer dog intet om den
+beskeden. ``Committer'' kan så på et senere tidspunkt afslører beskeden overfor
+den anden bruger. Den anden bruger kan herefter så kan bekræfte at beskeden der blev afsløret er
+den samme som den ``Committer'' bandt sig selv til tidligere.
+
+$\Sigma$-Protokoller tillader en bruger, kaldet ``Prover'', at overbevise en
+andet bruger, at han kender til en hemmelighed $x$, dog uden at afsløre nogen
+information omkring $x$.
+
+For at formalisere disse primitiver baserer vi vores arbejde på tidligere
+formaliseringer, lavet i andre værktøjer. Ud fra disse formalisering udvikler vi
+abstrakte specifikationer af, hvad disse primitiver gør.
+Derudover viser vi også, hvordan man formelt kan sammensætte flere sikre
+$\Sigma$-Protokoller, uden at formindske sikkerheden.
+Dernæst viser vi anvendeligheden af vores formalisering ved at bevise
+Pedersens Commitment Scheme og Schnorr's $\Sigma$-Protokol.
+
+Til sidst anvender vi vores formaliseringer af de to primitiver til, at vise
+sikkerheden af ``ZKBoo'' protokollen. Denne protokol er en generaliseret
+$\Sigma$-Protokol, som er baseret på Multi-Party Computation. Denne protokol kan
+bevise kendskab til alle hemmelighed, der kan udtrykkes som definitionsmængden
+af en gruppe homomorfi.
+
+Ved at udforske ``ZKBoo'' lykkes det os, at formalisere aritmetiske kredsløb
+samt (2,3)-nedbrydningen af disse. En (2,3)-nedbrydningen er en speciel klasse
+af Multi-Party Computation protokoller.
+
+Med dette arbejde viser vi, hvordan formel verifikation kan bruges til at ydre
+højere sikkerhed af kryptografiske protokoller. Derudover, så viser vi også, hvordan det mere informelle format brugt i kryptografisk forskning ofte kan
+undlade vigtige elementer, som kan bryde med sikkerheden.
 
 \chapter*{Acknowledgments}
 \addcontentsline{toc}{chapter}{Acknowledgments}
@@ -240,8 +296,7 @@ specifications of $\Sigma$-Protocols, Commitment Schemes, and Multi-Part Computa
 
 \cleardoublepage
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyle{plainnat}
-\bibliography{refs}
+\printbibliography
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

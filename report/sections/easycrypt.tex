@@ -6,10 +6,10 @@ protocols in the code-based game-playing paradigm.
 
 \section{The game-playing approach}
 \label{sec:game-based-sec}
-In the game-playing approach, security is traditionally defined as a game, where
-the game expresses property of the protocol, which is run with an
+In the game-playing approach, security is defined as a game, where
+the security properties are expressed as winning the game. This game in then run with an
 \textit{adversary} \cite{game-playing}. Most commonly, a cryptographic protocol
-is an interaction of two or more participants. In the example of commitment schemes
+is an interaction between two or more participants. In the example of commitment schemes
 the protocol is run with a committer and a verifier. The adversary is then
 allowed to take control of one of the participants and then tries to break the
 intended design of the protocol.
@@ -22,20 +22,20 @@ target probability and the actual probability of $E$ then denotes the actual
 security of the protocol and is called the \textit{advantage} of the adversary.
 
 To bound the probability of the adversary breaking the protocol we have to
-reason about all the possible choices he would make. To reduce the complexity of
+reason about all the possible choices he could make. To reduce the complexity of
 this \textit{game reductions} are used. By formulating intermediate games, where
 we reduce the set of possible choices, it becomes easier to reason
 about the security of the protocol.
 
-These game reductions all have some advantage for the adversary. The probability
-of the adversary winning the original game is then the probability of winning
-the game of the last reduction plus all accumulated advantage of all the
-previous game reductions.
+Each of these game reduction are themselves games, which the adversary has a advantage in winning.
+The probability of the adversary winning the original game is then the probability of winning
+the game of the last reduction plus all the accumulated advantages of the
+game reductions.
 
 \section{EasyCrypt}
 \label{sec:label}
 \easycrypt\ provides us with three logics, which allows us to reason about game
-reductions between adverbially defined games: a probabilistic relational
+reductions between adversarially defined games: a probabilistic relational
 Hoare logic (\textbf{pRHL}), a probabilistic Hoare logic (\textbf{pHL}), and a
 regular Hoare logic.
 The pHL allows us to reason about the probability of a program terminating with
@@ -130,23 +130,23 @@ concrete types for the theory before importing it.
 
 \paragraph{Sections}
 Sections provide similar functionality to that of abstract theories, but instead of quantifying over
-types, sections allows us to quantify everything within the subsection over programs
+types, sections allows us to quantify everything within the section over programs
 with special properties and axioms provided, which are defined by the user.
 
 An example of this is proving a protocol secure given access to a
 random oracle.
-To model a random oracle, we can then start a subsection and declare an oracle who
+To model a random oracle, we can then start a section and declare an oracle who
 always sample uniformly random values.
-All lemmas declared within the subsection will then have access to the random
+All lemmas declared within the section will then have access to the random
 oracle.
 
-An important note is that introducing axioms in a subsection cannot break the logic
-of \easycrypt, since if we axiomatise $true = false$ in a subsection, then all
+An important note is that introducing axioms in a section cannot break the logic
+of \easycrypt, since if we axiomatise $true = false$ in a section, then all
 lemmas become on the form $true = false \implies \text{lemma}$, which only
 makes the proofs impossible to realise.
 
 Sections are particularly useful if many lemmas require the same assumptions. By
-using a subsection we can automatically make the assumption available in every
+using a section we can automatically make the assumption available in every
 proof without having to explicitly write it in the lemma.
 
 \subsection{Modules and procedures}
@@ -171,15 +171,15 @@ by \cite{zkcrypt}:
               &|\; \mathcal{I}; \mathcal{I}
 \end{align*}
 
-Modules are, by default, allowed to interact with all defined modules.
-This is due to the fact that all programs are executed within shared memory. This
+Modules are, by default, allowed to interact with all other defined modules.
+This is due to the fact that all programs are executed in shared memory. This
 models a real execution where the program would have access to
 all memory not protected by the operating system.
 
 From this, the set of global variables for any given module is the set of all
 global variables defined by the modules and all variables the procedures of the module
 could potentially read or write during execution. This is checked by a simple
-static analysis, which looks at all execution branches within all procedures of the module.
+static analysis, which looks at all execution branches of all procedures in the module.
 
 A module can be seen as \easycrypt's abstraction of the class construct
 in object-oriented programming languages.
@@ -205,8 +205,6 @@ The implications of this are that we can then prove that no matter what choice
 the adversary makes during execution, he will not be able to break the security
 of the procedure.
 
-\todo{explain clone}
-
 \subsection{Distributions and dealing with randomness}
 \label{sec:easycrypt:distributions}
 To introduce randomness/non-determinism to procedures, \easycrypt\ allows
@@ -217,7 +215,7 @@ In \easycrypt\ distribution are themselves procedures with a fixed output
 distribution. More formally a distribution in \easycrypt\ is a monad converting a
 \textit{discrete} set of events into a sub-probability mass function over said events.
 
-When dealing with distribution, we have three important characteristics:
+When dealing with distributions, we have three important characteristics:
 
 \noindent \textbf{Lossless :} A procedure (or distribution) is said to be
 lossless if it always produces an output. This means that the
@@ -234,9 +232,9 @@ As an example, a distribution over a type $t$ can be defined as follows:
 \begin{lstlisting}[frame=none]
 op dt : challenge distr.
 \end{lstlisting}
-Furthermore, we specify the distribution to be lossless, full and uniform as:
+Furthermore, we specify the distribution to be lossless, full, and uniform as:
 \begin{gather*}
-  \textbf{axiom: } \text{is\_lossless dt}.
+  \textbf{axiom: } \text{is\_lossless dt}. \\
   \textbf{axiom: } \text{is\_funiform dt}.
 \end{gather*}
 
@@ -253,7 +251,10 @@ indistinguishable from some value, $x$. If it is possible to prove the two
 values are indistinguishable, then we can use the value of $x$ in place of the
 random value, for the rest of the procedure.
 
-\todo{Mention common distributions like bool and interval}
+
+The common notation for a distribution in \easycrypt\ is to prefix the type of
+the distribution with a ``d'', \eg\ a distribution over boolean values would be
+denoted $dbool$.
 
 \subsection{Probabilistic Hoare Logic}
 \label{sec:pHL}
@@ -281,7 +282,7 @@ We note that the first representation implicitly quantifies over all
 arguments to the procedure $q$ and memories while the latter requires us to
 explicitly quantify over them.
 
-To understand how the pHL logic works, we adopt the notions by \citet{ec_intro},
+To understand how the pHL logic works, we adopt the notion of \cite{ec_intro},
 which states that procedures are ``distribution transformers''.
 When running the procedure, we know that it has an input distribution satisfying
 $\Psi$. Each statement in the procedure will then change the input distribution
@@ -292,14 +293,14 @@ in a way that makes $\Phi$ satisfiable.
 
 \subsection{Probabilistic Relational Hoare Logic}
 \label{sec:pRHL}
-The pRHL logic allows us to reason about indistinguishability between two
+The pRHL logic allows us to reason about indistinguishability of two
 procedures w.r.t a pre- and postcondition. More formally, the pRHL logic
 allows us to determine if two procedures are perfectly indistinguishability w.r.t.
 to the given pre- and postcondition.
 
 We recall from subsection \ref{sec:pHL} that procedures can be seen as distribution
 transformers. By observing procedures as distribution transformers,
-indistinguishability between procedures equates to arguing that both procedures
+indistinguishability of procedures equates to arguing that both procedures
 transform their output distributions in a way that makes the postcondition
 true.
 
@@ -364,19 +365,21 @@ output value $b$ with probability $p$
 We use notation $\Pr{P : A} = p$ to express that the output distribution of
 procedure P will satisfy $A$ with probability $p$.
 
+
 When comparing two procedures P and Q in the relational logic, i.e:
 \[
   equiv[P \sim Q :\; \Psi \implies \Phi]
 \]
-
-Moreover, we adopt the \easycrypt\ notation of \textbf{res} to signify the
-output value of a procedure.
-
 We use the notation $x^{P}$ to denote the value variable $x$ w.r.t. procedure P.
 Likewise, we let $x^{Q}$ denote the value of $x$ when observing the run of
 procedure Q. To express that $x^{P} \sim x^{Q}$ we use the notation $\indis{x}$,
 Furthermore, we use the notation \textbf{Glob M} to express all the global
 variables that M has access to.
+
+
+Moreover, we adopt the \easycrypt\ notation of \textbf{res} to signify the
+output value of a procedure.
+
 
 When stating probabilistic Hoare statements on the form of equation
 \ref{eq:proc_pr}, we omit the quantification of the arguments when the
