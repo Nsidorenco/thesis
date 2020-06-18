@@ -197,7 +197,7 @@ module SpecialSoundness(S : SProtocol) = {
 \begin{lstlisting}[mathescape]
 proc real(h, w, e) = {
    a = init(h,w);
-   z = respose(h,w,e,a);
+   z = response(h,w,e,a);
    return (a, e, z);
 }
 \end{lstlisting}
@@ -275,7 +275,7 @@ $S_{2}$ will be.
 
 To overcome this limitation, we let the AND construction be an abstract theory
 quantified over the types of two $\Sigma$-Protocols, and instantiations with
-those types. This mean that the types of $S_{1}$ and $S_{2}$ will be fixed at
+those types. This means that the types of $S_{1}$ and $S_{2}$ will be fixed at
 the time when declaring the module ANDProtocol.
 
 The code for this can be seen in listing \ref{lst:higher-order-theories}.
@@ -354,7 +354,7 @@ $S_{1}$ and $S_{2}$ as sub-procedures. To formalise this, we start by declaring
 the AND construction as an instantiation of a $\Sigma$-Protocol following the
 steps of the previous section. We then overload $S_{1}$ and $S_{2}$ to also mean
 any $\Sigma$-Protocol with types matching $S_{1}$ or $S_{2}$. Therefore, when we
-write $P_{i} : S_{i}$ we are referring to any protocol $P_{i}$, which satisfy the
+write $P_{i} : S_{i}$ we are referring to any protocol $P_{i}$, which satisfies the
 types of $S_{i}$.
 
 We then define the procedures of the AND construction as seen in listing \ref{lst:and-procedures}.

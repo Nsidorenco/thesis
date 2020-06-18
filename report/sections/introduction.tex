@@ -1,6 +1,6 @@
 \chapter{Introduction}
 \label{ch:intro}
-Since their introduction zero-knowledge arguments/proofs have become
+Since their introduction, zero-knowledge arguments/proofs have become
 an important building block for cryptographic protocols.
 Zero-knowledge has, for example, been used to enable anonymous board-room
 voting \cite{boardroom-voting} and to ensure privacy in blockchain applications \cite{concordium}.
@@ -13,13 +13,13 @@ blockchains, which could have real-life financial consequences if the security i
 broken, it is paramount that we can offer the highest levels of assurance in the
 protocols performing to specification.
 However, many proofs of security are considered unverifiable, partly due to informal
-reasoning and implicit arguments. This was also remarked by Bellare and Rogaway \cite{game-playing}:
+reasoning and implicit arguments. Bellare and Rogaway also remarked this \cite{game-playing}:
 
 \begin{quote}
 In our opinion, many proofs in cryptography have become essentially unverifiable. Our field may be approaching a crisis of rigor.
 \end{quote}
 
-To harness this complexity Bellare and Rogaway suggest the code-based game-playing approach
+To harness this complexity, Bellare and Rogaway suggest the code-based game-playing approach
 for doing security proofs.
 However, game-playing security is not the end-all of security, and the approach
 still allows for unrigorous proofs. Many cryptographic proofs still suffer
@@ -33,12 +33,12 @@ specialising in formal verification of probabilistic programs \cite{SOK:CAC}.
 It is important to remark, however, that formally verified does not imply
 absolute security. When formally proving cryptographic protocols, we do so in
 the context of a cryptographic model.
-Such models helps us by reducing the complexity of our protocols
+Such models help us by reducing the complexity of our protocols
 by limiting external influences or by giving access to idealised
 functionalities. If the assumptions made in the model used are unsound, then the
 protocol would still be insecure, even though it has been formally proven.
 However, by applying formal
-reasoning to cryptographic proofs we can expel all informal reasoning and
+reasoning to cryptographic proofs, we can expel all informal reasoning and
 implicit knowledge, thus attaining much more precise definitions of security.
 
 An additional benefit of using tools supporting game-based security, like \easycrypt, is that
@@ -64,10 +64,10 @@ The goal of this thesis is to further this formalisation effort by reproducing
 previous results of $\Sigma$-Protocols and Commitment schemes before formalising
 a variant of Multi-party computations protocols and the ZKBOO protocol by
 \cite{zkboo}.
-To achieve this we study the \easycrypt\ proof assistant.
+To achieve this, we study the \easycrypt\ proof assistant.
 Here we examine the workability of \easycrypt\ and discuss
-on the benefits and draw-backs of using the tool. Additionally we remark on how
-easy the tool is to use given no prior knowledge of the tool.
+the benefits and drawbacks of using the tool. Additionally, we remark on how
+the tool is to use given no prior knowledge of the tool.
 
 $\Sigma$-Protocols has the desirable attribute of having code-based
 game-playing definitions of security, which allows us to use \easycrypt in order to formulate
@@ -84,24 +84,24 @@ alternative, yet equivalent, security definitions.
 
 We then use our formalisation of $\Sigma$-Protocols to formalise ZKBoo, which
 uses multi-part computations and commitment schemes to make
-a generalised $\Sigma$-Protocol. With this work we aim to demonstrate how complex
+a generalised $\Sigma$-Protocol. With this work, we aim to demonstrate how complex
 cryptographic protocols can be formally verified by using formalisations of
 cryptographic primitives. Moreover, we show how formal verification can help expose
 the implicit and informal assumptions often made in cryptographic papers.
 
-To formalise ZKBoo we also have to formalise arithmetic circuits, which can help
+To formalise ZKBoo, we also have to formalise arithmetic circuits, which can help
 guide future formalisations. Moreover, we formalisation of a particular variant
 of multi-party computations on arithmetic circuits called the
 (2,3)-Decomposition where all parties are simulated locally.
 
 
 \paragraph{Outline}
-In \autoref{ch:EasyCrypt}. we introduce the code-based game playing approach to
+In \autoref{ch:EasyCrypt}. we introduce the code-based game-playing approach to
 cryptographic security. Moreover, we introduce the \easycrypt\ proof assistant,
 and how it can be used to formally prove code-based protocols.
 \autoref{ch:background} introduce key concepts and definitions.
 
-In \autoref{ch:formal_commitment} we reproduce the results of
+In \autoref{ch:formal_commitment}, we reproduce the results of
 \cite{DBLP:journals/corr/MetereD17} to formalise commitment schemes and a
 concrete instantiation in the form of Pedersen's commitment scheme.
 Additionally, we formulate alternative security definitions, which can help

@@ -58,7 +58,7 @@ These two facts contribute to the ``MPC in the head'' approach being significant
 more efficient than a normal MPC protocol.
 
 We then distribute $x$ into shares $x_1, \dots x_{n}$ for each of the parties. $x$ should be
-distributed in such a way, that we can reconstruct $x$ from the shares. This
+distributed in such a way that we can reconstruct $x$ from the shares. This
 allows us to compute $f(x_{1}, \dots x_{n}) = y$ with the MPC protocol.
 In a sense, this corresponds to splitting the computation
 into $n$ branches. Consequently, if the branches are then later recombined
@@ -107,7 +107,7 @@ choice.
 
   \texttt{Share} is a procedure for computing the three input shares based on an
   input to $f$. Conceptually, \texttt{Share} takes a value $x$ and splits into
-  $n$ shares, called $x_{1}, \dots, x_{n}$. The $n$ shares can the be used to
+  $n$ shares, called $x_{1}, \dots, x_{n}$. The $n$ shares can then be used to
   reconstruct $x$ by applying the inverse function of share:
   $\texttt{Share}^{-1}(x_{1}, \dots , x_{n}) = x$.
   \texttt{Output} is a function returning the output share from the view of a party.
@@ -139,7 +139,7 @@ $\forall x \in X, \Pr{f(x) = \decomp_{f}(x)} = 1$.
 \begin{definition}[Privacy]
 \label{def:decomp_privacy}
 A (2,3)-decomposition $\decomp_{f}$ is 2-private if it is correct and for all challenges
-$e \in \{1,2,3\}$ there exists a probabilistic polynomial time simulator $S_{e}$
+$e \in \{1,2,3\}$ there exists a probabilistic polynomial-time simulator $S_{e}$
 such that:
 \[
   \forall x \in x, \left(\{\tape_{i}, \view_{i} \}_{i \in \{e, e+1\}}, \textbf{y}_{e+2} \right)

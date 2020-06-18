@@ -9,28 +9,28 @@ Notably our work has been influenced by similar formalisations
 
 \cite{cryptoeprint:2019:1185} formalises both $\Sigma$-Protocols and
 commitment schemes within Isabelle/CryptoHOL. Additionally, they formalise
-the proof that commitment schemes can be build directly from $\Sigma$-Protocols.
-Their formalisation of $\Sigma$-Protocols also include various concrete instantiations.
+the proof that commitment schemes can be built directly from $\Sigma$-Protocols.
+Their formalisation of $\Sigma$-Protocols also includes various concrete instantiations.
 The main difference between the results obtained in their work compared to ours
 has been the tool usage. Isabelle/CryptHOL is a tool similar to \easycrypt\ that
 offers a higher-order logic for dealing with cryptographic game-based proofs.
-There are two fundamental difference between the two tools.
-First, Isabelle/CryptHOL programs are written in a functional style, where as
+There is two fundamental difference between the two tools.
+First, Isabelle/CryptHOL programs are written in a functional style, whereas
 \easycrypt\ allows the user to write programs in an imperative style. This
 ultimately leads to the same understanding of programs as distribution
-transformers as discussed in chapter \ref{ch:EasyCrypt}.
+transformers, as discussed in chapter \ref{ch:EasyCrypt}.
 
 Second, CryptHOL is a foundational framework built on top of Isabelle, which
 means that all CryptHOL rules are derived from the underlying rules of Isabelle.
 To trust CryptHOL, it is, therefore, enough to trust Isabelle, which is a much
-larger project with more contributors. \easycrypt, however, is a strand-alone
+larger project with more contributors. \easycrypt, however, is a stand-alone
 tool and depends on axioms and SMT solvers to validate its deduction rules.
-The benefit of this, however, is that by having a tighter integration with SMT
-solvers we can achieve higher levels of automations. The downside, however, is
+The benefit of this, however, is that by having tighter integration with SMT
+solvers, we can achieve higher degrees of automation. The downside, however, is
 that the trusted computing base of \easycrypt is larger.
 
 Other formalisations of $\Sigma$-Protocols also exists. \cite{certicrypt_sigma}
-successfully formalised $\Sigma$-Protocols using CertiCrypt. Their work include a
+successfully formalised $\Sigma$-Protocols using CertiCrypt. Their work includes a
 formalisation of $\Sigma$-Protocols where the relation is the pre-image of a
 homomorphism with certain restrictions or a claw-free permutation. This has
 allowed them to define and prove the security for a whole class of
@@ -58,19 +58,19 @@ Last, numerous formalisation of Multi-Party Computations exists.
 \easycrypt.
 Their work also included a formalisation of circuits.
 \cite{DBLP:journals/corr/abs-1805-12482} formalised a two party MPC protocol
-based on secret sharing against a semi-honest adversary. Their work also manage
-to formally prove the privacy property with a simulator, akin to our work on the
+based on secret sharing against a semi-honest adversary. Their work also
+formally prove the privacy property with a simulator, akin to our work on the
 (2,3)-Decomposition in section \ref{sec:decomposition}.
 \cite{DBLP:journals/corr/abs-1806-07197} then formalised security of
 secret-sharing based MPC, but in the presence of an active adversary in \easycrypt.
 
 \section{Discussion}
 \label{sec:discussion}
-Throughout the work of this thesis we have used the \easycrypt\ proof assistant
-to formally verify the proofs presented herein.
+Throughout the work of this thesis, we have used the \easycrypt\ proof assistant
+to verify the proofs presented herein formally.
 The work has been an iterative process between formulating a lemma and then
 trying to prove it within \easycrypt. This process was then repeated until the
-lemma would be formally proven. Consequently, \easycrypt\ has been a
+lemma would be formally proven. Consequently, \easycrypt\ has been an
 instrumental part of the work formulated in this thesis. Moreover, the powerful
 automation tools offered by \easycrypt\ has allowed us to discharge trivial
 proofs, thus enabling us to spend more time working on the complex lemmas seen
@@ -81,19 +81,19 @@ quite well; our formalisation of ZKBoo has a structure akin to the one presented
 in the original paper by \cite{zkboo}. This has enabled us to spend less time
 formulating the protocol and more time on formalising important security criteria.
 This has been capacitated, in part, by \easycrypt\ \textit{pWhile} language for
-implementing procedures. This language follow a structure closely resembling the
+implementing procedures. This language follows a structure closely resembling the
 pseudo-code seen in cryptographic papers.
 
 Ultimately, the tool offers the possibility of writing programs both in a
 functional style and in an imperative style. It is, however, only the programs
 written in the imperative style that are allowed to make random choices.
 
-Our main problems with using this tool has been the schism between perfect
+Our main problems with using this tool have been the schism between perfect
 indistinguishability proven in pRHL and indistinguishability based on an
 adversarial game and the tool's steep learning curve.
 
-In particular \easycrypt\ offers its rPHL for proving procedures to be perfectly
-indistinguishable. If, however, computational indistinguishability is needed then
+In particular, \easycrypt\ offers its rPHL for proving procedures to be perfectly
+indistinguishable. If, however, computational indistinguishability is needed, then
 the rPHL logic cannot directly be used, and we instead have to deal with
 adversaries comparing the procedures.
 
@@ -112,17 +112,17 @@ The gap between the two techniques became apparent in chapter \ref{ch:formal_zkb
 adversarial-based security definitions of our commitment schemes did not conform
 to the goals needed to prove security of our $\Sigma$-Protocol formalisation.
 
-The steep leaning curve is primarily caused by the lack of documentation of new
+The steep learning curve is primarily caused by the lack of documentation of new
 tactics. At the time of writing this thesis the last update to the \easycrypt\
 reference manual \cite{ec_refman} was in 2018. Moreover, the deduction rules by
 the different logics that \easycrypt\ provides are not documented anywhere, but
-instead have to be found in the papers describing \texttt{CertiCrypt} which is
+instead, have to be found in the papers describing \texttt{CertiCrypt} which is
 the Coq-based proof assistant antecedent to \easycrypt.
 Overall, the work of this thesis proved that it is possible to formalise research papers in a
 reasonable time frame with no prior knowledge of \easycrypt.
 
 Other difficulties with \easycrypt\ have been described throughout this thesis.
-In section \ref{sec:commitment:sec}, we outlines the problem of expressing
+In section \ref{sec:commitment:sec}, we outline the problem of expressing
 statistical security in \easycrypt. Then, in section \ref{sec:sigma_comp}, we
 outlined the workaround needed to work with \easycrypt\ theories quantifying
 over other theories. In section \ref{subsec:fiat-shamir} we outlined the problem
@@ -140,15 +140,15 @@ therefore, be to use our existing formalisation of ZKBoo to formally verify the
 improvements made by ZB++.
 
 With our formalisation we have intentionally focused on the ZKBoo protocol in
-isolation, but in real applications it would be part of a larger tool chain.
+isolation, but in real applications it would be part of a larger toolchain.
 Mainly ZKBoo requires a circuit with a definable execution order to be secure.
 In our formalisation, we have assumed the function to represented as a circuit
-and then defined an execution order. However, to complete the tool chain we would need a formalisation of
+and then defined an execution order. However, to complete the toolchain we would need a formalisation of
 a procedure converting functions to circuits and a formal proof of the induced
 execution order in section \ref{subsec:arith-representation} being semantics preserving.
 
 Moreover, we saw in section \ref{subsec:fiat-shamir} that there is a need for
-formalising the rewinding lemma to reason about soundness of the Fiat-Shamir
+formalising the rewinding lemma to reason about the soundness of the Fiat-Shamir
 transformation. Moreover, rewinding is a common technique for proving soundness
 of zero-knowledge protocols. Formalising the rewinding lemma would allow
 us to reason about more general zero-knowledge protocols than the sub-class of
@@ -167,7 +167,7 @@ In doing so, we showed how essential details for achieving security are
 often glossed over in cryptographic literature.
 Particularly we saw in section \ref{subsec:zkboo:sec} how important small
 assumptions are for the security of implementations of cryptographic protocols.
-If one procedure was allowed to observe the state of another running on the
+If one procedure were allowed to observe the state of another running on the
 system, then all proofs in the aforementioned section would not hold. These
 assumptions are often left out when discussing cryptographic protocol design
 but are essential when reasoning about the security of the protocols when

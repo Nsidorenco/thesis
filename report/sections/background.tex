@@ -10,9 +10,9 @@ Instead, we limit our introduction to the specific definitions relevant to the w
 Notably, the section about multi-part computations (MPC) is intentionally left
 brief.
 The security definitions of an MPC protocol depends entirely on how much power
-the different participants of the protocol has. For the work of this thesis we
-only use the definitions of security where it assumed that all participants
-follow the protocol. This is commonly refereed to as semi-honest security.
+the different participants of the protocol has. For the work of this thesis, we
+only use the definitions of security, where it assumed that all participants
+follow the protocol. This is commonly referred to as semi-honest security.
 
 Additionally, in cryptography, it is common practice to quantify every security
 definition over a ``security parameter''. This parameter exists to define how
@@ -149,7 +149,7 @@ only exist one challenge, for any given message $a$, which can make the
 protocol accept, without knowing the witness. Therefore, given a challenge space
 with cardinality $c$ the probability of a cheating prover succeeding in
 convincing the verifier is $\frac{1}{c}$. The protocol can then be run multiple
-times to make his probability $\frac{1}{c}^{n}$, where n is the amount of runs.
+times to make his probability $\frac{1}{c}^{n}$, where n is the number of runs.
 
 The special soundness definition can also be generalised to $s$-Special
 Soundness. This definition requires that the witness can be constructed, given

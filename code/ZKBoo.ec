@@ -911,7 +911,7 @@ proof.
 
   rewrite !nth_rcons.
   case (i < size w10{hr0});progress.
-  smt.
+  smt().
   case (i = size w10{hr0}); progress.
   have -> := H0 (size w10{hr0} - 1) _. smt.
   have -> := ohead_head (ADDC(0,0)) c0{hr0} H18.

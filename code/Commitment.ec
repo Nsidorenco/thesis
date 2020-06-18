@@ -9,9 +9,6 @@ type commitment.
 type message.
 type randomness.
 
-op dm : {message distr | is_lossless dm} as dm_ll.
-op dr : {randomness distr | is_lossless dr} as dr_ll.
-
 op valid_key (sk : secret_key) (pk : public_key) : bool.
 op verify (pk : public_key) (m : message) (c : commitment) (d : randomness) : bool.
 

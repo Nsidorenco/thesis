@@ -21,12 +21,12 @@ For Key-based commitment schemes we fix to following types:
 
 Here we specifically fix a type ``randomness'' which is responsible for making two
 commitments to the same message look different. Technically this randomness
-could just be part of the ``commitment'' type.
+could be part of the ``commitment'' type.
 Separating the two types, however, makes
 our formalisation of security easier to work with, which we will see later in
 this section.
 
-With the types fixed we then define a key-based commitment scheme as the
+With the types fixed, we then define a key-based commitment scheme as the
 functions and procedures seen in \autoref{lst:commitment-procedures}.
 
 \begin{lstlisting}[float,label=lst:commitment-procedures,caption= Key-Based commitment specification]
@@ -38,7 +38,7 @@ module type Committer = {
   proc commit(sk : secret_key, m : message) : commitment * randomness
 }.
 \end{lstlisting}
-Here verification of commitments and key pairs are modelled as function, since
+Here verification of commitments and key pairs are modelled as function since
 we assume these function to be deterministic and lossless.
 When verifying a commitment, for example, there should be no need to sample
 additional randomness. A simple deterministic function on the commitment and its
@@ -53,7 +53,7 @@ deterministic function given access to the public key.
 
 By separating the verification functions from the committers procedures we get a
 formalisation closer to the real world, where the verifiers functions should not
-be able to read/alter any of the state of the committer. This could alternatively have
+be able to read/alter the state of the committer. This could alternatively have
 been modelled with the verifier being a separate module.
 However, if \texttt{verify} is expressed as a procedure
 then we allow \texttt{verify} to read/alter state. By introducing state, we
@@ -75,7 +75,7 @@ procedures in listing \ref{lst:commitment-procedures}.
 \section{Key-less commitment schemes}
 \label{sec:commitment:key-less}
 Furthermore, we formalise a variant of commitment schemes that is key-less. This
-is formalised separately from the key-based commitment schemes, since the
+is formalised separately from the key-based commitment schemes since the
 change in function/procedure signatures makes it incompatible with the key-based
 formalisation. They could potentially be merged into one formalisation, which
 allows for both to be used whenever a commitment scheme is required. The main
@@ -88,7 +88,7 @@ used in place of the other, but this is beyond the scope of this thesis.
 The functions and procedures used by the key-less commitment schemes are
 identical to the ones listed in Figure \ref{lst:commitment-procedures} for the
 key-based commitment schemes except that all references to
-the public and secret keys has been removed. Furthermore, the Committer module
+the public and secret keys have been removed. Furthermore, the Committer module
 now only contains one procedure \texttt{commit}, since there is no longer a need
 to generate key pairs.
 

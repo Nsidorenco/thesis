@@ -7,27 +7,27 @@ protocols in the code-based game-playing paradigm.
 \section{The game-playing approach}
 \label{sec:game-based-sec}
 In the game-playing approach, security is defined as a game, where
-the security properties are expressed as winning the game. This game in then run with an
+the security properties are expressed as winning the game. This game is then run with an
 \textit{adversary} \cite{game-playing}. Most commonly, a cryptographic protocol
-is an interaction between two or more participants. In the example of commitment schemes
+is an interaction between two or more participants. In the example of commitment schemes,
 the protocol is run with a committer and a verifier. The adversary is then
 allowed to take control of one of the participants and then tries to break the
 intended design of the protocol.
 Formally speaking, we say that the adversary
 wins the game if the protocol outputs some event $E$. The goal of the adversary
-is then to maximize the probability of $E$.
+is then to maximise the probability of $E$.
 We then define some target probability, which is the probability of $E$
 occurring, given that the protocol is completely secure. The difference between
 target probability and the actual probability of $E$ then denotes the actual
 security of the protocol and is called the \textit{advantage} of the adversary.
 
-To bound the probability of the adversary breaking the protocol we have to
+To bound the probability of the adversary breaking the protocol, we have to
 reason about all the possible choices he could make. To reduce the complexity of
 this \textit{game reductions} are used. By formulating intermediate games, where
 we reduce the set of possible choices, it becomes easier to reason
 about the security of the protocol.
 
-Each of these game reduction are themselves games, which the adversary has a advantage in winning.
+Each of these game reductions are themselves games, which the adversary has an advantage in winning.
 The probability of the adversary winning the original game is then the probability of winning
 the game of the last reduction plus all the accumulated advantages of the
 game reductions.
@@ -147,7 +147,7 @@ makes the proofs impossible to realise.
 
 Sections are particularly useful if many lemmas require the same assumptions. By
 using a section we can automatically make the assumption available in every
-proof without having to explicitly write it in the lemma.
+proof without having to write it in the lemma explicitly.
 
 \subsection{Modules and procedures}
 \label{sec:ec_modules}
@@ -173,7 +173,7 @@ by \cite{zkcrypt}:
 
 Modules are, by default, allowed to interact with all other defined modules.
 This is due to the fact that all programs are executed in shared memory. This
-models a real execution where the program would have access to
+model a real execution where the program would have access to
 all memory not protected by the operating system.
 
 From this, the set of global variables for any given module is the set of all
@@ -196,7 +196,7 @@ while non-abstract modules define a global state for the procedures to work
 within, the abstract counter-part does not. This has two important implications;
 first, it means that defining abstract modules does not affect the global
 variables/state of non-abstract modules.
-Moreover, it is also not possible to prove properties about an abstract modules, since
+Moreover, it is also not possible to prove properties about abstract modules, since
 there is no context to prove properties within.
 
 This allows us to quantify over all possible implementations of an abstract
@@ -279,8 +279,7 @@ Alternatively, this can be stated as:
 \end{equation}
 
 We note that the first representation implicitly quantifies over all
-arguments to the procedure $q$ and memories while the latter requires us to
-explicitly quantify over them.
+arguments to the procedure $q$ and memories while the latter requires us to quantify over them explicitly.
 
 To understand how the pHL logic works, we adopt the notion of \cite{ec_intro},
 which states that procedures are ``distribution transformers''.
