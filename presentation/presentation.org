@@ -1,0 +1,568 @@
+#+TITLE: Thesis Defence
+#+LANGUAGE:  en
+#+OPTIONS:   H:2 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+startup: beamer
+#+LATEX_COMPILER: xelatex
+#+latex_class: beamer
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+#+beamer_theme: Madrid
+#+BEAMER_FRAME_LEVEL: 2
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{tikz}
+#+LaTeX_CLASS_OPTIONS: [presentation]
+#+latex_header: \AtBeginSection[]{\begin{frame}<beamer>\frametitle{Topic}\tableofcontents[currentsection]\end{frame}}
+#+latex_header: \beamertemplatenavigationsymbolsempty
+#+LATEX_HEADER: \lstset{morekeywords={*,module,type,proc,Pr,equiv,hoare,lemma,forall, phoare, res,op,with,let,in,require,const,var,return,pred,None,Some,clone,export,as,realize,by,split,theory,import,local}}
+#+LATEX_HEADER:  \usepackage{subcaption}
+#+LATEX_HEADER: \usetikzlibrary{matrix,backgrounds}
+
+* Introduction
+** Introduction
+Bellare and Rogaway remarked:
+
+#+BEGIN_SRC latex
+\begin{quote}
+In our opinion, many proofs in cryptography have become essentially unverifiable. Our field may be approaching a crisis of rigor.
+\end{quote}
+#+END_SRC
+
+Recent advances in formal verification has allowed us to formally verify
+cryptographic protocols.
+
+
+In this work we explore the applicability of EasyCrypt and the feasiblity of
+formalising a complex cryptographic protocol.
+
+** Introduction
+#+BEGIN_SRC latex
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+      \node[draw] at (0,.3) (a) {Commitment Schemes};
+      \node[draw] at (5,.3) (b) {$\Sigma$-Protocols};
+      \node[draw] at (3,-2.3) (c) {ZKBoo};
+      \draw[->] (a) -- node[midway,above,yshift=1cm] {} (c);
+      \draw[->] (b) -- node[midway,above] {} (c);
+  \end{tikzpicture}
+\end{figure}
+#+END_SRC
+** Introduction
+In the formalisation effort of Commitment Schmes and \Sigma-Protocols we
+reproduce the results of previous research:
+
+- David Butler et al. "Formalising Σ-Protocols and Commitment Schemes using CryptHOL"
+- Roberto Metere and Changyu Dong. “Automated Cryptographic Analysis of the Pedersen Commitment Scheme"
+
+** Code-based Game-playing approach
+#+BEGIN_SRC latex
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+      % \draw (-3,0) -- (-3,-3) (3,0) -- (3,-3);
+      \node at (-3,.3) {Committer};
+      \node at (-3,-.2) {$(sk, pk)$};
+      \node at (3,.3) {Verifier};
+      \node at (3,-.2) {$pk$};
+      \draw[->] (-3,-1) -- node[midway,above] {c = \texttt{Commit}(m)} (3,-1);
+      \draw[->] (-3,-2.5) -- node[midway,above] {m'} (3,-2.5);
+      \node at (4.5 , -2.4) {c $\stackrel{?}{=}$ \texttt{Commit}(m')};
+  \end{tikzpicture}
+  \caption{Commitment Scheme interaction}
+\end{figure}
+#+END_SRC
+
+This can interaction call also be seen an a program with access to the
+Committer and Verifiers functionality
+** EasyCrypt
+Programs are distribution transformers
+#+BEGIN_SRC latex
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+      \node[draw] at (0,0) (a) {Input distribution};
+      \node[draw] at (7,0) (b) {Output distribution};
+      \node[draw] at (3,0) (c) {Game};
+      \draw[->] (a) -- node[midway,above,yshift=1cm] {} (c);
+      \draw[->] (c) -- node[midway,above] {} (b);
+  \end{tikzpicture}
+\end{figure}
+#+END_SRC
+EasyCrypt gives us the tools to reason about the transformations the game performs
+* Commitment Schemes
+** Types
+First we need to define the types of a commitment scheme.
+
+- message
+- commitment
+- randomness
+
+Moreover, we also have types for the keys used:
+
+- secretkey
+- publickey
+
+** The Committer
+Based on the desired functionality we define the Committer as:
+#+BEGIN_SRC easycrypt
+module Committer = {
+  proc commit(sk : secret_key, m : message)
+       : (commitment * randomness)
+}
+#+END_SRC
+
+N.B. Key generation will also have to be defined in a module.
+
+** The Verifier
+The Verifier does not need to hold state nor make random choices.
+
+For this reason we can fix the verifier as a function rather than a procedure:
+
+#+BEGIN_SRC easycrypt
+op verify key message commitment randomness : bool.
+#+END_SRC
+
+This also allow us to change the order when verifing multiple commitments.
+
+** Security (Correctness)
+#+BEGIN_SRC easycrypt
+module Correctness(C : Commitment) = {
+  proc main(m : message) = {
+    (sk, pk) = KeyGen();
+    (c, r) = C.commit(sk, m);
+    b = verify(pk, m, c, r);
+
+    return b;
+  }
+}
+#+END_SRC
+
+N.B. This module is implicitly parameterised by the =verify= function.
+
+*** Correctness
+Commitment scheme Com is correct if:
+
+\forall m. \Pr[Correctness(Com).main(m) = 1] = 1
+
+** Security (Hiding)
+#+BEGIN_SRC easycrypt
+module type HidingAdv = {
+  proc * get() : message * message
+  proc check(c : commitment) : bool
+}.
+module Hiding(C : Committer, A : HidingAdv) = {
+  proc main() = {
+    (sk, pk) = KeyGen();
+    (m, m') = A.get();
+    b <$ {0,1};
+    if (b) {
+      (c, r) = C.commit(sk, m);
+    } else {
+      (c, r) = C.commit(sk, m');
+    }
+    b' = A.check(c);
+    return b = b';
+  }
+}.
+#+END_SRC
+
+** Security (Hiding)
+*** Perfect Hiding
+Commitment Scheme Com is perfect hiding if
+\forall (A <: HidingAdv). \Pr[Hiding(Com, A).main = true] = 1/2
+
+# *** Computation Hiding
+# Commitment Scheme Com is computational hiding if
+# \forall (A <: HidingAdv). \Pr[Hiding(Com, A).main = true] = 1/2 + \epsilon
+
+** Security (Binding)
+#+BEGIN_SRC easycrypt
+module type BindingAdv = {
+  proc bind(sk : secret_key, pk : public_key)
+       : commitment * message * message * ...
+}.
+module Binding(C : Committer, B : BindingAdv) = {
+  proc main() = {
+    (sk, pk) = KeyGen();
+    (c, m, m', r, r') = B.bind(sk, pk);
+    v =  verify pk m c r;
+    v' = verify pk m' c r';
+    return (v /\ v') /\ (m <> m');
+  }
+}.
+#+END_SRC
+
+** Security (Binding)
+*** Perfect Binding
+Commitment Scheme Com has perfect binding if
+\forall (A <: BindingAdv). \Pr[Binding(Com, A).main = true] = 0
+
+*** Computational Binding
+Commitment Scheme Com has computational binding if
+\forall (A <: BindingAdv). \Pr[Binding(Com, A).main = true] = \epsilon
+
+
+** Alternative definitions
+We formalised both key-based and key-less variants of commitment schemes.
+We will discuss the benefit of this later.
+
+Moreover, we also provided alternative security definitions
+* \Sigma-Protocols
+** \Sigma-Protocols
+#+BEGIN_SRC latex
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+      % \draw (-3,0) -- (-3,-3) (3,0) -- (3,-3);
+      \node at (-3,.3) {Prover};
+      \node at (-3,-.2) {$(h, w)$};
+      \node at (1,.3) {Verifier};
+      \node at (1,-.2) {$h$};
+      \node at (-5,-1) {$Init(h, w) \rightarrow a$};
+      \draw[->] (-3,-1) -- node[midway,above] {a} (1,-1);
+      \draw[<-] (-3,-2) -- node[midway,above] {e} (1,-2);
+      \node at (-5.75,-2) {$Response(h, w, a, e) \rightarrow z$};
+      \draw[->] (-3,-3) -- node[midway,above] {z} (1,-3);
+      \node at (3,-3) {$Verify(h,a,e,z)$};
+  \end{tikzpicture}
+  \caption{\label{fig:proto_sigma} $\Sigma$-Protocol}
+\end{figure}
+#+END_SRC
+
+Where (h, w) \in R
+
+** Security
+For a \Sigma-Protocol to be secure, we have three criteria:
+
+- Completeness
+- Special Soundness
+- Special honest-verifier zero-knowledge
+
+For this we need a procedure for simulating transcripts and a procedure for extracting witnesses.
+
+** Procedures
+#+BEGIN_SRC easycrypt
+module type SigmaProtocol = {
+  proc init(h, w) : message
+  proc response(h, w, m, e) : response
+  proc verify(h, m, e, z) : bool
+  proc witness_extractor(h, m,
+                         es : challenge list,
+                         zs : response list)
+        : witness option
+  proc simulator(h, e) : message * response
+}
+#+END_SRC
+
+** Security (Completeness)
+#+BEGIN_SRC easycrypt
+module Completeness(S : SigmaProtocol) = {
+  proc main(h : input, w : witness) : bool = {
+      var a, e, z;
+      a = S.init(h,w);
+      e <$ dchallenge;
+      z = S.response(h, a, e);
+      v = S.verify(h, a, e, z);
+      return v;
+  }
+}.
+#+END_SRC
+
+*** Completeness
+A \Sigma-Protocol, S, is complete if:
+\forall (h,w) \in R. \Pr[Completeness(S).main(h, w) = 1] = 1.
+
+** Security (Special soundness)
+#+BEGIN_SRC easycrypt
+module SpecialSoundness(S : SigmaProtocol) = {
+  proc main(h : statement,
+            a : message,
+            c : challenge list,
+            z : response list) : bool = {
+    w = S.witness_extractor(h, m, c, z);
+    valid = true;
+    while (c <> []) {
+      c' = c[0];
+      z' = z[0];
+      valid = valid /\ S.verify(h, m, c', z');
+      c = behead c;
+      z = behead z;
+    }
+
+    return valid /\ R h (oget w);
+}.
+#+END_SRC
+** Security (Special soundness)
+*** s-Special Soundness
+\forall (i \neq j). c[i] \neq c[j]
+\land \forall (i \in [1, \dots, s]). \Pr[S.verify(h, a, c[i], z[i])] = 1 \\
+\implies \Pr[SpecialSoundness(S).main(h, a, c, z) = 1] = 1
+
+** Security (SHVZK)
+#+BEGIN_SRC easycrypt
+module SHVZK(S : SigmaProtocol) = {
+  proc real(h, w, e) = {
+    a = init(h,w);
+    z = response(h,w,e,a);
+    return (a, e, z);
+  }
+  proc ideal(h, e) = {
+    (a, z) = simulator(h, e);
+    return (a, e, z);
+  }
+}
+#+END_SRC
+
+** Security (SHVZK)
+*** Special honest-verifier zero-knowledge
+\Sigma-Protocol S is special-honest verifier zero-knowledge if:
+
+equiv[ =SHVZK(S)=.real \sim =SHVZK(S)=.ideal : ={h, e} \land R h w^{real} \implies ={res}]
+* Compound \Sigma-Protocols
+** Compound \Sigma-Protocols
+From the abstract specification of \Sigma-Protocols we are able to prove the
+security of compound protocol.
+*** AND
+Uses two secure \Sigma-Protocols S_1 and S_2 for relations R_1 and R_2 to
+construct S_{AND} for relation R_{AND} = R_1 \land R_2
+*** OR
+Uses two secure \Sigma-Protocols S_1 and S_2 for relations R_1 and R_2 to
+construct S_{OR} for relation R_{OR} = R_1 \lor R_2
+** Problems
+EasyCrypt allow modules to quantify over module types. This gives us no type information
+
+#+BEGIN_SRC easycrypt
+module ANDProtocol(S1 : SigmaProtocol,
+                   S2 : SigmaProtocol)
+       : SigmaProtocol = { ... }
+#+END_SRC
+
+Instead we need to fix the types of S1 and S2 beforehand.
+
+* ZKBoo
+** General description
+- MPC-based \Sigma-Protocol
+- Relation is the pre-image of a group homomorphism
+- We restrict the functions to be expressed over arithmetic circuits
+
+#+BEGIN_SRC latex
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+      % \draw (-3,0) -- (-3,-3) (3,0) -- (3,-3);
+      \node at (-3,.3) {Prover};
+      \node at (-3,-.2) {$f(x) = y$};
+      \node at (1,.3) {Verifier};
+      \node at (1,-.2) {$y$};
+      \node at (-6,-1) {(2,3)-Decomposition of f(x)};
+      \draw[->] (-3,-1) -- node[midway,above] {Commit to views and outputs} (1,-1);
+      \draw[<-] (-3,-2) -- node[midway,above] {e} (1,-2);
+      \node at (-5.75,-2) {Open commitments for $e, e+1$};
+      \draw[->] (-3,-3) -- node[midway,above] {z} (1,-3);
+      \node at (2,-3) {Verify};
+  \end{tikzpicture}
+  \caption{\label{fig:proto_sigma} $\Sigma$-Protocol}
+\end{figure}
+#+END_SRC
+
+** (2,3)-Decomposition :ATTACH:
+:PROPERTIES:
+:ID:       41a03983-53d0-4dd2-ae9a-6ec43a599744
+:END:
+#+attr_latex: :width 115px
+Image from [GMO16]
+[[attachment:_20200624_163923Screenshot 2020-06-24 at 16.39.00.png]]
+
+** (2,3)-Decomposition
+*** Correctness
+Decomposition D is correct if:
+\forall x \Pr[f(x) = D(x)] = 1
+*** 2-Privacy
+D is 2-private if there exists a simulator S_e:
+
+\forall x, ({k_i, w_i}_{i \in {e, e+1}}, y_{e+2}) \sim S_e(x,y)
+
+where ({k_i, w_i}_{i \in {e, e+1}}, y_{e+2}) are produced by D.
+
+** Verifing
+To verify the transcript the following is done:
+
+- The output shares must reconstruct to y
+- The output shares must be in the view of parties e and e+1
+- The view of e must be computed by the decomposition
+** Arithmetic circuit :ATTACH:
+:PROPERTIES:
+:ID:       57527bfe-5ddf-45a7-a6b4-90f62b438939
+:END:
+[[attachment:_20200625_093114Screenshot 2020-06-25 at 09.31.11.png]]
+
+From the list representation we have a evaluation order.
+** Correctness
+We defined the following functions and procedures:
+- =eval circuit=
+- =decomposition=
+- =compute= : procedure from circuit and views to views
+
+From which we formally defined correctness as:
+*** Correctness
+Valid circuit c \implies
+
+\Pr[ =eval circuit= (c, [input]) = y] =
+
+\Pr[ =decomposition= (c, [input]) = y]
+
+** Correctness
+This correctness is not strong enough. We need to able to reason about the
+shares/views produces by the docomposition.
+
+Having a valid output is not enough to prove security of ZKBoo
+
+*** Stepping lemma for decomposition
+Valid (c_1, w_1, w_2, w_3) \land Valid circuit (c_1 ++ c_2) \implies
+
+\Pr[ =compute= (c_2, w_1, w_2, w_3) : Valid (c, w_1', w_2', w_3')]
+
+** 2-Privacy
+To define 2-Privacy we have the following procedures
+
+- =real=
+- =simulated=
+- =simulator=
+
+Simulator is a procedure simulating two views by using most of the logic of the
+=compute= procedure
+
+** 2-Privacy
+
+*** 2-Privacy
+equiv[real \sim simulated : = {e,x,c} \land y^{simulated} = =eval circuit= c
+x^{real} \implies ={w_e,w_{e+1},y_{e+2}}]
+
+*** Stepping lemma
+equiv[ =compute= \sim =simulate= : ={c,e,w_e,w_{e+1}}
+
+      \implies = {w_e, w_{e+1}} \land \sum_{i \in {1,2,3}} last w_i^{compute} =
+      =eval circuit= c x]
+
+
+** ZKBoo
+We are now ready to prove ZKBoo to be a secure \Sigma-Protocol.
+
+** Completeness
+
+- The output shares must reconstruct to y
+- The output shares must be in the view of parties e and e+1
+- The view of e must be computed by the decomposition
+
+All properties of the correctness of the decomposition.
+
+Lastly, we need that the commitment are valid.
+This is simplfied by using a key-less commitment scheme
+
+*** Stepping lemma for decomposition
+Valid (c_1, w_1, w_2, w_3) \land Valid circuit (c_1 ++ c_2) \implies
+
+\Pr[ =compute= (c_2, w_1, w_2, w_3) : Valid (c, w_1', w_2', w_3')]
+
+** Completeness
+#+BEGIN_SRC easycrypt
+module Correctness(C : Commitment) = {
+  proc main(m : message) = {
+    (sk, pk) = KeyGen();
+    (c, r) = C.commit(sk, m);
+    b = verify(pk, m, c, r);
+
+    return b;
+  }
+}
+#+END_SRC
+
+** Special honest-verifier zero-knowledge
+We use the simulator to simulate views corresponding to the challenge.
+
+The last view must be randomly sampled.
+
+The simulated views are accepting by the 2-Privacy property.
+
+*** SHVZK
+equiv[ =SHVZK(S)=.real \sim =SHVZK(S)=.ideal : ={h, e} \land R h w^{real} \implies ={res}]
+
+*** Perfect Hiding
+\forall (A <: HidingAdv). \Pr[Hiding(Com, A).main = true] = 1/2
+
+** Special honest-verifier zero-knowledge
+Ultimately this leaves us with showing:
+
+\vspace{2em}
+
+Pr[Hiding(Com, A).main() = true] = 1/2 \implies
+
+equiv[commit(w_{e+2}) \sim commit(w') : ={glob Com} \implies ={res}]
+
+\vspace{2em}
+This transformation is intuively sound, but formally unclear.
+
+*** Alternative Hiding:
+equiv[commit(w}) \sim commit(w') : ={glob Com} \implies ={res}]
+
+
+Moreover, we can show Alternative Hiding \implies Hiding
+
+** 3-Special Soundness
+The game is given access to a = (c_1, c_2, c_3, y_1, y_2, y_3) and three
+openings: z_i = (w^i_i, k^i_i, w^i_{i+1}, k^i_{i+1}) for i \in {1,2,3}
+
+- Pr[w^i_i = w^j_i] = (1 - binding prob)
+- \forall i. w^i_i = w^j_i \implies \Pr[ =witness extractor= : R h w] = 1
+
+Which ultimately gives us: Pr[SpecialSoundness(ZKBoo).main = 1] = (1 - binding prob)
+
+\vspace{2em}
+
+Here we use the correctness of the decomposition to extract the witness.
+
+** 3-Special Soundness
+#+BEGIN_SRC easycrypt
+module SpecialSoundness(S : SigmaProtocol) = {
+  proc main(h : statement,
+            a : message,
+            c : challenge list,
+            z : response list) : bool = {
+    w = S.witness_extractor(h, m, c, z);
+    valid = true;
+    while (c <> []) {
+      c' = c[0];
+      z' = z[0];
+      valid = valid /\ S.verify(h, m, c', z');
+      c = behead c;
+      z = behead z;
+    }
+
+    return valid /\ R h (oget w);
+}.
+#+END_SRC
+
+** 3-Special Soundness
+#+BEGIN_SRC easycrypt
+  proc extract_views(h, a, z1 z2 z3 : response) = {
+    v1 = ZKBoo.verify(h, m, 1, z1);
+    v2 = ZKBoo.verify(h, m, 2, z2);
+    v3 = ZKBoo.verify(h, m, 3, z3);
+
+    (k1, w1, k2, w2) = z1;
+    (k2', w2', k3, w3) = z2;
+    (k3', w3', k1', w1') = z3;
+    (y1, y2, y3, c1, c2, c3) = m;
+    cons1 = alt_binding(c1, w1, w1');
+    cons2 = alt_binding(c2, w2, w2');
+    cons3 = alt_binding(c3, w3, w3');
+
+    return v1 /\ v2 /\ v3 /\ cons1 /\ cons2 /\ cons3;
+  }
+#+END_SRC
+* Conclusion
+** Conclusion
+- Workable formalisations of Commitment schemes and \Sigma-Protocols
+- Formal proof of security of ZKBoo
+  - Arithmetic circuits
+  - (2,3)-Decomposition
