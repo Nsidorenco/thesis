@@ -1,0 +1,102 @@
+(* Formalization of MPC Phi decomposition *)
+require import AllCore Distr List IntDiv DList.
+(** Ignore: This is now the preferred setup but is not yet the default **)
+pragma -oldip. pragma +implicits.
+
+type input.
+type output.
+type share.
+type gate.
+type seed.
+type verification_input.
+
+type circuit = gate list.
+type view = (share * seed) list.
+
+op output (v : view) : share.
+op reconstruct (ss : share list) : output.
+op circuit_eval (c : circuit) (x : input) : output.
+op f (vs : view list) : verification_input.
+
+const n : int.
+
+(* random seed distribution *)
+op dseed : {seed distr | is_lossless dseed /\ is_funiform dseed} as dseed_llfuni.
+
+module type Phi = {
+  proc decomp(c : circuit, x : input, rs : seed list) : view list
+  proc verify(c : circuit, vs : verification_input, y : output) : bool
+  proc simulator(c : circuit, y : output, e : int) : view list
+  proc extractor(vs : view list) : input option
+}.
+
+module Correctness(D : Phi) = {
+  proc main(c, x, rs) = {
+    var vs, shares, v, y;
+    vs = D.decomp(c, x, rs);
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y = reconstruct(shares);
+    return (circuit_eval c x) = y;
+  }
+}.
+
+module Verifiability(D : Phi) = {
+  proc main(c, x, rs) = {
+    var vs, validity, vs', shares, y, v;
+    vs = D.decomp(c, x, rs);
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y = reconstruct(shares);
+    vs' = f vs;
+    validity = D.verify(c, vs', y);
+
+    return validity;
+  }
+}.
+
+module Soundness(D : Phi) = {
+  proc main(c, vs', y) = {
+    var xopt, x, rs, vs, shares, v, y';
+    xopt = D.extractor(vs');
+    x = oget xopt;
+    rs <$ dlist dseed n;
+    vs = D.decomp(c, x, rs);
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y' = reconstruct(shares);
+    return y = y';
+  }
+}.
+
+(* Lemmas: *)
+(*---------*)
+(* lemma correctness c x rs &m: *)
+(*   Pr[Correctness(D).main(c, x, rs) @ &m : res] = 1%r. *)
+(*---------*)
+(* lemma privacy c' x' y' e': *)
+(*     0 < e' /\ e' <= 3 => *)
+(*     y' = eval_circuit c' [x'] => *)
+(*       equiv[Privacy.real ~ Privacy.ideal : (={c, e} /\ c{1} = c' /\ h{1} = x' /\ y{2} = y' /\ e{1} = e') *)
+(*             ==> ={res}]. *)
+(*---------*)
+(* lemma verifiability c x, y rs &m: *)
+(*     Pr[Verifiability(D).main(c, x, rs) @ &m : res] = 1%r. *)
+(*---------*)
+(* d+1-Special Soundness *)
+(* lemma soundness c vs' y &m: *)
+(*   (forall i, (0 <= i /\ i <= d + 1) => *)
+(*   Pr[D.verify(c, vs', y) @ &m : res] = 1%r) *)
+(*   => Pr[Soundness(D).main(c, vs', y) @ &m : res] = 1%r. *)
