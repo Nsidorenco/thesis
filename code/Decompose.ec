@@ -1,23 +1,28 @@
 (* Formalization of MPC Phi decomposition *)
 require import AllCore Distr List IntDiv DList.
+require (*--*) MPC.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
 
-type input = int.
+type input  = int.
 type output = int.
-type view = int list.
-
-type gate = [
-  | ADDC of (int * int)
-  | MULTC of (int * int)
-  | MULT of (int * int)
-  | ADD of (int * int)
-].
-
+type share  = int.
+type random = int list.
+type gate   = [| ADDC of (int * int)
+               | MULTC of (int * int)
+               | MULT of (int * int)
+               | ADD of (int * int)].
 type circuit = gate list.
-type state = int list.
+type view    = share list * random.
 
-op eval_gate (g : gate, s : state) : output =
+(* secret sharing distribution *)
+op dinput : {input distr | is_lossless dinput /\ is_funiform dinput} as dinput_llfuni.
+
+lemma dinput_ll : is_lossless dinput by have []:= dinput_llfuni.
+lemma dinput_funi : is_funiform dinput by have []:= dinput_llfuni.
+lemma dinput_fu : is_full dinput by apply/funi_ll_full; [exact/dinput_funi|exact/dinput_ll].
+
+op eval_gate (g : gate, s : int list) : output =
   with g = MULT inputs => let (i, j) = inputs in
                           let x = (nth 0 s i) in
                           let y = (nth 0 s j) in x * y
@@ -29,84 +34,39 @@ op eval_gate (g : gate, s : state) : output =
   with g = MULTC inputs => let (i, c) = inputs in
                           let x = (nth 0 s i) in x * c.
 
-(* Circuit example: *)
-(* x *)
-(* | \*)
-(* +2 \ *)
-(* |  / *)
-(* | / *)
-(* * *)
-
-const circuit_ex = [ADDC (0, 2); MULT(0,1)].
-const s' : state = [10].
-
-(* lemma valid_tester : *)
-(*     valid_circuit circuit_ex (size s'). *)
-(*     rewrite /circuit_ex /s' /valid_circuit. *)
-(*     progress. *)
-(*     case (i = 0). *)
-(*     progress. rewrite oget_some. trivial. *)
-(*     case (i = 1). *)
-(*     progress. rewrite oget_some. trivial. *)
-(*     progress. smt(). *)
-(* qed. *)
-
-
-op eval_circuit_aux(c : circuit, s : state) : state =
+op eval_circuit_aux(c : circuit, s : int list) : int list =
     with c = [] => s
     with c = g :: gs =>
      let r = eval_gate g s in
      eval_circuit_aux gs (rcons s r).
 
-op eval_circuit (c : circuit, s : state) : output =
-    last 0 (eval_circuit_aux c s).
+op eval_circuit (c : circuit, s : int) : output =
+    last 0 (eval_circuit_aux c [s]).
 
-lemma circuit_ex_test : (eval_circuit circuit_ex [10]) = 120.
-    proof. by rewrite /eval_circuit /circuit_ex /rev /catrev; simplify. qed.
+clone import MPC as MPC' with
+  type input <- input,
+  type output <- output,
+  type share <- share,
+  type gate <- gate,
+  type random <- random,
+  type verification_input <- view list,
+  op n = 3,
+  op circuit_eval = eval_circuit,
+  op output (v : view) = last 0 (fst v),
+  op reconstruct (ss : share list) = (foldr (fun (s : share) (acc : int), acc + s) 0 ss),
+  op f (vs : view list, e : int) =
+    let v1 = oget (onth vs (e-1 %% 3)) in
+    let v2 = oget (onth vs (e %% 3)) in [v1; v2],
+  op drandom = dlist dinput 3
+  proof *.
+  realize drandom_llfuni. split.
+      - rewrite /drandom.
+        apply /dlist_ll /dinput_ll.
+      - rewrite /drandom.
+        admitted.
+        (* apply is_full_funiform. *)
 
-
-module Circuit = {
-  proc eval(c : circuit, s : state) = {
-    return eval_circuit c s;
-  }
-}.
-
-lemma eval_circuit_module_fail c' s' y &m:
-    y <> eval_circuit c' s' => Pr[Circuit.eval(c', s') @ &m : res = y] = 0%r.
-proof.
-    progress.
-    byphoare(: c = c' /\ s = s' ==> res = y )=>//.
-    hoare.
-    proc.
-    skip. smt().
-qed.
-
-lemma eval_circuit_module c' s' y &m:
-    y = eval_circuit c' s' <=> Pr[Circuit.eval(c', s') @ &m : res = y] = 1%r.
-proof.
-    split.
-    - progress.
-      byphoare(: c = c' /\ s = s' ==> _ )=>//.
-      by proc.
-
-    - case (y = eval_circuit c' s').
-      trivial.
-      progress.
-      have := eval_circuit_module_fail c' s' y &m.
-      progress. smt().
-qed.
-
-lemma eval_circuit c' s' &m:
-    Pr[Circuit.eval(c', s') @ &m : res = eval_circuit c' s'] = 1%r.
-    smt.
-qed.
-
-(** Phi protocol **)
-
-(* define decomposed circuit function *)
-type random_tape = int list.
-
-op phi_decomp (g : gate, idx, p : int, w1 w2 : view, k1 k2 : int list) : output =
+op phi_decomp (g : gate, idx, p : int, w1 w2 : int list, k1 k2 : int list) : output =
 with g = ADDC inputs =>
     let (i, c) = inputs in
     let x = (nth 0 w1 i) in
@@ -128,12 +88,7 @@ with g = MULT inputs =>
     let r2 = (nth 0 k2 idx) in
     xp * yp + xp' * yp + xp * yp' + r1 - r2.
 
-
-
-
-
-
-op simulator_eval (g : gate, idx, p : int, e : int, w1 w2 : view, k1 k2 k3: int list) =
+op simulator_eval (g : gate, idx, p : int, e : int, w1 w2 : int list, k1 k2 k3: int list) =
 with g = MULT inputs =>
   if (p - e %% 3 = 1) then (nth 0 k3 idx) else phi_decomp g idx p w1 w2 k1 k2
   (* if p = 1 then phi_decomp g p w1 w2 k1 k2 else *)
@@ -144,14 +99,6 @@ with g = MULTC inputs => phi_decomp g idx p w1 w2 k1 k2
 with g = ADD inputs => phi_decomp g idx p w1 w2 k1 k2.
 
 
-(* secret sharing distribution *)
-op dinput : {input distr | is_lossless dinput /\ is_funiform dinput} as dinput_llfuni.
-
-lemma dinput_ll : is_lossless dinput by have []:= dinput_llfuni.
-lemma dinput_funi : is_funiform dinput by have []:= dinput_llfuni.
-lemma dinput_fu : is_full dinput by apply/funi_ll_full; [exact/dinput_funi|exact/dinput_ll].
-
-
 module Phi = {
   proc share(x) = {
     var x1, x2, x3;
@@ -160,15 +107,15 @@ module Phi = {
     x3 = x - x1 - x2;
     return (x1, x2, x3);
   }
-  proc output(view) = {
+  proc output(view : view) = {
     var y;
-    y = last 0 view;
+    y = last 0 view.`1;
     return y;
   }
   proc reconstruct(s1 s2 s3 : int) = {
     return s1 + s2 + s3;
   }
-  proc compute(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+  proc compute(c : circuit, w1 w2 w3 : int list, k1 k2 k3 : random) = {
     var g, r1, r2, r3, v1, v2, v3;
     while (c <> []) {
       g = oget (ohead c);
@@ -189,10 +136,13 @@ module Phi = {
     return (k1, k2, k3, w1, w2, w3);
   }
 
-  proc compute_fixed(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
-    var g, v1, v2, v3;
+  proc compute_fixed(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
+    var g, v1, v2, v3, r1, r2, r3;
     while (c <> []) {
       g = oget (ohead c);
+      r1 <$ dinput;
+      r2 <$ dinput;
+      r3 <$ dinput;
       v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
       v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
       v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
@@ -201,115 +151,52 @@ module Phi = {
       w3 = (rcons w3 v3);
       c = behead c;
     }
-    return (w1, w2, w3);
+    return (k1, k2, k3, w1, w2, w3);
   }
 
-  proc compute_stepped(c : circuit, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+  proc compute_stepped(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
     (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c], w1, w2, w3, k1, k2, k3);
     c = behead c;
     (k1, k2, k3, w1, w2, w3) = compute(c, w1, w2, w3, k1, k2, k3);
     return (k1, k2, k3, w1, w2, w3);
 
   }
-  proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3 : view, k1 k2 k3 : random_tape) = {
+  proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3 : share list, k1 k2 k3 : random) = {
     (k1, k2, k3, w1, w2, w3) = compute(c, w1, w2, w3, k1, k2, k3);
     (k1, k2, k3, w1, w2, w3) = compute([g], w1, w2, w3, k1, k2, k3);
     return (k1, k2, k3, w1, w2, w3);
 
   }
-  proc main(h : input, c : circuit) = {
-    var x1, x2, x3, y, w1, w2, w3, y1, y2, y3, k1, k2, k3;
-    (x1, x2, x3) = share(h);
-    k1 = [];
-    k2 = [];
-    k3 = [];
-    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], k1, k2, k3);
-    y1 = output(w1);
-    y2 = output(w2);
-    y3 = output(w3);
-    y = reconstruct(y1, y2, y3);
-    return y;
-  }
-  (* proc main_fixed(h : input, c : circuit, k1, k2, k3) = { *)
-  (*   var x1, x2, x3, y, w1, w2, w3, y1, y2, y3; *)
-  (*   (x1, x2, x3) = share(h); *)
-  (*   (w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], k1, k2, k3); *)
-  (*   y1 = output(w1); *)
-  (*   y2 = output(w2); *)
-  (*   y3 = output(w3); *)
-  (*   y = reconstruct(y1, y2, y3); *)
-  (*   return y; *)
-  (* } *)
-  proc main_fixed_input(x1 x2 x3 : input, c : circuit) = {
-    var y, k1, k2, k3, w1, w2, w3, y1, y2, y3;
-    share(x1+x2+x3);
-    k1 = [];
-    k2 = [];
-    k3 = [];
-    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], k1, k2, k3);
-    y1 = output(w1);
-    y2 = output(w2);
-    y3 = output(w3);
-    y = reconstruct(y1, y2, y3);
-    return y;
-  }
-  proc main_fixed_input_and_tape(x1 x2 x3 : input, c : circuit, k1, k2, k3) = {
-    var y, w1, w2, w3, y1, y2, y3;
-    share(x1+x2+x3);
-    (w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], k1, k2, k3);
-    y1 = output(w1);
-    y2 = output(w2);
-    y3 = output(w3);
-    y = reconstruct(y1, y2, y3);
-    return y;
+
+  proc decomp(c : circuit, x : input, rs : random list) = {
+    var x1, x2, x3, r1, r2, r3, w1, w2, w3;
+    (x1, x2, x3) = share(x);
+    r1 = oget (ohead rs);
+    rs = behead rs;
+    r2 = oget (ohead rs);
+    rs = behead rs;
+    r3 = oget (ohead rs);
+    rs = behead rs;
+
+    (r1, r2, r3, w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], r1, r2, r3);
+
+    return [(w1, r1); (w2, r2); (w3, r3)];
   }
 
-}.
+  proc decomp_local(c : circuit, x : input) = {
+    var x1, x2, x3, w1, w2, w3, k1, k2, k3;
+    (x1, x2, x3) = share(x);
 
-equiv compute_fixed_output_eq:
-    Phi.compute ~ Phi.compute_fixed :
-    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}==>
-    let (k1, k2, k3, w1, w2, w3) = res{1} in
-    let (w1', w2', w3') = res{2} in
-    last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
-proof.
-    proc.
-    while (={c} /\ size w1{1} = size w1{2}
-                /\ size w2{1} = size w2{2}
-                /\ size w3{1} = size w3{2}
-                /\ size w1{1} = size w2{1}
-                /\ size w1{1} = size w3{1}
-                /\ size w1{2} = size w2{2}
-                /\ size w1{2} = size w3{2}
-                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
-    auto.
-    progress.
-    apply dinput_ll.
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    rewrite !nth_rcons - H - H0 - H1 - H2 - H3.
-    case (i < size w1{1}); progress.
-    smt.
-    case (i = size w1{1}); progress.
-    have -> := ohead_head (ADDC(0,0)) c{2} H7.
-    rewrite oget_some.
-    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
-    smt().
-    smt().
-    smt().
-    smt().
-    auto.
-    progress.
-    smt.
-qed.
+    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], [], [], []);
 
-module Simulator = {
-  proc compute(c : circuit, e : int, w1 w2 : view, k1 k2 k3 : random_tape) = {
+    return [(w1, k1); (w2, k2); (w3, k3)];
+  }
+
+  proc verify(c : circuit, vs : view list, y : output) = {
+    return true;
+  }
+
+  proc simulate(c : circuit, e : int, w1 w2 : int list, k1 k2 k3 : random) = {
     var g, r1, r2, r3, v1, v2, p1, p2;
     if (e = 1) {
       p1 = 1;
@@ -340,53 +227,74 @@ module Simulator = {
 
     return (k1, k2, k3, w1, w2);
   }
-  proc compute_stepped(c : circuit, e : int, w1 w2 : view, k1 k2 k3 : random_tape) = {
-    (k1, k2, k3, w1, w2) = compute([head (ADDC(0,0)) c], e, w1, w2, k1, k2, k3);
+  proc simulate_stepped(c : circuit, e : int, w1 w2 : int list, k1 k2 k3 : random) = {
+    (k1, k2, k3, w1, w2) = simulate([head (ADDC(0,0)) c], e, w1, w2, k1, k2, k3);
     c = behead c;
-    (k1, k2, k3, w1, w2) = compute(c, e, w1, w2, k1, k2, k3);
+    (k1, k2, k3, w1, w2) = simulate(c, e, w1, w2, k1, k2, k3);
     return (k1, k2, k3, w1, w2);
   }
-}.
 
-module Privacy = {
-  proc real(h : input, c : circuit, e : int) = {
-    var x1, x2, x3, w1, w2, w3, y1, y2, y3, ret, k1, k2, k3;
-    (x1, x2, x3) = Phi.share(h);
-    k1 = [];
-    k2 = [];
-    k3 = [];
-    (k1, k2, k3, w1, w2, w3) = Phi.compute(c, [x1], [x2], [x3], k1, k2, k3);
-    y1 = Phi.output(w1);
-    y2 = Phi.output(w2);
-    y3 = Phi.output(w3);
-    if (e = 1) {
-      ret = ((k1, w1, k2, w2), y3);
-    } else {
-      if (e = 2) {
-        ret = ((k2, w2, k3, w3), y1);
-      } else {
-        ret = ((k3, w3, k1, w1), y2);
-      }
-    }
-
-    return ret;
-  }
-
-  proc ideal(y : output, c : circuit, e : int) = {
-    var x1, x2, w1, w2, y1, y2, y3, k1, k2, k3;
+  proc simulator(c : circuit, y : output, e : int) = {
+    var x1, x2, k1, k2, k3, w1, w2, y1, y2, y3, vs';
     x1 <$ dinput;
     x2 <$ dinput;
-    k1 = [];
-    k2 = [];
-    k3 = [];
-    (k1, k2, k3, w1, w2) = Simulator.compute(c, e, [x1], [x2], k1, k2, k3);
-    y1 = Phi.output(w1);
-    y2 = Phi.output(w2);
+    (k1, k2, k3, w1, w2) = simulate(c, e, [x1], [x2], [], [], []);
+    y1 = last 0 w1;
+    y2 = last 0 w2;
     y3 = y - (y1 + y2);
 
-    return ((k1, w1, k2, w2), y3);
+    vs' = [(w1, k1); (w2, k2)];
+
+    return (vs', y3, vs');
   }
+
+  proc extractor(vs : view list) = {
+    return (Some 1);
+  }
+
 }.
+
+equiv compute_fixed_output_eq:
+    Phi.compute ~ Phi.compute_fixed :
+    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}==>
+    let (k1, k2, k3, w1, w2, w3) = res{1} in
+    let (k1, k2, k3, w1', w2', w3') = res{2} in
+    last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
+proof.
+    proc.
+    while (={c} /\ size w1{1} = size w1{2}
+                /\ size w2{1} = size w2{2}
+                /\ size w3{1} = size w3{2}
+                /\ size w1{1} = size w2{1}
+                /\ size w1{1} = size w3{1}
+                /\ size w1{2} = size w2{2}
+                /\ size w1{2} = size w3{2}
+                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
+    auto.
+    progress.
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    rewrite !nth_rcons - H - H0 - H1 - H2 - H3.
+    case (i < size w1{1}); progress.
+    smt.
+    case (i = size w1{1}); progress.
+    have -> := ohead_head (ADDC(0,0)) c{2} H7.
+    rewrite oget_some.
+    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
+    smt().
+    smt().
+    smt().
+    smt().
+    auto.
+    progress.
+    smt.
+qed.
+
 
 lemma eval_gate_aux_size g s:
     size (eval_circuit_aux [g] s) = size s + 1 by smt.
@@ -471,7 +379,7 @@ proof.
     smt.
 qed.
 
-lemma gate_computation_order g i (p : int) (w1 w2 w1' w2' : view) k1 k2 k1' k2' :
+lemma gate_computation_order g i (p : int) (w1 w2 w1' w2' : share list) k1 k2 k1' k2' :
     0 <= i /\ (i + 1 < size w1) /\ size w1 = size w2 /\ size k1 = size k2 /\ (size k1 = size w1 \/ size k1 = size w1 - 1) /\ valid_gate g i =>
     phi_decomp g i p w1 w2 k1 k2 = phi_decomp g i p (w1++w1') (w2++w2') (k1++k1') (k2++k2').
 proof.
@@ -482,7 +390,7 @@ proof.
   smt().
 qed.
 
-lemma gate_computation_order_eq g i (p : int) (w1 w2 w1' w2' : view) k1 k2:
+lemma gate_computation_order_eq g i (p : int) (w1 w2 w1' w2' : share list) k1 k2:
     (i = size w1 - 1) /\ size w1 = size w2 /\ size k1 = size k2 /\ size k1 = size w1 /\ valid_gate g i =>
     phi_decomp g i p w1 w2 k1 k2 = phi_decomp g i p (w1++w1') (w2++w2') k1 k2.
 proof.
@@ -836,13 +744,101 @@ proof.
 
 qed.
 
-lemma correctness h' c':
-    phoare[Phi.main : valid_circuit c /\ h = h' /\ c = c' ==> res = eval_circuit c' [h']] = 1%r.
+module Correctness_local = {
+  proc main(c, x) = {
+    var vs, shares, v, y;
+    vs = Phi.decomp_local(c, x);
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y = reconstruct(shares);
+    return (circuit_eval c x) = y;
+  }
+}.
+
+lemma size_behead (l : 'a list):
+    size l <= 1 => behead l = [].
+proof.
+    elim l.
+    smt().
+    smt().
+qed.
+
+equiv decomp_local_eq:
+    Phi.decomp ~ Phi.decomp_local :
+    ={c, x} ==>
+    let vs = res{1} in
+    let vs' = res{2} in
+    size vs = size vs' /\ size vs = 3 /\
+    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs) =
+    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs').
 proof.
   proc.
-  inline Phi.output Phi.reconstruct Phi.share. auto.
-  have H := compute_circuit_correct c' [h'] [].
-  call H. clear H.
+  auto.
+  have Heq := compute_fixed_output_eq.
+  symmetry.
+  call Heq.
+  clear Heq.
+  auto.
+  call (:true). auto. auto.
+  progress.
+  have : (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6 ) = result_L by smt().
+  have : (result_R0.`1,result_R0.`2,result_R0.`3, result_R0.`4, result_R0.`5, result_R0.`6) = result_R0 by smt().
+  smt().
+qed.
+
+equiv correctness_correctness_local:
+   Correctness(Phi).main ~ Correctness_local.main : ={c, x} ==> ={res}.
+proof.
+   proc.
+   seq 1 1 :
+    ((foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} =
+     foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{2}) /\ size vs{1} = 3 /\ size vs{1} = size vs{2} /\ ={c, x}).
+   call decomp_local_eq; skip; progress.
+   wp.
+   while
+    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
+      (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{2} +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{2})
+      /\ ={c, x} /\ size vs{1} = size vs{2}).
+    auto. progress.
+    smt().
+    smt().
+    smt(size_behead).
+    smt(size_behead).
+    auto. progress.
+    smt().
+    smt().
+    smt().
+qed.
+
+lemma correctness_inter (c' : circuit) x' (rs' : random list) &m:
+    valid_circuit c' /\ size rs' = 3 /\
+    size (nth [] rs' 0) = size (nth [] rs' 1) /\ size (nth [] rs' 1) = size (nth [] rs' 2) /\ size c' = size (nth [] rs' 0) =>
+    Pr[Correctness_local.main(c', x') @ &m : res] = 1%r.
+proof.
+  progress.
+  byphoare(: c = c' /\ x = x' ==>)=>//.
+  proc.
+  auto.
+  while
+    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares) =
+      eval_circuit c x) (size vs).
+    progress.
+    auto.
+    progress.
+    smt().
+    smt().
+  wp.
+  inline Phi.decomp_local Phi.share.
+  wp.
+  have Hcir := compute_circuit_correct c' [x'] [].
+  call Hcir; clear Hcir.
   auto; progress.
   apply dinput_ll.
   smt().
@@ -853,135 +849,23 @@ proof.
   rewrite - !Hlast.
   have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
   smt(size_ge0).
+  smt(size_ge0).
+  by rewrite H14.
 qed.
 
-equiv correctness_module:
-    Phi.main ~ Circuit.eval : valid_circuit c{1} /\ ={c} /\ s{2} = [h{1}] ==> ={res}.
+lemma correctness (c' : circuit) x' (rs' : random list) &m:
+    valid_circuit c' /\ size rs' = 3 /\
+    size (nth [] rs' 0) = size (nth [] rs' 1) /\ size (nth [] rs' 1) = size (nth [] rs' 2) /\ size c' = size (nth [] rs' 0) =>
+    Pr[Correctness(Phi).main(c', x', rs') @ &m : res] = 1%r.
 proof.
-  proc*.
-  exists* h{1}. elim*=> h.
-  exists* c{1}. elim*=> c.
-  have Hphi:= correctness h c.
-  progress.
-  call{1} Hphi.
-  inline *.
-  auto.
-  smt().
-qed.
-
-equiv compute_fixed_input_equiv:
-    Phi.main ~ Phi.main_fixed_input :
-    (={c} /\ x1{2} + x2{2} + x3{2} = h{1}) /\ valid_circuit c{1}
-    ==> ={res}.
-proof.
-    proc.
-    inline Phi.reconstruct Phi.output.
-    auto.
-    exists* c{1}; elim*=> c.
-    seq 1 1 : (#pre /\ x1{1} + x2{1} + x3{1} = x1{2} + x2{2} + x3{2}).
-    inline *. auto. progress.
-    smt().
-    exists* x1{1}; elim*=>x1.
-    exists* x2{1}; elim*=>x2.
-    exists* x3{1}; elim*=>x3.
-    have Hvalid := compute_circuit_correct c [x1+x2+x3] [].
-    call{1} Hvalid.
-    call{2} Hvalid. clear Hvalid.
-    inline *.
-    auto.
     progress.
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    smt().
-    have <- := nth_last 0 result0.`4.
-    have <- := nth_last 0 result0.`5.
-    have <- := nth_last 0 result0.`6.
-    have <- : (size result0.`4 = size result0.`5).
-    have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
-    smt().
-    have <- : (size result0.`4 = size result0.`6).
-    have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
-    smt().
-    have <- := nth_last 0 result.`4.
-    have <- := nth_last 0 result.`5.
-    have <- := nth_last 0 result.`6.
-    have <- : (size result.`4 = size result.`5).
-    have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
-    smt().
-    have <- : (size result.`4 = size result.`6).
-    have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
-    smt().
-
-  have Hsize1: size result0.`4 = size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
-  have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
-  smt().
-  have Heval1:
-    (forall (i : int),
-        0 <= i /\ i < size result0.`4 =>
-        nth 0 result0.`4 i + nth 0 result0.`5 i + nth 0 result0.`6 i =
-        nth 0 (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]) i).
-  have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
-  smt().
-  have -> := Heval1 (size result0.`4 - 1) _.
-  have : 1 <= size result0.`4.
-  have : 1 <= size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
-  smt(eval_circuit_aux_size size_ge0).
-  smt().
-  smt().
-
-  have Hsize2: size result.`4 = size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
-  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
-  smt().
-  have Heval2:
-    (forall (i : int),
-        0 <= i /\ i < size result.`4 =>
-        nth 0 result.`4 i + nth 0 result.`5 i + nth 0 result.`6 i =
-        nth 0 (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]) i).
-  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
-  smt().
-  have -> := Heval2 (size result.`4 - 1) _. split.
-  have : 1 <= size result.`4.
-  have : 1 <= size (eval_circuit_aux c{2} [x1{1} + x2{1} + x3{1}]).
-  smt(eval_circuit_aux_size size_ge0).
-  smt().
-  smt().
-  smt().
-  smt().
-qed.
-
-equiv main_fixed_equiv:
-    Phi.main ~ Phi.main_fixed_input_and_tape :
-    ={c} /\ x1{2} + x2{2} + x3{2} = h{1} /\ valid_circuit c{1} ==> ={res}.
-proof.
-  transitivity
-      Phi.main_fixed_input
-      (={c} /\ x1{2} + x2{2} + x3{2} = h{1} /\ valid_circuit c{1} ==> ={res})
-      (={c, x1, x2, x3} /\ valid_circuit c{1} ==> ={res}).
-  progress.
-  exists (x1{2}, x2{2}, x3{2}, c{1}).
-  progress. progress.
-  proc*.
-  call compute_fixed_input_equiv.
-  skip; progress.
-  proc.
-  inline Phi.reconstruct Phi.output.
-  auto.
-  call compute_fixed_output_eq.
-  inline *. auto.
-  progress.
-  have : (result_L.`1, result_L.`2, result_L.`3, result_L.`4, result_L.`5, result_L.`6) = result_L by smt().
-  have : (result_R.`1, result_R.`2, result_R.`3) = result_R by smt().
-  smt().
+    have <- := correctness_inter c' x' rs' &m _; progress.
+    byequiv correctness_correctness_local=>//.
 qed.
 
 lemma phi_sim_equiv g e':
     (forall s,
-      equiv[Phi.compute ~ Simulator.compute :
+      equiv[Phi.compute ~ Phi.simulate :
             size s = size w1{1} /\
             size s = size w2{1} /\
             size s = size w3{1} /\
@@ -1084,7 +968,7 @@ qed.
 lemma phi_sim_circuit_equiv c' e':
     (forall s,
       (* s' = eval_circuit_aux c' s => *)
-      equiv[Phi.compute ~ Simulator.compute :
+      equiv[Phi.compute ~ Phi.simulate :
             size s = size w1{1} /\
             size s = size w2{1} /\
             size s = size w3{1} /\
@@ -1188,7 +1072,7 @@ proof.
         exfalso. smt().
   symmetry.
   transitivity
-    Simulator.compute_stepped
+    Phi.simulate_stepped
     (* (={c, e, w1, w2} /\ *)
     (*   c{1} = (x::l) /\ w1{1} = w1' /\ w2{1} = w2' /\ e{1} = e' *)
     (={c, w1, w2, e, k1, k2, k3} /\ c{1} = (x::l) /\
@@ -1254,24 +1138,74 @@ proof.
   auto; smt().
 qed.
 
+module Privacy = {
+  proc real(h : input, c : circuit, e : int, rs : random list) = {
+    var w1, w2, w3, y1, y2, y3, ret, vs, vs';
+    vs = Phi.decomp(c, h, rs);
+    w1 = nth ([], []) vs 0;
+    w2 = nth ([], []) vs 1;
+    w3 = nth ([], []) vs 2;
 
+    y1 = Phi.output(w1);
+    y2 = Phi.output(w2);
+    y3 = Phi.output(w3);
+    vs' = f vs e;
+    if (e = 1) {
+      ret = ([w1; w2], y3, vs');
+    } else {
+      if (e = 2) {
+        ret = ([w2; w3], y1, vs');
+      } else {
+        ret = ([w3; w1], y2, vs');
+      }
+    }
+
+    return ret;
+  }
+  proc real_local(h : input, c : circuit, e : int, rs : random list) = {
+    var w1, w2, w3, y1, y2, y3, ret, vs, vs';
+    vs = Phi.decomp_local(c, h);
+    w1 = nth ([], []) vs 0;
+    w2 = nth ([], []) vs 1;
+    w3 = nth ([], []) vs 2;
+
+    y1 = Phi.output(w1);
+    y2 = Phi.output(w2);
+    y3 = Phi.output(w3);
+    vs' = f vs e;
+    if (e = 1) {
+      ret = ([w1; w2], y3, vs');
+    } else {
+      if (e = 2) {
+        ret = ([w2; w3], y1, vs');
+      } else {
+        ret = ([w3; w1], y2, vs');
+      }
+    }
+
+    return ret;
+  }
+}.
+
+(* TODO: Make global simulator *)
 lemma privacy c' x' y' e':
     0 < e' /\ e' <= 3 =>
-    y' = eval_circuit c' [x'] =>
-      equiv[Privacy.real ~ Privacy.ideal : (={c, e} /\ c{1} = c' /\ h{1} = x' /\ y{2} = y' /\ e{1} = e')
+    y' = eval_circuit c' x' =>
+      equiv[Privacy.real_local ~ Phi.simulator : (={c, e} /\ c{1} = c' /\ h{1} = x' /\ y{2} = y' /\ e{1} = e')
             ==> ={res}].
 proof.
   progress.
-  proc. inline Phi.output Phi.share.
+  proc. inline Phi.output Phi.share Phi.decomp_local.
   auto.
 
   case (e' = 1).
-  - have Heq := phi_sim_circuit_equiv c' e' [x'].
+  - have Heq := phi_sim_circuit_equiv c' 1 [x'].
     call Heq. clear Heq.
     auto; smt(nth_last).
 
   case (e' = 2).
-  - seq 5 2 : (#pre /\ x1{2} = x2{1} /\ x3{1} = x2{2} /\ x' = x1{1} + x2{1} + x3{1}).
+  - sp.
+    seq 3 2 : (#pre /\ x1{2} = x20{1} /\ x30{1} = x2{2} /\ x' = x10{1} + x20{1} + x30{1}).
     sp; wp.
     swap{1} 2 - 1.
     rnd (fun z => h{1} - x20{1} - z).
@@ -1283,7 +1217,8 @@ proof.
     auto; smt(nth_last).
 
  (* case e' = 3 *)
-  - seq 5 2 : (#pre /\ x1{2} = x3{1} /\ x1{1} = x2{2} /\ x' = x1{1} + x2{1} + x3{1}).
+  - sp.
+    seq 3 2 : (#pre /\ x1{2} = x30{1} /\ x10{1} = x2{2} /\ x' = x10{1} + x20{1} + x30{1}).
     sp; wp.
     swap{2} 2 - 1.
     rnd (fun z => h{1} - x10{1} - z).
