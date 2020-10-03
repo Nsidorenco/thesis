@@ -14,6 +14,7 @@ type gate   = [| ADDC of (int * int)
                | ADD of (int * int)].
 type circuit = gate list.
 type view    = share list * random.
+type verification_input = view list * output * output * output.
 
 (* secret sharing distribution *)
 op dinput : {input distr | is_lossless dinput /\ is_funiform dinput} as dinput_llfuni.
@@ -49,14 +50,17 @@ clone import MPC as MPC' with
   type share <- share,
   type gate <- gate,
   type random <- random,
-  type verification_input <- view list,
+  type verification_input <- verification_input,
   op n = 3,
   op circuit_eval = eval_circuit,
   op output (v : view) = last 0 (fst v),
   op reconstruct (ss : share list) = (foldr (fun (s : share) (acc : int), acc + s) 0 ss),
   op f (vs : view list, e : int) =
-    let v1 = oget (onth vs (e-1 %% 3)) in
-    let v2 = oget (onth vs (e %% 3)) in [v1; v2],
+    let v1 = oget (onth vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
+    let v2 = oget (onth vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
+    let y1 = last 0 (fst (nth ([], []) vs 0)) in
+    let y2 = last 0 (fst (nth ([], []) vs 1)) in
+    let y3 = last 0 (fst (nth ([], []) vs 2)) in ([v1; v2], y1, y2, y3),
   op drandom = dlist dinput 3
   proof *.
   realize drandom_llfuni. split.
@@ -98,6 +102,13 @@ with g = ADDC inputs =>
 with g = MULTC inputs => phi_decomp g idx p w1 w2 k1 k2
 with g = ADD inputs => phi_decomp g idx p w1 w2 k1 k2.
 
+
+op valid_view_op p (view view2 : view) (c : circuit) =
+  let (v1, k1) = view in
+  let (v2, k2) = view2 in
+  (foldr (fun i acc,
+            acc /\ (nth 0 v1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) c i) i p v1 v2 k1 k2)
+    true (range 0 (size v1 - 1))).
 
 module Phi = {
   proc share(x) = {
@@ -192,8 +203,37 @@ module Phi = {
     return [(w1, k1); (w2, k2); (w3, k3)];
   }
 
-  proc verify(c : circuit, vs : view list, y : output) = {
-    return true;
+  proc verify(c : circuit, vs' : verification_input, e : int, y : output) = {
+    var vs, y1, y2, y3, ver, w1, w2, w3;
+
+    (vs, y1, y2, y3) = vs';
+
+    ver = true;
+    ver = ver /\ (y1 + y2 + y3 = y);
+
+    if (e = 1) {
+      w1 = nth ([], []) vs 0;
+      w2 = nth ([], []) vs 1;
+      ver = ver /\ (output w1 = y1);
+      ver = ver /\ (output w2 = y2);
+      ver = ver /\ valid_view_op 1 w1 w2 c;
+    } else {
+      if (e = 2) {
+        w2 = nth ([], []) vs 0;
+        w3 = nth ([], []) vs 1;
+        ver = ver /\ (output w2 = y2);
+        ver = ver /\ (output w3 = y3);
+        ver = ver /\ valid_view_op 2 w2 w3 c;
+      } else{
+        w3 = nth ([], []) vs 0;
+        w1 = nth ([], []) vs 1;
+        ver = ver /\ (output w3 = y3);
+        ver = ver /\ (output w1 = y1);
+        ver = ver /\ valid_view_op 3 w3 w1 c;
+      }
+    }
+
+    return ver;
   }
 
   proc simulate(c : circuit, e : int, w1 w2 : int list, k1 k2 k3 : random) = {
@@ -235,7 +275,7 @@ module Phi = {
   }
 
   proc simulator(c : circuit, y : output, e : int) = {
-    var x1, x2, k1, k2, k3, w1, w2, y1, y2, y3, vs';
+    var x1, x2, k1, k2, k3, w1, w2, y1, y2, y3, vs', ret;
     x1 <$ dinput;
     x2 <$ dinput;
     (k1, k2, k3, w1, w2) = simulate(c, e, [x1], [x2], [], [], []);
@@ -243,9 +283,18 @@ module Phi = {
     y2 = last 0 w2;
     y3 = y - (y1 + y2);
 
-    vs' = [(w1, k1); (w2, k2)];
+    vs' = ([(w1, k1); (w2, k2)]);
+    if (e = 1) {
+      ret = (vs', y3, (vs', y1, y2, y3));
+    } else {
+      if (e = 2) {
+        ret = (vs', y3, (vs', y3, y1, y2));
+      } else {
+        ret = (vs', y3, (vs', y2, y3, y1));
+      }
+    }
 
-    return (vs', y3, vs');
+    return ret;
   }
 
   proc extractor(vs : view list) = {
@@ -741,8 +790,163 @@ proof.
     smt(size_rcons).
     have : (result0.`1, result0.`2, result0.`3, result0.`4, result0.`5, result0.`6) = result0 by smt().
     smt(size_rcons).
-
 qed.
+
+module Verifiability_local = {
+  proc main(c, x, e) = {
+    var vs, validity, vs', shares, y, v, vs_copy;
+    vs = Phi.decomp_local(c, x);
+    vs_copy = vs;
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y = reconstruct(shares);
+    vs' = f vs_copy e;
+    validity = Phi.verify(c, vs', e, y);
+
+    return validity;
+  }
+}.
+
+search phi_decomp.
+
+   (* have : phi_decomp (nth (ADDC (0, 0)) c (i + 1)) (i + 1) 1 (x :: l) w2 k1 k2 = *)
+   (* phi_decomp (nth (ADDC (0, 0)) c i) i 1 l w2 k1 k2. *)
+   (* rewrite /phi_decomp. *)
+   (* (* New lemma for phi_decomp *) *)
+
+lemma fold_size c w1 x w2 k1 k2 p:
+  size w1 = size w2 /\
+  size k1 = size k2 /\
+  (size k1 = size w1 - 1 \/ size k1 = size w1) /\
+  valid_circuit c =>
+  (forall i, 0 <= i /\ i < size w1 - 1 =>
+  (nth 0 (rcons w1 x) (i + 1) =
+   phi_decomp (nth (ADDC (0, 0)) c i) i p (rcons w1 x) w2 k1 k2) =
+  (nth 0 w1 (i + 1) =
+   phi_decomp (nth (ADDC (0, 0)) c i) i p w1 w2 k1 k2)).
+proof.
+  move => Cvalid i; elim /natind i=> i; progress.
+  - have -> : i = 0 by smt().
+    rewrite nth_rcons.
+    have -> : 1 < size w1 by smt(size_ge0).
+    simplify.
+    have -> := circuit_computation_order c 0 p w1 w2 [x] [] k1 k2 [] [] _. smt().
+    smt(cat_rcons cats0).
+  - rewrite nth_rcons.
+    have -> : i + 2 < size w1 by smt().
+    simplify.
+    have -> := circuit_computation_order c (i+1) p w1 w2 [x] [] k1 k2 [] [] _. smt().
+    smt(cat_rcons cats0).
+qed.
+
+lemma valid_view_fold (c : circuit) w1 w2 k1 k2 n:
+  0 <= n < size w1 /\
+  valid_circuit c /\ size w2 = size k1 + 1 /\ size w1 - 1 = size k1 /\ size k1 = size k2 /\
+  (forall (i : int),
+      0 <= i /\ i + 1 < n =>
+      nth 0 w1 (i + 1) =
+    phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2)
+    =>
+  (foldr
+    (fun (i : int) (acc : bool) =>
+      acc /\
+      nth 0 w1 (i + 1) =
+      phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2) true
+    (range 0 (n - 1))) = true.
+proof.
+  elim /natind n.
+  - smt(range_geq).
+  - progress.
+    have IH := H0 _. smt(size_rcons size_ge0). clear H0.
+    progress.
+    case (0 <= n - 1)=> Hn.
+    have -> := range_cat (n - 1) 0 n _ _. smt(). smt().
+    rewrite foldr_cat.
+    have -> :(foldr
+     (fun (i : int) (acc : bool) =>
+        acc /\
+        nth 0 w1 (i + 1) = phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2)
+     true (range (n-1) n)) = true.
+    rewrite rangeS.
+    simplify. have -> := H7 (n - 1). smt().
+    done.
+    smt().
+    have : n = 0. smt().
+    progress. rewrite range_geq. smt().
+    smt().
+qed.
+
+lemma verifiability_local c' x' e' &m:
+    valid_circuit c' =>
+    Pr[Verifiability_local.main(c', x', e') @ &m : res] = 1%r.
+proof.
+  progress.
+
+  byphoare(: x = x' /\ c = c' /\ e = e' ==> _)=>//.
+  proc.
+  inline Phi.decomp Phi.verify.
+  auto.
+  while
+    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares) =
+      (eval_circuit c x)) (size vs).
+  auto; progress.
+  smt().
+  smt().
+  inline Phi.decomp_local Phi.share.
+  auto.
+  have Hcir := compute_circuit_correct c' [x'] [].
+  call Hcir. clear Hcir.
+  auto.
+  progress.
+  apply dinput_ll.
+  smt().
+  smt().
+  smt().
+  smt().
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  rewrite /eval_circuit.
+  smt(size_ge0 nth_last).
+  smt(size_ge0).
+  rewrite /f.
+  simplify.
+  have -> : reconstruct shares0 = foldr (fun (w : share) (acc : int) => acc + w) 0 shares0 by smt().
+  rewrite H10.
+  have -> : last 0 result.`4 + last 0 result.`5 + last 0 result.`6 = last 0 (eval_circuit_aux c{hr} [x{hr}]).
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(size_ge0 nth_last).
+  trivial.
+  smt(size_ge0).
+  smt().
+  rewrite /valid_view_op /f.
+  simplify. rewrite oget_some. simplify.
+  have -> := valid_view_fold c{hr} result.`4 result.`5 result.`1 result.`2 (size result.`4 - 1) _.
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(size_ge0).
+  progress. smt(size_ge0).
+  smt(size_ge0).
+  smt(size_ge0).
+  smt(size_ge0).
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(size_ge0).
+  smt().
+  smt().
+  smt().
+
+lemma valid_view_fold (c : circuit) w1 w2 k1 k2 n:
+
+lemma verifiability c' x' rs' e' &m:
+    Pr[Verifiability(Phi).main(c', x', rs', e') @ &m : res] = 1%r.
+proof.
+  byphoare(: x = x' /\ c = c' /\ rs = rs' /\ e = e' ==> _)=>//.
+  proc.
+  inline Phi.decomp.
+
+
 
 module Correctness_local = {
   proc main(c, x) = {
