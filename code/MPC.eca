@@ -33,14 +33,14 @@ module type Phi = {
 module Correctness(D : Phi) = {
   proc main(c, x, rs) = {
     var vs, shares, v, y;
-    vs = D.decomp(c, x, rs);
-    shares = [];
+    vs <- D.decomp(c, x, rs);
+    shares <- [];
     while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
+      v <- oget(ohead vs);
+      shares <- (output v)::shares;
+      vs <- behead vs;
     }
-    y = reconstruct(shares);
+    y <- reconstruct(shares);
     return (circuit_eval c x) = y;
   }
 }.
@@ -48,17 +48,17 @@ module Correctness(D : Phi) = {
 module Verifiability(D : Phi) = {
   proc main(c, x, rs, e) = {
     var vs, validity, vs', shares, y, v, vs_copy;
-    vs = D.decomp(c, x, rs);
+    vs <- D.decomp(c, x, rs);
     vs_copy <- vs;
-    shares = [];
+    shares <- [];
     while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
+      v <- oget(ohead vs);
+      shares <- (output v)::shares;
+      vs <- behead vs;
     }
-    y = reconstruct(shares);
-    vs' = f vs_copy e;
-    validity = D.verify(c, vs', e, y);
+    y <- reconstruct(shares);
+    vs' <- f vs_copy e;
+    validity <- D.verify(c, vs', e, y);
 
     return validity;
   }
@@ -67,17 +67,17 @@ module Verifiability(D : Phi) = {
 module Soundness(D : Phi) = {
   proc main(c, vs', y) = {
     var xopt, x, rs, vs, shares, v, y';
-    xopt = D.extractor(vs');
-    x = oget xopt;
+    xopt <- D.extractor(vs');
+    x <- oget xopt;
     rs <$ dlist drandom n;
-    vs = D.decomp(c, x, rs);
-    shares = [];
+    vs <- D.decomp(c, x, rs);
+    shares <- [];
     while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
+      v <- oget(ohead vs);
+      shares <- (output v)::shares;
+      vs <- behead vs;
     }
-    y' = reconstruct(shares);
+    y' <- reconstruct(shares);
     return y = y';
   }
 }.

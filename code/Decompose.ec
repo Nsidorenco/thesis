@@ -118,12 +118,12 @@ module Phi = {
     var x1, x2, x3;
     x1 <$ dinput;
     x2 <$ dinput;
-    x3 = x - x1 - x2;
+    x3 <- x - x1 - x2;
     return (x1, x2, x3);
   }
   proc output(view : view) = {
     var y;
-    y = last 0 view.`1;
+    y <- last 0 view.`1;
     return y;
   }
   proc reconstruct(s1 s2 s3 : int) = {
@@ -155,55 +155,54 @@ module Phi = {
   proc compute_fixed(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
     var g, v1, v2, v3, r1, r2, r3;
     while (c <> []) {
-      g = oget (ohead c);
+      g <- oget (ohead c);
       r1 <$ dinput;
       r2 <$ dinput;
       r3 <$ dinput;
-      v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-      v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-      v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-      w1 = (rcons w1 v1);
-      w2 = (rcons w2 v2);
-      w3 = (rcons w3 v3);
-      c = behead c;
+      v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+      v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+      v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+      w1 <- (rcons w1 v1);
+      w2 <- (rcons w2 v2);
+      w3 <- (rcons w3 v3);
+      c <- behead c;
     }
     return (k1, k2, k3, w1, w2, w3);
   }
 
   proc compute_stepped(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c]);
-    c = behead c;
-    (k1, k2, k3, w1, w2, w3) = compute(c);
+    (k1, k2, k3, w1, w2, w3) <- compute([head (ADDC(0,0)) c]);
+    c <- behead c;
+    (k1, k2, k3, w1, w2, w3) <- compute(c);
     return (k1, k2, k3, w1, w2, w3);
 
   }
   proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) = compute(c);
-    (k1, k2, k3, w1, w2, w3) = compute([g]);
+    (k1, k2, k3, w1, w2, w3) <- compute(c);
+    (k1, k2, k3, w1, w2, w3) <- compute([g]);
     return (k1, k2, k3, w1, w2, w3);
-
   }
 
   proc decomp(c : circuit, x : input, rs : random list) = {
     var x1, x2, x3, r1, r2, r3, w1, w2, w3;
-    (x1, x2, x3) = share(x);
-    r1 = oget (ohead rs);
-    rs = behead rs;
-    r2 = oget (ohead rs);
-    rs = behead rs;
-    r3 = oget (ohead rs);
-    rs = behead rs;
+    (x1, x2, x3) <- share(x);
+    r1 <- oget (ohead rs);
+    rs <- behead rs;
+    r2 <- oget (ohead rs);
+    rs <- behead rs;
+    r3 <- oget (ohead rs);
+    rs <- behead rs;
 
-    (r1, r2, r3, w1, w2, w3) = compute_fixed(c, [x1], [x2], [x3], r1, r2, r3);
+    (r1, r2, r3, w1, w2, w3) <- compute_fixed(c, [x1], [x2], [x3], r1, r2, r3);
 
     return [(w1, r1); (w2, r2); (w3, r3)];
   }
 
   proc decomp_local(c : circuit, x : input) = {
     var x1, x2, x3, w1, w2, w3, k1, k2, k3;
-    (x1, x2, x3) = share(x);
+    (x1, x2, x3) <- share(x);
 
-    (k1, k2, k3, w1, w2, w3) = compute(c);
+    (k1, k2, k3, w1, w2, w3) <- compute(c);
 
     return [(w1, k1); (w2, k2); (w3, k3)];
   }
@@ -211,30 +210,30 @@ module Phi = {
   proc verify(c : circuit, vs' : verification_input, e : int, y : output) = {
     var vs, y1, y2, y3, ver, w1, w2, w3;
 
-    (vs, y1, y2, y3) = vs';
+    (vs, y1, y2, y3) <- vs';
 
-    ver = true;
-    ver = ver /\ (y1 + y2 + y3 = y);
+    ver <- true;
+    ver <- ver /\ (y1 + y2 + y3 = y);
 
     if (e = 1) {
-      w1 = nth ([], []) vs 0;
-      w2 = nth ([], []) vs 1;
-      ver = ver /\ (output w1 = y1);
-      ver = ver /\ (output w2 = y2);
-      ver = ver /\ valid_view_op 1 w1 w2 c;
+      w1 <- nth ([], []) vs 0;
+      w2 <- nth ([], []) vs 1;
+      ver <- ver /\ (output w1 = y1);
+      ver <- ver /\ (output w2 = y2);
+      ver <- ver /\ valid_view_op 1 w1 w2 c;
     } else {
       if (e = 2) {
-        w2 = nth ([], []) vs 0;
-        w3 = nth ([], []) vs 1;
-        ver = ver /\ (output w2 = y2);
-        ver = ver /\ (output w3 = y3);
-        ver = ver /\ valid_view_op 2 w2 w3 c;
+        w2 <- nth ([], []) vs 0;
+        w3 <- nth ([], []) vs 1;
+        ver <- ver /\ (output w2 = y2);
+        ver <- ver /\ (output w3 = y3);
+        ver <- ver /\ valid_view_op 2 w2 w3 c;
       } else{
-        w3 = nth ([], []) vs 0;
-        w1 = nth ([], []) vs 1;
-        ver = ver /\ (output w3 = y3);
-        ver = ver /\ (output w1 = y1);
-        ver = ver /\ valid_view_op 3 w3 w1 c;
+        w3 <- nth ([], []) vs 0;
+        w1 <- nth ([], []) vs 1;
+        ver <- ver /\ (output w3 = y3);
+        ver <- ver /\ (output w1 = y1);
+        ver <- ver /\ valid_view_op 3 w3 w1 c;
       }
     }
 
@@ -244,38 +243,38 @@ module Phi = {
   proc simulate(c : circuit, e : int, w1 w2 : int list, k1 k2 k3 : random) = {
     var g, r1, r2, r3, v1, v2, p1, p2;
     if (e = 1) {
-      p1 = 1;
-      p2 = 2;
+      p1 <- 1;
+      p2 <- 2;
     } else {
       if (e = 2) {
-        p1 = 2;
-        p2 = 3;
+        p1 <- 2;
+        p2 <- 3;
       } else {
-        p1 = 3;
-        p2 = 1;
+        p1 <- 3;
+        p2 <- 1;
       }
     }
     while (c <> []) {
-      g = oget (ohead c);
+      g <- oget (ohead c);
       r1 <$ dinput;
       r2 <$ dinput;
       r3 <$ dinput;
-      k1 = (rcons k1 r1);
-      k2 = (rcons k2 r2);
-      k3 = (rcons k3 r3);
-      v1 = simulator_eval g (size w1 - 1) p1 e w1 w2 k1 k2 k3;
-      v2 = simulator_eval g (size w1 - 1) p2 e w2 w1 k1 k2 k3;
-      w1 = (rcons w1 v1);
-      w2 = (rcons w2 v2);
-      c = behead c;
+      k1 <- (rcons k1 r1);
+      k2 <- (rcons k2 r2);
+      k3 <- (rcons k3 r3);
+      v1 <- simulator_eval g (size w1 - 1) p1 e w1 w2 k1 k2 k3;
+      v2 <- simulator_eval g (size w1 - 1) p2 e w2 w1 k1 k2 k3;
+      w1 <- (rcons w1 v1);
+      w2 <- (rcons w2 v2);
+      c <- behead c;
     }
 
     return (k1, k2, k3, w1, w2);
   }
   proc simulate_stepped(c : circuit, e : int, w1 w2 : int list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2) = simulate([head (ADDC(0,0)) c], e, w1, w2, k1, k2, k3);
-    c = behead c;
-    (k1, k2, k3, w1, w2) = simulate(c, e, w1, w2, k1, k2, k3);
+    (k1, k2, k3, w1, w2) <- simulate([head (ADDC(0,0)) c], e, w1, w2, k1, k2, k3);
+    c <- behead c;
+    (k1, k2, k3, w1, w2) <- simulate(c, e, w1, w2, k1, k2, k3);
     return (k1, k2, k3, w1, w2);
   }
 
@@ -283,19 +282,19 @@ module Phi = {
     var x1, x2, k1, k2, k3, w1, w2, y1, y2, y3, vs', ret;
     x1 <$ dinput;
     x2 <$ dinput;
-    (k1, k2, k3, w1, w2) = simulate(c, e, [x1], [x2], [], [], []);
-    y1 = last 0 w1;
-    y2 = last 0 w2;
-    y3 = y - (y1 + y2);
+    (k1, k2, k3, w1, w2) <- simulate(c, e, [x1], [x2], [], [], []);
+    y1 <- last 0 w1;
+    y2 <- last 0 w2;
+    y3 <- y - (y1 + y2);
 
-    vs' = ([(w1, k1); (w2, k2)]);
+    vs' <- ([(w1, k1); (w2, k2)]);
     if (e = 1) {
-      ret = (vs', y3, (vs', y1, y2, y3));
+      ret <- (vs', y3, (vs', y1, y2, y3));
     } else {
       if (e = 2) {
-        ret = (vs', y3, (vs', y3, y1, y2));
+        ret <- (vs', y3, (vs', y3, y1, y2));
       } else {
-        ret = (vs', y3, (vs', y2, y3, y1));
+        ret <- (vs', y3, (vs', y2, y3, y1));
       }
     }
 
