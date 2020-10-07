@@ -165,7 +165,6 @@ module ZKBoo(C : Committer) : SProtocol = {
       }
     }
 
-    (*TODO: Add circuit validation? *)
     return valid_output_shares y y1 y2 y3 /\ valid_com1 /\ valid_com2 /\ valid_share1 /\ valid_share2 /\ valid /\ valid_length;
 
   }

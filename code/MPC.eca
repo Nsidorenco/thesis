@@ -7,26 +7,26 @@ type input.
 type output.
 type share.
 type gate.
-type seed.
+type random.
 type verification_input.
 
 type circuit = gate list.
-type view = (share * seed) list.
+type view = share list * random.
 
 op output (v : view) : share.
 op reconstruct (ss : share list) : output.
 op circuit_eval (c : circuit) (x : input) : output.
-op f (vs : view list) : verification_input.
+op f (vs : view list, e : int) : verification_input.
 
 const n : int.
 
 (* random seed distribution *)
-op dseed : {seed distr | is_lossless dseed /\ is_funiform dseed} as dseed_llfuni.
+op drandom : {random distr | is_lossless drandom /\ is_funiform drandom} as drandom_llfuni.
 
 module type Phi = {
-  proc decomp(c : circuit, x : input, rs : seed list) : view list
-  proc verify(c : circuit, vs : verification_input, y : output) : bool
-  proc simulator(c : circuit, y : output, e : int) : view list
+  proc decomp(c : circuit, x : input, rs : random list) : view list
+  proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool
+  proc simulator(c : circuit, y : output, e : int) : view list * output * verification_input
   proc extractor(vs : view list) : input option
 }.
 
@@ -46,9 +46,10 @@ module Correctness(D : Phi) = {
 }.
 
 module Verifiability(D : Phi) = {
-  proc main(c, x, rs) = {
-    var vs, validity, vs', shares, y, v;
+  proc main(c, x, rs, e) = {
+    var vs, validity, vs', shares, y, v, vs_copy;
     vs = D.decomp(c, x, rs);
+    vs_copy <- vs;
     shares = [];
     while (vs <> []) {
       v = oget(ohead vs);
@@ -56,8 +57,8 @@ module Verifiability(D : Phi) = {
       vs = behead vs;
     }
     y = reconstruct(shares);
-    vs' = f vs;
-    validity = D.verify(c, vs', y);
+    vs' = f vs_copy e;
+    validity = D.verify(c, vs', e, y);
 
     return validity;
   }
@@ -68,7 +69,7 @@ module Soundness(D : Phi) = {
     var xopt, x, rs, vs, shares, v, y';
     xopt = D.extractor(vs');
     x = oget xopt;
-    rs <$ dlist dseed n;
+    rs <$ dlist drandom n;
     vs = D.decomp(c, x, rs);
     shares = [];
     while (vs <> []) {

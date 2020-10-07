@@ -247,4 +247,130 @@ section FiatShamir.
     auto. progress. by rewrite get_setE.
   qed.
 
+  (* Soundness *)
+  (* Define set of bad challenges *)
+  require FelTactic.
+  require import Dexcepted.
+  const challenge_size : int.
+  const bad_size : int.
+  op bad_challenge (e : challenge) : bool.
+  const bad_challenges = dchallenge \ bad_challenge.
+  const bad_pr = (bad_size%r / challenge_size%r).
+  const qN : int.
+  axiom qN_size : 0 < qN.
+
+  module SoundnessOracle : Oracle = {
+    var ctr : int
+    var won : bool
+
+    var h : (message, challenge) fmap
+    proc init() = {
+      h = empty;
+      ctr = 0;
+      won = false;
+    }
+
+    proc sample (m : message) : challenge = {
+      var e;
+      if (ctr < qN) {
+        if (m \notin h /\ ctr < qN) {
+          e <$ dchallenge;
+          h.[m] = e;
+          if (e \in bad_challenges) {
+            won <- true;
+          }
+        }
+        ctr <- ctr + 1;
+      }
+      return oget h.[m];
+    }
+
+  }.
+
+  module type ADV (O : Oracle) = {
+    proc * main() : unit {O.sample}
+  }.
+
+  module Game(A : ADV) = {
+    proc main() : unit = {
+      SoundnessOracle.init();
+      A(SoundnessOracle).main();
+    }
+  }.
+(* Loading core datatype theories *)
+require import AllCore List FSet SmtMap.
+(* Loading algebraic theories *)
+require import IntExtra RealExtra StdRing StdOrder StdBigop.
+(*---*) import Ring.IntID RField IntOrder RealOrder Bigreal BRA.
+(* Loading distribution theories *)
+require import Distr DProd Mu_mem.
+lemma fiat_shamir_soundness (Adv <: ADV{SoundnessOracle}) &m:
+    Pr[Game(Adv).main() @ &m : SoundnessOracle.won ] <= (qN%r * bad_pr).
+proof.
+  fel 1 (SoundnessOracle.ctr)
+        (fun i => bad_pr)
+        qN
+        (SoundnessOracle.won)
+        [SoundnessOracle.sample : (SoundnessOracle.ctr < qN)]
+        (SoundnessOracle.ctr <= qN).
+    rewrite /big.
+    rewrite filter_predT.
+  admit.
+  progress.
+  inline*. auto. progress. smt(qN_size).
+  proc=> //=.
+  sp. if. if.
+  seq 1 : (#pre /\ e \in bad_challenges) bad_pr 1%r 0%r _.
+  auto. rnd.
+  progress. skip. progress.
+  rewrite /support.
+  admit.
+  admit.
+  admit.
+  progress.
+  hoare. progress.
+  admit.
+  auto.
+  progress.
+  progress.
+  proc. if. if.
+  auto. progress; smt().
+  auto. progress; smt().
+  progress.
+  progress. proc.
+  if. if. wp.
+  auto. auto. progress.
+qed.
+
+  (* module FiatShamirSoundness (O : Oracle) = { *)
+(*     var ctr : int *)
+(*     var won : bool *)
+(*     proc soundness(h : statement, a : message) : unit = { *)
+(*       (* Do at most qN calls to the oracle for a challenge *) *)
+(*       (* If BAD then output false *) *)
+(*       (* else continue untill all tries have been used *) *)
+(*       (* if no more calls then return normal soundness? *) *)
+(*       var e; *)
+(*       ctr = 0; *)
+(*       while (ctr < qN) { *)
+(*         ctr = ctr + 1; *)
+(*         e = O.sample(a); *)
+(*         if (e \in bad_challenges) { *)
+(*           won <- true; *)
+(*         } *)
+(*       } *)
+(*     } *)
+(*   }. *)
+
+(* lemma fiat_shamir_soundness h a &m: *)
+(*     Pr[FiatShamirSoundness(RealOracle{FiatShamirSoundness}).soundness(h, a) @ &m : FiatShamirSoundness.won ] <= (qN%r * bad_pr). *)
+(* proof. *)
+(*   fel 1 (FiatShamirSoundness.ctr) *)
+(*         (fun i => (i + 1)%r * bad_pr) *)
+(*         qN *)
+(*         (FiatShamirSoundness.won) *)
+(*         [] *)
+(*         true. *)
+
+
 end section FiatShamir.

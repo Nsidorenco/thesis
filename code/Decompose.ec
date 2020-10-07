@@ -56,8 +56,8 @@ clone import MPC as MPC' with
   op output (v : view) = last 0 (fst v),
   op reconstruct (ss : share list) = (foldr (fun (s : share) (acc : int), acc + s) 0 ss),
   op f (vs : view list, e : int) =
-    let v1 = oget (onth vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
-    let v2 = oget (onth vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
+    let v1 = (nth ([],[]) vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
+    let v2 = (nth ([],[]) vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
     let y1 = last 0 (fst (nth ([], []) vs 0)) in
     let y2 = last 0 (fst (nth ([], []) vs 1)) in
     let y3 = last 0 (fst (nth ([], []) vs 2)) in ([v1; v2], y1, y2, y3),
@@ -305,9 +305,12 @@ module Phi = {
 
 equiv compute_fixed_output_eq:
     Phi.compute ~ Phi.compute_fixed :
-    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}==>
+    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2} /\ size k1{2} = size c{2}
+    /\ size k1{2} = size c{2} /\ size k2{2} = size k1{2} /\ size k3{2} = size k1{2} ==>
     let (k1, k2, k3, w1, w2, w3) = res{1} in
-    let (k1, k2, k3, w1', w2', w3') = res{2} in
+    let (k1', k2', k3', w1', w2', w3') = res{2} in
+    size k1 = size w1 - 1 /\ size k1 = size k1' /\ size k2 = size k2' /\ size k3 = size k3'
+    /\ size k2 = size k1 /\ size k3 = size k2 /\
     last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
 proof.
     proc.
@@ -318,9 +321,19 @@ proof.
                 /\ size w1{1} = size w3{1}
                 /\ size w1{2} = size w2{2}
                 /\ size w1{2} = size w3{2}
+                /\ size k1{1} = size w1{1} - 1
+                /\ size k2{1} = size k1{1}
+                /\ size k3{1} = size k1{1}
+                /\ size w1{2} = size k1{2} - size c{2} + 1
+                /\ size k1{2} = size k2{2}
+                /\ size k1{2} = size k3{2}
                 /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
     auto.
     progress.
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
     smt(size_rcons).
     smt(size_rcons).
     smt(size_rcons).
@@ -332,7 +345,7 @@ proof.
     case (i < size w1{1}); progress.
     smt.
     case (i = size w1{1}); progress.
-    have -> := ohead_head (ADDC(0,0)) c{2} H7.
+    have -> := ohead_head (ADDC(0,0)) c{2} H13.
     rewrite oget_some.
     elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
     smt().
@@ -344,6 +357,13 @@ proof.
     smt.
 qed.
 
+lemma size_behead (l : 'a list):
+    size l <= 1 => behead l = [].
+proof.
+    elim l.
+    smt().
+    smt().
+qed.
 
 lemma eval_gate_aux_size g s:
     size (eval_circuit_aux [g] s) = size s + 1 by smt.
@@ -792,6 +812,109 @@ proof.
     smt(size_rcons).
 qed.
 
+module Correctness_local = {
+  proc main(c, x) = {
+    var vs, shares, v, y;
+    vs = Phi.decomp_local(c, x);
+    shares = [];
+    while (vs <> []) {
+      v = oget(ohead vs);
+      shares = (output v)::shares;
+      vs = behead vs;
+    }
+    y = reconstruct(shares);
+    return (circuit_eval c x) = y;
+  }
+}.
+
+equiv decomp_local_eq c' x':
+    Phi.decomp ~ Phi.decomp_local :
+    ={c, x} /\ c{1} = c' /\ x{1} = x' /\ size rs{1} = size c' ==>
+    let vs = res{1} in
+    let vs' = res{2} in
+    size vs = size vs' /\ size vs = 3 /\
+    size ((nth ([],[]) vs 0).`1) - 1 = size c' /\
+    size ((nth ([],[]) vs' 0).`1) - 1 = size c' /\
+    (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs' 0).`2)) /\
+    (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs 0).`1) - 1) /\
+    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs) =
+    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs').
+proof.
+  proc.
+  auto.
+  have Heq := compute_fixed_output_eq.
+  symmetry.
+  call Heq.
+  clear Heq.
+  auto.
+  call (:true). auto. auto.
+  progress.
+  have : (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6 ) = result_L by smt().
+  have : (result_R0.`1,result_R0.`2,result_R0.`3, result_R0.`4, result_R0.`5, result_R0.`6) = result_R0 by smt().
+  smt().
+qed.
+
+lemma decomp_local_correct_pr c' x' &m:
+    valid_circuit c' =>
+    Pr[Phi.decomp_local(c', x') @ &m :
+      size res = 3 /\
+      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
+      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
+proof.
+  move=> Hcircuit.
+  byphoare(: c = c' /\ x = x' ==>_)=>//.
+  proc.
+  have Hcir := compute_circuit_correct c' [x'] [].
+  call Hcir; clear Hcir.
+  inline *; auto; smt(dinput_ll size_ge0 nth_last).
+qed.
+
+lemma decomp_local_correct c' x':
+    phoare[Phi.decomp_local :
+      valid_circuit c /\ c = c' /\ x = x'
+      ==>
+      size res = 3 /\
+      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
+      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
+proof.
+ bypr => &m H.
+ have <- := decomp_local_correct_pr c{m} x{m} &m _. smt().
+ byequiv=>//.
+ proc*. call (:true). call (:true). sim. call (:true). sim.
+ auto. auto. progress. smt(). smt().
+ smt().
+ smt().
+qed.
+
+lemma decomp_correct c' x':
+    phoare[Phi.decomp :
+      valid_circuit c /\ c = c' /\ x = x' /\ size rs = size c
+      ==>
+      size res = 3 /\
+      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
+      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
+proof.
+  bypr=> &m ?.
+  have <- := decomp_local_correct_pr c' x' &m _. smt().
+  byequiv=>//.
+  (* byequiv(: ={c, x} /\ c{1} = c' /\ x{1} = x' /\ valid_circuit c{1} ==> ={res})=>//. *)
+  proc *.
+  have Heq := decomp_local_eq c' x'.
+  call Heq.
+  auto. progress.
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  auto; smt().
+qed.
+
 module Verifiability_local = {
   proc main(c, x, e) = {
     var vs, validity, vs', shares, y, v, vs_copy;
@@ -811,51 +934,19 @@ module Verifiability_local = {
   }
 }.
 
-search phi_decomp.
-
-   (* have : phi_decomp (nth (ADDC (0, 0)) c (i + 1)) (i + 1) 1 (x :: l) w2 k1 k2 = *)
-   (* phi_decomp (nth (ADDC (0, 0)) c i) i 1 l w2 k1 k2. *)
-   (* rewrite /phi_decomp. *)
-   (* (* New lemma for phi_decomp *) *)
-
-lemma fold_size c w1 x w2 k1 k2 p:
-  size w1 = size w2 /\
-  size k1 = size k2 /\
-  (size k1 = size w1 - 1 \/ size k1 = size w1) /\
-  valid_circuit c =>
-  (forall i, 0 <= i /\ i < size w1 - 1 =>
-  (nth 0 (rcons w1 x) (i + 1) =
-   phi_decomp (nth (ADDC (0, 0)) c i) i p (rcons w1 x) w2 k1 k2) =
-  (nth 0 w1 (i + 1) =
-   phi_decomp (nth (ADDC (0, 0)) c i) i p w1 w2 k1 k2)).
-proof.
-  move => Cvalid i; elim /natind i=> i; progress.
-  - have -> : i = 0 by smt().
-    rewrite nth_rcons.
-    have -> : 1 < size w1 by smt(size_ge0).
-    simplify.
-    have -> := circuit_computation_order c 0 p w1 w2 [x] [] k1 k2 [] [] _. smt().
-    smt(cat_rcons cats0).
-  - rewrite nth_rcons.
-    have -> : i + 2 < size w1 by smt().
-    simplify.
-    have -> := circuit_computation_order c (i+1) p w1 w2 [x] [] k1 k2 [] [] _. smt().
-    smt(cat_rcons cats0).
-qed.
-
-lemma valid_view_fold (c : circuit) w1 w2 k1 k2 n:
-  0 <= n < size w1 /\
+lemma valid_view_fold (c : circuit) w1 w2 k1 k2 n p:
+  0 <= n <= size w1 /\
   valid_circuit c /\ size w2 = size k1 + 1 /\ size w1 - 1 = size k1 /\ size k1 = size k2 /\
   (forall (i : int),
       0 <= i /\ i + 1 < n =>
       nth 0 w1 (i + 1) =
-    phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2)
+    phi_decomp (nth (ADDC (0, 0)) c i) i p w1 w2 k1 k2)
     =>
   (foldr
     (fun (i : int) (acc : bool) =>
       acc /\
       nth 0 w1 (i + 1) =
-      phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2) true
+      phi_decomp (nth (ADDC (0, 0)) c i) i p w1 w2 k1 k2) true
     (range 0 (n - 1))) = true.
 proof.
   elim /natind n.
@@ -869,7 +960,7 @@ proof.
     have -> :(foldr
      (fun (i : int) (acc : bool) =>
         acc /\
-        nth 0 w1 (i + 1) = phi_decomp (nth (ADDC (0, 0)) c i) i 1 w1 w2 k1 k2)
+        nth 0 w1 (i + 1) = phi_decomp (nth (ADDC (0, 0)) c i) i p w1 w2 k1 k2)
      true (range (n-1) n)) = true.
     rewrite rangeS.
     simplify. have -> := H7 (n - 1). smt().
@@ -885,7 +976,6 @@ lemma verifiability_local c' x' e' &m:
     Pr[Verifiability_local.main(c', x', e') @ &m : res] = 1%r.
 proof.
   progress.
-
   byphoare(: x = x' /\ c = c' /\ e = e' ==> _)=>//.
   proc.
   inline Phi.decomp Phi.verify.
@@ -923,76 +1013,110 @@ proof.
   smt(size_ge0).
   smt().
   rewrite /valid_view_op /f.
-  simplify. rewrite oget_some. simplify.
-  have -> := valid_view_fold c{hr} result.`4 result.`5 result.`1 result.`2 (size result.`4 - 1) _.
+  simplify.
+  have -> := valid_view_fold c{hr} result.`4 result.`5 result.`1 result.`2 (size result.`4) 1 _.
   have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
   smt(size_ge0).
-  progress. smt(size_ge0).
-  smt(size_ge0).
-  smt(size_ge0).
-  smt(size_ge0).
+  done.
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(nth_last size_ge0).
+  rewrite /valid_view_op /f.
+  simplify.
+  have -> := valid_view_fold c{hr} result.`5 result.`6 result.`2 result.`3 (size result.`5) 2 _.
   have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
   smt(size_ge0).
+  done.
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(nth_last size_ge0).
   smt().
   smt().
-  smt().
-
-lemma valid_view_fold (c : circuit) w1 w2 k1 k2 n:
+  rewrite /valid_view_op /f.
+  simplify.
+  have -> : (e{hr} = 1) = false by smt().
+  have -> : (e{hr} = 2) = false by smt().
+  simplify.
+  have -> := valid_view_fold c{hr} result.`6 result.`4 result.`3 result.`1 (size result.`6) 3 _.
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt(size_ge0).
+  done.
+qed.
 
 lemma verifiability c' x' rs' e' &m:
+    valid_circuit c' =>
     Pr[Verifiability(Phi).main(c', x', rs', e') @ &m : res] = 1%r.
 proof.
-  byphoare(: x = x' /\ c = c' /\ rs = rs' /\ e = e' ==> _)=>//.
+  move=> Cvalid.
+  have <- := verifiability_local c' x' e' &m Cvalid.
+  byequiv=>//.
   proc.
-  inline Phi.decomp.
+  inline Phi.verify. auto.
+  while
+  ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
+      foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
+    (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{2} +
+      foldr (fun (w : share) (acc : int) => acc + w) 0 shares{2})
+    /\
+    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
+      eval_circuit c' x')
+    /\
+    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
+       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
+      eval_circuit c' x')
+    /\ ={c, x} /\ size vs{1} = size vs{2} /\ size shares{1} = size shares{2}).
+  auto. smt(size_behead).
+  auto.
+  have Hdecomp := decomp_correct c' x'.
+  have Hdecompl := decomp_local_correct c' x'.
+  call{1} Hdecomp. call{2} Hdecompl. clear Hdecomp Hdecompl.
+  rewrite /valid_view_op /f.
+  simplify. skip.
+  progress.
+  smt().
+  smt().
+  smt().
+  smt().
+  simplify.
+  rewrite - !nth_last.
+  rewrite /reconstruct.
+  progress.
+  simplify.
+  have ->:
+  (nth 0 (nth ([], []) result0 0).`1 (size (nth ([], []) result0 0).`1 - 1) +
+  nth 0 (nth ([], []) result0 1).`1 (size (nth ([], []) result0 1).`1 - 1) +
+  nth 0 (nth ([], []) result0 2).`1 (size (nth ([], []) result0 2).`1 - 1) =
+  foldr (fun (s : share) (acc : int) => acc + s) 0 shares_L) = true.
+  rewrite H7 /eval_circuit.
+  rewrite !nth_last.
+  have -> :
+  (last 0 (nth ([], []) result0 0).`1 + last 0 (nth ([], []) result0 1).`1 +
+  last 0 (nth ([], []) result0 2).`1) =
+  foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 result0.
+  smt(size_behead size_ge0).
+  smt().
+  simplify.
+  have ->:
+(let (v1, k1) = nth ([], []) result0 0 in
+ let (v2, k2) = nth ([], []) result0 1 in
+ foldr
+   (fun (i : int) (acc : bool) =>
+      acc /\
+      nth 0 v1 (i + 1) =
+      phi_decomp (nth (ADDC (0, 0)) c{2} i) i 1 v1 v2 k1 k2) true
+   (range 0 (size v1 - 1))).
+  progress.
+  rewrite valid_view_fold.
+  progress.
+  smt(size_ge0).
 
+  smt(valid_view_fold size_ge0).
 
-
-module Correctness_local = {
-  proc main(c, x) = {
-    var vs, shares, v, y;
-    vs = Phi.decomp_local(c, x);
-    shares = [];
-    while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
-    }
-    y = reconstruct(shares);
-    return (circuit_eval c x) = y;
-  }
-}.
-
-lemma size_behead (l : 'a list):
-    size l <= 1 => behead l = [].
-proof.
-    elim l.
-    smt().
-    smt().
-qed.
+  smt().
+  admit.
+  search size.
+  smt(size_ge0).
 
 equiv decomp_local_eq:
-    Phi.decomp ~ Phi.decomp_local :
-    ={c, x} ==>
-    let vs = res{1} in
-    let vs' = res{2} in
-    size vs = size vs' /\ size vs = 3 /\
-    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs) =
-    (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs').
-proof.
-  proc.
-  auto.
-  have Heq := compute_fixed_output_eq.
-  symmetry.
-  call Heq.
-  clear Heq.
-  auto.
-  call (:true). auto. auto.
-  progress.
-  have : (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6 ) = result_L by smt().
-  have : (result_R0.`1,result_R0.`2,result_R0.`3, result_R0.`4, result_R0.`5, result_R0.`6) = result_R0 by smt().
-  smt().
-qed.
 
 equiv correctness_correctness_local:
    Correctness(Phi).main ~ Correctness_local.main : ={c, x} ==> ={res}.

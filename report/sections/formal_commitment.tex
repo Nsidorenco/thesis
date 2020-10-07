@@ -108,7 +108,7 @@ same definitions of security, which is based on the work of
     \forall m. \Pr{ Correctness(C).main(m) = true } = 1.
   \]
 
-  where Correctness(C) is defined in \autoref{lst:commit:correctness}
+  where Correctness(C) is defined in listing \ref{lst:commit:correctness}
 
 \begin{lstlisting}[float,label=lst:commit:correctness, caption=Correctness Game]
 module Correctness(C : Committer) = {
@@ -125,8 +125,8 @@ module Correctness(C : Committer) = {
 \end{definition}
 
 \begin{definition}[Hiding]
-  A Commitment scheme C can have the following degrees of hiding
   \label{def:commitment:hiding}
+  A Commitment scheme C can have the following degrees of hiding
   \textit{perfect hiding:} $\forall Adv. \Pr{HidingGame(C,Adv).main() = true} = \frac{1}{2}$
   \textit{computation hiding:} $\forall Adv. \Pr{HidingGame(C,Adv).main() = true} = \frac{1}{2} + \epsilon$
 
