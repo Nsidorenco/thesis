@@ -111,6 +111,9 @@ op valid_view_op p (view view2 : view) (c : circuit) =
     true (range 0 (size v1 - 1))).
 
 module Phi = {
+  var k1, k2, k3 : random
+  var w1, w2, w3 : int list
+
   proc share(x) = {
     var x1, x2, x3;
     x1 <$ dinput;
@@ -126,23 +129,25 @@ module Phi = {
   proc reconstruct(s1 s2 s3 : int) = {
     return s1 + s2 + s3;
   }
-  proc compute(c : circuit, w1 w2 w3 : int list, k1 k2 k3 : random) = {
-    var g, r1, r2, r3, v1, v2, v3;
+  proc gate_eval(g : gate) = {
+    var r1, r2, r3, v1, v2, v3;
+    r1 <$ dinput;
+    r2 <$ dinput;
+    r3 <$ dinput;
+    k1 = (rcons k1 r1);
+    k2 = (rcons k2 r2);
+    k3 = (rcons k3 r3);
+    v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+    v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+    v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+    w1 = (rcons w1 v1);
+    w2 = (rcons w2 v2);
+    w3 = (rcons w3 v3);
+  }
+  proc compute(c : circuit) = {
     while (c <> []) {
-      g = oget (ohead c);
-      r1 <$ dinput;
-      r2 <$ dinput;
-      r3 <$ dinput;
-      k1 = (rcons k1 r1);
-      k2 = (rcons k2 r2);
-      k3 = (rcons k3 r3);
-      v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-      v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-      v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-      w1 = (rcons w1 v1);
-      w2 = (rcons w2 v2);
-      w3 = (rcons w3 v3);
-      c = behead c;
+     gate_eval(head witness c);
+     c <- drop 1 c;
     }
     return (k1, k2, k3, w1, w2, w3);
   }
@@ -166,15 +171,15 @@ module Phi = {
   }
 
   proc compute_stepped(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c], w1, w2, w3, k1, k2, k3);
+    (k1, k2, k3, w1, w2, w3) = compute([head (ADDC(0,0)) c]);
     c = behead c;
-    (k1, k2, k3, w1, w2, w3) = compute(c, w1, w2, w3, k1, k2, k3);
+    (k1, k2, k3, w1, w2, w3) = compute(c);
     return (k1, k2, k3, w1, w2, w3);
 
   }
   proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) = compute(c, w1, w2, w3, k1, k2, k3);
-    (k1, k2, k3, w1, w2, w3) = compute([g], w1, w2, w3, k1, k2, k3);
+    (k1, k2, k3, w1, w2, w3) = compute(c);
+    (k1, k2, k3, w1, w2, w3) = compute([g]);
     return (k1, k2, k3, w1, w2, w3);
 
   }
@@ -198,7 +203,7 @@ module Phi = {
     var x1, x2, x3, w1, w2, w3, k1, k2, k3;
     (x1, x2, x3) = share(x);
 
-    (k1, k2, k3, w1, w2, w3) = compute(c, [x1], [x2], [x3], [], [], []);
+    (k1, k2, k3, w1, w2, w3) = compute(c);
 
     return [(w1, k1); (w2, k2); (w3, k3)];
   }
@@ -302,6 +307,142 @@ module Phi = {
   }
 
 }.
+
+module Phi_fixed = {
+  var k1, k2, k3 : input list
+  var w1, w2, w3 : input list
+
+  proc sample_tapes(n : int) = {
+    var r1, r2, r3;
+    while (0 < n) {
+      r1 <$ dinput;
+      r2 <$ dinput;
+      r3 <$ dinput;
+      k1 <- rcons k1 r1;
+      k2 <- rcons k2 r2;
+      k3 <- rcons k3 r3;
+      n <- n - 1;
+    }
+  }
+
+  proc gate_eval(g : gate) = {
+    var v1, v2, v3;
+    v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+    v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+    v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+    w1 = (rcons w1 v1);
+    w2 = (rcons w2 v2);
+    w3 = (rcons w3 v3);
+  }
+
+  proc compute(c : circuit) = {
+    while (c <> []) {
+      gate_eval(head witness c);
+      c <- drop 1 c;
+    }
+    return (k1, k2, k3, w1, w2, w3);
+  }
+
+  proc main(c : circuit) = {
+    var k1, k2, k3;
+    sample_tapes(size c);
+    (k1, k2, k3, w1, w2, w3) <- compute(c);
+    return (k1, k2, k3, w1, w2, w3);
+  }
+  proc main_split(c : circuit) = {
+    main(belast witness c);
+    main([last witness c]);
+    return (k1, k2, k3, w1, w2, w3);
+  }
+}.
+
+equiv main_split:
+  Phi_fixed.main ~ Phi_fixed.main_split : ={c} ==> ={res}.
+proof.
+  proc.
+  inline *.
+  auto.
+  splitwhile{1} 2 : 1 < n.
+  splitwhile{1} 5 : 1 < (size c0).
+  sim. auto. sp.
+  rcondt{2} 7.
+  progress. auto.
+  while (true).
+  auto. auto.
+  auto.
+  rcondf{2} 14.
+  progress. auto.
+  while(true).
+  auto. auto.
+  auto.
+  while (belast witness c0{1} = c2{2} /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi_fixed)).
+  auto. progress.
+
+  (* seq 1 1 : (={k1, k2, k3, c} /\ c0{2} = belast witness c{2} /\ n{2} = size c0{2} /\ n{1} = size c{1}). *)
+  (* while (={k1,k2,k3,c} /\ n{2} = n{1} - 1). *)
+  (* auto. progress. *)
+  (* smt(). *)
+  (* smt(). *)
+
+
+
+(* IDEAS: *)
+(* Let us reason about the randomness for a single gate first? *)
+(* If sample an entire tape, but only use one value then we can "resample" *)
+(* the entirety of the unused tape *)
+
+lemma compute_fixed_with_random_eq:
+  equiv[Phi_fixed.main ~ Phi.compute :
+      ={c}
+      /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi)
+      /\ Phi_fixed.k1{1} = []
+      /\ Phi_fixed.k2{1} = []
+      /\ Phi_fixed.k3{1} = []
+      /\ w1{1} = []
+      /\ w2{1} = []
+      /\ w3{1} = []
+      ==> ={res}].
+proof.
+  exists* c{1}. elim*=> c'.
+  elim /last_ind c'.
+  - proc. inline Phi_fixed.compute Phi_fixed.sample_tapes. auto. sp.
+    rcondf{1} 1. progress. sp.
+    rcondf{1} 1. progress.
+    rcondf{2} 1. progress.
+    auto.
+  progress.
+  proc.
+  eager while (h : Phi_fixed.sample_tapes(size c); ~ : c{1} = [] /\ ={c, w1, w2, w3} /\ ={k1, k2, k3}(Phi_fixed, Phi_global) ==> true).
+  auto. auto.
+  inline*. wp. progress.
+  rnd{1}.
+  rnd{1}.
+  rnd{1}. auto. progress.
+  apply dlist_ll.
+  apply dinput_ll.
+  have := supp_dlist0 dinput 0 k10 _.
+  - smt().
+  smt().
+  have := supp_dlist0 dinput 0 k20 _.
+  - smt().
+  smt().
+  have := supp_dlist0 dinput 0 k30 _.
+  - smt().
+  smt().
+
+
+
+lemma comupute_fixed_with_random_eq c':
+  eager[Phi_fixed.sample_tapes(size c');, Phi_fixed.compute ~ Phi.compute, :
+        c{1} = c' /\ ={c} /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi) ==> ={res}].
+proof.
+  elim.
+  eager proc.
+  sim. auto.
+  eager while ( sample : Phi_fixed.sample_tapes(size c'); ~ :
+  c{1} = c' /\
+  ={c, w1, w2, w3} /\ ={k1, k2, k3}(Phi_fixed, Phi_global)
+  ==> true).
 
 equiv compute_fixed_output_eq:
     Phi.compute ~ Phi.compute_fixed :
