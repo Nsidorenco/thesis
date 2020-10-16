@@ -27,12 +27,13 @@ module type Phi = {
   proc decomp(c : circuit, x : input, rs : random list) : view list
   proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool
   proc simulator(c : circuit, y : output, e : int) : view list * output * verification_input
-  proc extractor(vs : view list) : input option
+  proc extractor(vs : verification_input list) : input option
 }.
 
 module Correctness(D : Phi) = {
-  proc main(c, x, rs) = {
-    var vs, shares, v, y;
+  proc main(c, x) = {
+    var vs, shares, v, y, rs;
+    rs <$ dlist drandom n;
     vs <- D.decomp(c, x, rs);
     shares <- [];
     while (vs <> []) {
@@ -46,8 +47,9 @@ module Correctness(D : Phi) = {
 }.
 
 module Verifiability(D : Phi) = {
-  proc main(c, x, rs, e) = {
-    var vs, validity, vs', shares, y, v, vs_copy;
+  proc main(c, x, e) = {
+    var vs, validity, vs', shares, y, v, vs_copy, rs;
+    rs <$ dlist drandom n;
     vs <- D.decomp(c, x, rs);
     vs_copy <- vs;
     shares <- [];
@@ -66,15 +68,25 @@ module Verifiability(D : Phi) = {
 
 module Soundness(D : Phi) = {
   proc main(c, vs', y) = {
-    var xopt, x, rs, vs, shares, v, y';
+    var xopt, x, rs, vs, shares, v, y', verified, e, tmp, v';
+    verified <- true;
+    e <- 1;
+    while (onth vs' (e-1) <> None) {
+      v <- oget (onth vs' (e-1));
+      tmp <- D.verify(c, v, e, y);
+      verified <- verified /\ tmp;
+      e <- e + 1;
+    }
+
     xopt <- D.extractor(vs');
     x <- oget xopt;
     rs <$ dlist drandom n;
+
     vs <- D.decomp(c, x, rs);
     shares <- [];
     while (vs <> []) {
-      v <- oget(ohead vs);
-      shares <- (output v)::shares;
+      v' <- oget(ohead vs);
+      shares <- (output v')::shares;
       vs <- behead vs;
     }
     y' <- reconstruct(shares);

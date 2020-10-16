@@ -207,30 +207,30 @@ module Phi = {
     return [(w1, k1); (w2, k2); (w3, k3)];
   }
 
-  proc verify(c : circuit, vs' : verification_input, e : int, y : output) = {
-    var vs, y1, y2, y3, ver, w1, w2, w3;
+  proc verify(c : circuit, vs : verification_input, e : int, y : output) = {
+    var vs', y1, y2, y3, ver, w1, w2, w3;
 
-    (vs, y1, y2, y3) <- vs';
+    (vs', y1, y2, y3) <- vs;
 
     ver <- true;
     ver <- ver /\ (y1 + y2 + y3 = y);
 
     if (e = 1) {
-      w1 <- nth ([], []) vs 0;
-      w2 <- nth ([], []) vs 1;
+      w1 <- nth ([], []) vs' 0;
+      w2 <- nth ([], []) vs' 1;
       ver <- ver /\ (output w1 = y1);
       ver <- ver /\ (output w2 = y2);
       ver <- ver /\ valid_view_op 1 w1 w2 c;
     } else {
       if (e = 2) {
-        w2 <- nth ([], []) vs 0;
-        w3 <- nth ([], []) vs 1;
+        w2 <- nth ([], []) vs' 0;
+        w3 <- nth ([], []) vs' 1;
         ver <- ver /\ (output w2 = y2);
         ver <- ver /\ (output w3 = y3);
         ver <- ver /\ valid_view_op 2 w2 w3 c;
       } else{
-        w3 <- nth ([], []) vs 0;
-        w1 <- nth ([], []) vs 1;
+        w3 <- nth ([], []) vs' 0;
+        w1 <- nth ([], []) vs' 1;
         ver <- ver /\ (output w3 = y3);
         ver <- ver /\ (output w1 = y1);
         ver <- ver /\ valid_view_op 3 w3 w1 c;
@@ -301,8 +301,91 @@ module Phi = {
     return ret;
   }
 
-  proc extractor(vs : view list) = {
-    return (Some 1);
+  proc extractor(vs : verification_input list) = {
+    var v1, v2, v3, w1, w2, w3, k1, k2, k3, ret, v1', v2', v3', y1, y2, y3;
+    var w1', w2', w3', k1', k2', k3';
+    v1 <- onth vs 0;
+    v2 <- onth vs 1;
+    v3 <- onth vs 2;
+
+    if (v1 = None \/ v2 = None \/ v3 = None) {
+      ret <- None;
+    } else {
+      (v1', y1, y2, y3) <- oget v1;
+      (v2', y1, y2, y3) <- oget v2;
+      (v3', y1, y2, y3) <- oget v3;
+      (w1, k1) <- oget (onth v1' 0);
+      (w2, k2) <- oget (onth v1' 1);
+      (w2', k2') <- oget (onth v2' 0);
+      (w3, k3) <- oget (onth v2' 1);
+      (w3', k3') <- oget (onth v3' 0);
+      (w1', k1') <- oget (onth v3' 1);
+      if (w1 = w1' /\ w2 = w2' /\ w3 = w3' /\ k1 = k1' /\ k2 = k2' /\ k3 = k3') {
+        ret <- Some( (oget (onth w1 0)) + (oget (onth w2 0)) + (oget (onth w3 0)) );
+      } else {
+        ret <- None;
+      }
+    }
+    return ret;
+  }
+
+}.
+
+module Phi_fixed = {
+  var k1 : random
+  var k2 : random
+  var k3 : random
+
+  proc sample_tapes() = {
+    k1 <$ drandom;
+    k2 <$ drandom;
+    k3 <$ drandom;
+  }
+  proc noop() = {
+
+  }
+
+  proc compute_fixed(c : circuit, w1 w2 w3 : share list) = {
+    var g, v1, v2, v3;
+    while (c <> []) {
+      g <- oget (ohead c);
+      v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+      v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+      v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+      w1 <- (rcons w1 v1);
+      w2 <- (rcons w2 v2);
+      w3 <- (rcons w3 v3);
+      c <- behead c;
+    }
+    return (k1, k2, k3, w1, w2, w3);
+  }
+
+}.
+
+module Phi_global = {
+  var k1 : random
+  var k2 : random
+  var k3 : random
+
+  proc compute(c : circuit, w1 w2 w3 : int list) = {
+    var g, r1, r2, r3, v1, v2, v3;
+    while (c <> []) {
+      g <- oget (ohead c);
+      r1 <$ dinput;
+      r2 <$ dinput;
+      r3 <$ dinput;
+      k1 <- (rcons k1 r1);
+      k2 <- (rcons k2 r2);
+      k3 <- (rcons k3 r3);
+      v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+      v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+      v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+      w1 <- (rcons w1 v1);
+      w2 <- (rcons w2 v2);
+      w3 <- (rcons w3 v3);
+      c <- behead c;
+    }
+    return (k1, k2, k3, w1, w2, w3);
   }
 
 }.
@@ -452,50 +535,27 @@ equiv compute_fixed_output_eq:
     size k1 = size w1 - 1 /\ size k1 = size k1' /\ size k2 = size k2' /\ size k3 = size k3'
     /\ size k2 = size k1 /\ size k3 = size k2 /\
     last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
-proof.
-    proc.
-    while (={c} /\ size w1{1} = size w1{2}
-                /\ size w2{1} = size w2{2}
-                /\ size w3{1} = size w3{2}
-                /\ size w1{1} = size w2{1}
-                /\ size w1{1} = size w3{1}
-                /\ size w1{2} = size w2{2}
-                /\ size w1{2} = size w3{2}
-                /\ size k1{1} = size w1{1} - 1
-                /\ size k2{1} = size k1{1}
-                /\ size k3{1} = size k1{1}
-                /\ size w1{2} = size k1{2} - size c{2} + 1
-                /\ size k1{2} = size k2{2}
-                /\ size k1{2} = size k3{2}
-                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
-    auto.
-    progress.
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    smt(size_rcons).
-    rewrite !nth_rcons - H - H0 - H1 - H2 - H3.
-    case (i < size w1{1}); progress.
-    smt.
-    case (i = size w1{1}); progress.
-    have -> := ohead_head (ADDC(0,0)) c{2} H13.
-    rewrite oget_some.
-    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
-    smt().
-    smt().
-    smt().
-    smt().
-    auto.
-    progress.
-    smt.
-qed.
+
+(* lemma extraction_success c' y' v1 v2 v3: *)
+(*     phoare[Phi.verify : c = c' /\ vs = v1 /\ y = y' /\ e = 1 ==> res] = 1%r /\ *)
+(*     phoare[Phi.verify : c = c' /\ vs = v2 /\ y = y' /\ e = 2 ==> res] = 1%r /\ *)
+(*     phoare[Phi.verify : c = c' /\ vs = v3 /\ y = y' /\ e = 3 ==> res] = 1%r *)
+(*     => *)
+(*     phoare[Soundness(Phi).main : c = c' /\ vs' = [v1;v2;v3] /\ y = y' ==> res] = 1%r. *)
+(* proof. *)
+(*   progress. *)
+(*   proc. *)
+(*   auto. *)
+(*   sp. *)
+(*   rcondt 1; auto. *)
+(*   rcondt 5; auto. call (:true); auto. *)
+(*   rcondt 9; auto. call (:true); auto. call(:true); auto. *)
+(*   rcondf 13; auto. call (:true); auto. call(:true); auto. call(:true); auto. *)
+(*   rcondt 18. admit. *)
+(*   rcondt 21. admit. *)
+(*   rcondt 24. admit. *)
+(*   rcondf 27. admit. *)
+(*   auto. *)
 
 lemma size_behead (l : 'a list):
     size l <= 1 => behead l = [].
@@ -671,7 +731,6 @@ proof.
   case (i = size w1{hr}); progress.
   rewrite H.
   simplify.
-  rewrite oget_some.
   have := H5.
   clear H14 H2 H15 H3 H16 H18 H19 H20.
   elim g; move=>x; case x=> i c; smt(nth_rcons nth_out).
@@ -685,12 +744,12 @@ proof.
   have -> : i + 1 = size w1{hr}. smt().
   have : i = size cprev. smt().
   progress.
-  rewrite oget_some - !cats1 - H4.
+  rewrite - !cats1 - H4.
   smt.
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
-  rewrite oget_some - !cats1.
+  rewrite - !cats1.
   smt. smt().
   smt(size_cat size_rcons).
 
@@ -703,12 +762,12 @@ proof.
   have -> : i + 1 = size w1{hr}. smt().
   have : i = size cprev. smt().
   progress.
-  rewrite oget_some - !cats1 - H4.
+  rewrite - !cats1 - H4.
   smt.
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
-  rewrite oget_some - !cats1.
+  rewrite - !cats1.
   smt. smt().
   smt(size_cat size_rcons).
 
@@ -721,12 +780,12 @@ proof.
   have -> : i + 1 = size w1{hr}. smt().
   have : i = size cprev. smt().
   progress.
-  rewrite oget_some - !cats1 - H4.
+  rewrite - !cats1 - H4.
   smt.
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
-  rewrite oget_some - !cats1.
+  rewrite - !cats1.
   smt. smt().
   smt(size_cat size_rcons).
 
@@ -955,14 +1014,14 @@ qed.
 module Correctness_local = {
   proc main(c, x) = {
     var vs, shares, v, y;
-    vs = Phi.decomp_local(c, x);
-    shares = [];
+    vs <- Phi.decomp_local(c, x);
+    shares <- [];
     while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
+      v <- oget(ohead vs);
+      shares <- (output v)::shares;
+      vs <- behead vs;
     }
-    y = reconstruct(shares);
+    y <- reconstruct(shares);
     return (circuit_eval c x) = y;
   }
 }.
@@ -1033,42 +1092,34 @@ lemma decomp_correct c' x':
       valid_circuit c /\ c = c' /\ x = x' /\ size rs = size c
       ==>
       size res = 3 /\
-      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
-      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (* size ((nth ([],[]) res 0).`1) - 1 = size c' /\ *)
+      (* (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\ *)
       (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
 proof.
   bypr=> &m ?.
   have <- := decomp_local_correct_pr c' x' &m _. smt().
   byequiv=>//.
-  (* byequiv(: ={c, x} /\ c{1} = c' /\ x{1} = x' /\ valid_circuit c{1} ==> ={res})=>//. *)
+  (* byequiv(: ={c, x} /\ c{1} = c' /\ size rs{1} = size c' /\ x{1} = x' /\ valid_circuit c{1} ==> ={res})=>//. *)
   proc *.
   have Heq := decomp_local_eq c' x'.
   call Heq.
-  auto. progress.
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  smt().
-  auto; smt().
+  auto. progress; smt().
 qed.
 
 module Verifiability_local = {
   proc main(c, x, e) = {
     var vs, validity, vs', shares, y, v, vs_copy;
-    vs = Phi.decomp_local(c, x);
-    vs_copy = vs;
-    shares = [];
+    vs <- Phi.decomp_local(c, x);
+    vs_copy <- vs;
+    shares <- [];
     while (vs <> []) {
-      v = oget(ohead vs);
-      shares = (output v)::shares;
-      vs = behead vs;
+      v <- oget(ohead vs);
+      shares <- (output v)::shares;
+      vs <- behead vs;
     }
-    y = reconstruct(shares);
-    vs' = f vs_copy e;
-    validity = Phi.verify(c, vs', e, y);
+    y <- reconstruct(shares);
+    vs' <- f vs_copy e;
+    validity <- Phi.verify(c, vs', e, y);
 
     return validity;
   }
