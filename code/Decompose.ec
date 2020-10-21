@@ -134,31 +134,29 @@ module Phi = {
     r1 <$ dinput;
     r2 <$ dinput;
     r3 <$ dinput;
-    k1 = (rcons k1 r1);
-    k2 = (rcons k2 r2);
-    k3 = (rcons k3 r3);
-    v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-    v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-    v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-    w1 = (rcons w1 v1);
-    w2 = (rcons w2 v2);
-    w3 = (rcons w3 v3);
+    k1 <- (rcons k1 r1);
+    k2 <- (rcons k2 r2);
+    k3 <- (rcons k3 r3);
+    v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+    v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+    v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+    w1 <- (rcons w1 v1);
+    w2 <- (rcons w2 v2);
+    w3 <- (rcons w3 v3);
   }
   proc compute(c : circuit) = {
-    while (c <> []) {
-     gate_eval(head witness c);
-     c <- drop 1 c;
+    var i;
+    i <- 0;
+    while (i < size c) {
+     gate_eval(nth witness c i);
+     i <- i + 1;
     }
-    return (k1, k2, k3, w1, w2, w3);
   }
 
   proc compute_fixed(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    var g, v1, v2, v3, r1, r2, r3;
+    var g, v1, v2, v3;
     while (c <> []) {
       g <- oget (ohead c);
-      r1 <$ dinput;
-      r2 <$ dinput;
-      r3 <$ dinput;
       v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
       v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
       v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
@@ -170,17 +168,15 @@ module Phi = {
     return (k1, k2, k3, w1, w2, w3);
   }
 
-  proc compute_stepped(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) <- compute([head (ADDC(0,0)) c]);
+  proc compute_stepped(c : circuit) = {
+    compute([head (ADDC(0,0)) c]);
     c <- behead c;
-    (k1, k2, k3, w1, w2, w3) <- compute(c);
-    return (k1, k2, k3, w1, w2, w3);
+    compute(c);
 
   }
-  proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3 : share list, k1 k2 k3 : random) = {
-    (k1, k2, k3, w1, w2, w3) <- compute(c);
-    (k1, k2, k3, w1, w2, w3) <- compute([g]);
-    return (k1, k2, k3, w1, w2, w3);
+  proc compute_stepped_reversed(c : circuit, g : gate) = {
+    compute(c);
+    compute([g]);
   }
 
   proc decomp(c : circuit, x : input, rs : random list) = {
@@ -199,10 +195,10 @@ module Phi = {
   }
 
   proc decomp_local(c : circuit, x : input) = {
-    var x1, x2, x3, w1, w2, w3, k1, k2, k3;
+    var x1, x2, x3;
     (x1, x2, x3) <- share(x);
 
-    (k1, k2, k3, w1, w2, w3) <- compute(c);
+    compute(c);
 
     return [(w1, k1); (w2, k2); (w3, k3)];
   }
@@ -331,275 +327,6 @@ module Phi = {
 
 }.
 
-module Phi_fixed = {
-  var k1 : random
-  var k2 : random
-  var k3 : random
-
-  proc sample_tapes() = {
-    k1 <$ drandom;
-    k2 <$ drandom;
-    k3 <$ drandom;
-  }
-  proc noop() = {
-
-  }
-
-  proc compute_fixed(c : circuit, w1 w2 w3 : share list) = {
-    var g, v1, v2, v3;
-    while (c <> []) {
-      g <- oget (ohead c);
-      v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-      v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-      v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-      w1 <- (rcons w1 v1);
-      w2 <- (rcons w2 v2);
-      w3 <- (rcons w3 v3);
-      c <- behead c;
-    }
-    return (k1, k2, k3, w1, w2, w3);
-  }
-
-}.
-
-module Phi_global = {
-  var k1 : random
-  var k2 : random
-  var k3 : random
-
-  proc compute(c : circuit, w1 w2 w3 : int list) = {
-    var g, r1, r2, r3, v1, v2, v3;
-    while (c <> []) {
-      g <- oget (ohead c);
-      r1 <$ dinput;
-      r2 <$ dinput;
-      r3 <$ dinput;
-      k1 <- (rcons k1 r1);
-      k2 <- (rcons k2 r2);
-      k3 <- (rcons k3 r3);
-      v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-      v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-      v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-      w1 <- (rcons w1 v1);
-      w2 <- (rcons w2 v2);
-      w3 <- (rcons w3 v3);
-      c <- behead c;
-    }
-    return (k1, k2, k3, w1, w2, w3);
-  }
-
-}.
-
-module Phi_fixed = {
-  var k1, k2, k3 : input list
-  var w1, w2, w3 : input list
-
-  proc sample_tapes(n : int) = {
-    var r1, r2, r3;
-    while (0 < n) {
-      r1 <$ dinput;
-      r2 <$ dinput;
-      r3 <$ dinput;
-      k1 <- rcons k1 r1;
-      k2 <- rcons k2 r2;
-      k3 <- rcons k3 r3;
-      n <- n - 1;
-    }
-  }
-
-  proc gate_eval(g : gate) = {
-    var v1, v2, v3;
-    v1 = phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
-    v2 = phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
-    v3 = phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
-    w1 = (rcons w1 v1);
-    w2 = (rcons w2 v2);
-    w3 = (rcons w3 v3);
-  }
-
-  proc compute(c : circuit) = {
-    while (c <> []) {
-      gate_eval(head witness c);
-      c <- drop 1 c;
-    }
-    return (k1, k2, k3, w1, w2, w3);
-  }
-
-  proc main(c : circuit) = {
-    var k1, k2, k3;
-    sample_tapes(size c);
-    (k1, k2, k3, w1, w2, w3) <- compute(c);
-    return (k1, k2, k3, w1, w2, w3);
-  }
-  proc main_split(c : circuit) = {
-    main(belast witness c);
-    main([last witness c]);
-    return (k1, k2, k3, w1, w2, w3);
-  }
-}.
-
-equiv main_split:
-  Phi_fixed.main ~ Phi_fixed.main_split : ={c} ==> ={res}.
-proof.
-  proc.
-  inline *.
-  auto.
-  splitwhile{1} 2 : 1 < n.
-  splitwhile{1} 5 : 1 < (size c0).
-  sim. auto. sp.
-  rcondt{2} 7.
-  progress. auto.
-  while (true).
-  auto. auto.
-  auto.
-  rcondf{2} 14.
-  progress. auto.
-  while(true).
-  auto. auto.
-  auto.
-  while (belast witness c0{1} = c2{2} /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi_fixed)).
-  auto. progress.
-
-  (* seq 1 1 : (={k1, k2, k3, c} /\ c0{2} = belast witness c{2} /\ n{2} = size c0{2} /\ n{1} = size c{1}). *)
-  (* while (={k1,k2,k3,c} /\ n{2} = n{1} - 1). *)
-  (* auto. progress. *)
-  (* smt(). *)
-  (* smt(). *)
-
-
-
-(* IDEAS: *)
-(* Let us reason about the randomness for a single gate first? *)
-(* If sample an entire tape, but only use one value then we can "resample" *)
-(* the entirety of the unused tape *)
-
-lemma compute_fixed_with_random_eq:
-  equiv[Phi_fixed.main ~ Phi.compute :
-      ={c}
-      /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi)
-      /\ Phi_fixed.k1{1} = []
-      /\ Phi_fixed.k2{1} = []
-      /\ Phi_fixed.k3{1} = []
-      /\ w1{1} = []
-      /\ w2{1} = []
-      /\ w3{1} = []
-      ==> ={res}].
-proof.
-  exists* c{1}. elim*=> c'.
-  elim /last_ind c'.
-  - proc. inline Phi_fixed.compute Phi_fixed.sample_tapes. auto. sp.
-    rcondf{1} 1. progress. sp.
-    rcondf{1} 1. progress.
-    rcondf{2} 1. progress.
-    auto.
-  progress.
-  proc.
-  eager while (h : Phi_fixed.sample_tapes(size c); ~ : c{1} = [] /\ ={c, w1, w2, w3} /\ ={k1, k2, k3}(Phi_fixed, Phi_global) ==> true).
-  auto. auto.
-  inline*. wp. progress.
-  rnd{1}.
-  rnd{1}.
-  rnd{1}. auto. progress.
-  apply dlist_ll.
-  apply dinput_ll.
-  have := supp_dlist0 dinput 0 k10 _.
-  - smt().
-  smt().
-  have := supp_dlist0 dinput 0 k20 _.
-  - smt().
-  smt().
-  have := supp_dlist0 dinput 0 k30 _.
-  - smt().
-  smt().
-
-
-
-lemma comupute_fixed_with_random_eq c':
-  eager[Phi_fixed.sample_tapes(size c');, Phi_fixed.compute ~ Phi.compute, :
-        c{1} = c' /\ ={c} /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi) ==> ={res}].
-proof.
-  elim.
-  eager proc.
-  sim. auto.
-  eager while ( sample : Phi_fixed.sample_tapes(size c'); ~ :
-  c{1} = c' /\
-  ={c, w1, w2, w3} /\ ={k1, k2, k3}(Phi_fixed, Phi_global)
-  ==> true).
-
-equiv compute_fixed_output_eq:
-    Phi.compute ~ Phi.compute_fixed :
-    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2} /\ size k1{2} = size c{2}
-    /\ size k1{2} = size c{2} /\ size k2{2} = size k1{2} /\ size k3{2} = size k1{2} ==>
-    let (k1, k2, k3, w1, w2, w3) = res{1} in
-    let (k1', k2', k3', w1', w2', w3') = res{2} in
-    size k1 = size w1 - 1 /\ size k1 = size k1' /\ size k2 = size k2' /\ size k3 = size k3'
-    /\ size k2 = size k1 /\ size k3 = size k2 /\
-    last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
-
-(* lemma extraction_success c' y' v1 v2 v3: *)
-(*     phoare[Phi.verify : c = c' /\ vs = v1 /\ y = y' /\ e = 1 ==> res] = 1%r /\ *)
-(*     phoare[Phi.verify : c = c' /\ vs = v2 /\ y = y' /\ e = 2 ==> res] = 1%r /\ *)
-(*     phoare[Phi.verify : c = c' /\ vs = v3 /\ y = y' /\ e = 3 ==> res] = 1%r *)
-(*     => *)
-(*     phoare[Soundness(Phi).main : c = c' /\ vs' = [v1;v2;v3] /\ y = y' ==> res] = 1%r. *)
-(* proof. *)
-(*   progress. *)
-(*   proc. *)
-(*   auto. *)
-(*   sp. *)
-(*   rcondt 1; auto. *)
-(*   rcondt 5; auto. call (:true); auto. *)
-(*   rcondt 9; auto. call (:true); auto. call(:true); auto. *)
-(*   rcondf 13; auto. call (:true); auto. call(:true); auto. call(:true); auto. *)
-(*   rcondt 18. admit. *)
-(*   rcondt 21. admit. *)
-(*   rcondt 24. admit. *)
-(*   rcondf 27. admit. *)
-(*   auto. *)
-
-lemma size_behead (l : 'a list):
-    size l <= 1 => behead l = [].
-proof.
-    elim l.
-    smt().
-    smt().
-qed.
-
-lemma eval_gate_aux_size g s:
-    size (eval_circuit_aux [g] s) = size s + 1 by smt.
-
-lemma eval_circuit_aux_size c:
-    (forall s,
-      size (eval_circuit_aux c s) = size s + size c).
-proof.
-    elim c; progress.
-    elim x; progress;
-    case x=> x1 x2.
-    simplify.
-    smt.
-    smt.
-    smt.
-    smt.
-qed.
-
-lemma eval_circuit_rcons c:
-  (forall s g,
-    (rcons (eval_circuit_aux c s) (eval_gate g (eval_circuit_aux c s))
-    =
-    eval_circuit_aux (rcons c g) s)).
-proof.
-  elim c; smt.
-qed.
-
-lemma eval_circuit_cat c c':
-  (forall s,
-    (eval_circuit_aux (c ++ c') s)
-    =
-    eval_circuit_aux c' (eval_circuit_aux c s)).
-proof.
-  elim c; smt.
-qed.
-
 op highest_inwire (g : gate) =
   with g = MULT inputs => let (i, j) = inputs in max i j
   with g = ADD inputs =>  let (i, j) = inputs in max i j
@@ -659,6 +386,17 @@ proof.
   smt().
 qed.
 
+lemma gate_computation_order_tape g i (p : int) (w1 w2 : share list) k1 k2 k1' k2' :
+    0 <= i /\ (i < size k1) /\ size w1 = size w2 /\ size k1 = size k2 /\ size w1 <= size k1 + 1 /\ valid_gate g i =>
+    phi_decomp g i p w1 w2 k1 k2 = phi_decomp g i p w1 w2 (k1++k1') (k2++k2').
+proof.
+  elim g;
+  move=> x; case x=> x1 x2;
+  rewrite /valid_gate; progress;
+  rewrite !nth_cat;
+  smt().
+qed.
+
 lemma gate_computation_order_eq g i (p : int) (w1 w2 w1' w2' : share list) k1 k2:
     (i = size w1 - 1) /\ size w1 = size w2 /\ size k1 = size k2 /\ size k1 = size w1 /\ valid_gate g i =>
     phi_decomp g i p w1 w2 k1 k2 = phi_decomp g i p (w1++w1') (w2++w2') k1 k2.
@@ -691,6 +429,396 @@ proof.
   apply Hgate.
   progress.
   smt().
+qed.
+
+
+module Phi_fixed = {
+  var k1, k2, k3 : input list
+  var w1, w2, w3 : input list
+
+  proc sample_once() = {
+    var r1, r2, r3;
+    r1 <$ dinput;
+    r2 <$ dinput;
+    r3 <$ dinput;
+    k1 <- rcons k1 r1;
+    k2 <- rcons k2 r2;
+    k3 <- rcons k3 r3;
+  }
+
+  proc sample_tapes(n : int) = {
+    while (0 < n) {
+      sample_once();
+      n <- n - 1;
+    }
+  }
+
+  proc gate_eval(g : gate) = {
+    var v1, v2, v3;
+    v1 <- phi_decomp g (size w1 - 1) 1 w1 w2 k1 k2;
+    v2 <- phi_decomp g (size w1 - 1) 2 w2 w3 k2 k3;
+    v3 <- phi_decomp g (size w1 - 1) 3 w3 w1 k3 k1;
+    w1 <- (rcons w1 v1);
+    w2 <- (rcons w2 v2);
+    w3 <- (rcons w3 v3);
+  }
+
+  proc compute(c : circuit) = {
+    var i;
+    i <- 0;
+    while (i < size c) {
+      gate_eval(nth witness c i);
+      i <- i + 1;
+    }
+    return (k1, k2, k3, w1, w2, w3);
+  }
+
+  proc main(c : circuit) = {
+    sample_tapes(size c);
+    compute(c);
+    return (k1, k2, k3, w1, w2, w3);
+  }
+  proc main_split(c : circuit, g : gate) = {
+    main(c);
+    main([g]);
+    return (k1, k2, k3, w1, w2, w3);
+  }
+}.
+
+(* lemma sample_once: *)
+(*     eager[Phi_fixed.sample_once();, Phi_fixed.gate_eval ~ Phi_fixed.gate_eval, Phi_fixed.sample_once(); *)
+(*     : ={g} /\ ={w1, w2, w3, k1, k2, k3}(Phi_fixed, Phi_fixed) *)
+(*     (* /\ valid_gate g{1} (size Phi_fixed.w1{1} - 1) *) *)
+(*             ==> ={res}]. *)
+(* proof. *)
+(*   eager proc. *)
+(*   sim. *)
+(* qed. *)
+
+equiv main_split:
+    Phi_fixed.main ~ Phi_fixed.main_split :
+      c{1} = rcons c{2} g{2} /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi_fixed)
+      /\ size Phi_fixed.w1{1} = 1
+      /\ size Phi_fixed.w2{1} = 1
+      /\ size Phi_fixed.w3{1} = 1
+      /\ size Phi_fixed.k1{1} = size Phi_fixed.w1{1} - 1
+      /\ size Phi_fixed.k2{1} = size Phi_fixed.w2{1} - 1
+      /\ size Phi_fixed.k3{1} = size Phi_fixed.w3{1} - 1
+      /\ valid_circuit c{1}
+      ==> ={res} /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi_fixed).
+proof.
+  proc.
+  inline Phi_fixed.main.
+  inline Phi_fixed.compute Phi_fixed.sample_tapes Phi_fixed.sample_once Phi_fixed.gate_eval.
+  auto. sp.
+  splitwhile{1} 4 : i < size c0 - 1.
+  rcondt{1} 5. auto.
+  - while (i < size c0). auto. progress. smt().
+    wp. while(true). auto. auto. progress. smt(size_rcons size_ge0).
+  rcondf{1} 13. auto.
+  - wp. while (i < size c0). inline *. auto. progress. smt().
+    wp. while(true). auto. auto. progress; smt(size_rcons size_ge0).
+  rcondt{2} 10. auto.
+  - while (true). auto. wp.
+    while (true). auto. wp.
+    while (true). auto. skip. progress.
+  rcondf{2} 18. auto.
+  - while (true). auto. wp.
+    while (true). auto. wp.
+    while (true). auto. skip. progress.
+  wp.
+  rcondt{2} 7. progress.
+  - auto. while (true). auto. auto.
+  rcondf{2} 14. progress.
+  - auto. while (true). auto. auto.
+  splitwhile{1} 1 : 1 < n.
+  swap{2} [7..9] -3.
+  auto.
+  while (c0{1} = rcons c2{2} g{2} /\ ={w1, w2, w3}(Phi_fixed, Phi_fixed) /\
+         ={i} /\
+         valid_circuit c0{1} /\
+         size Phi_fixed.w1{1} = i{1} + 1 /\
+         size Phi_fixed.w2{1} = i{1} + 1 /\
+         size Phi_fixed.w3{1} = i{1} + 1 /\
+         size Phi_fixed.w1{1} = size Phi_fixed.w2{1} /\
+         size Phi_fixed.w1{1} = size Phi_fixed.w3{1} /\
+         size Phi_fixed.k1{1} = size c0{1} /\
+         size Phi_fixed.k1{1} = size Phi_fixed.k2{1} /\
+         size Phi_fixed.k1{1} = size Phi_fixed.k3{1} /\
+         size Phi_fixed.k1{2} = size Phi_fixed.k2{2} /\
+         size Phi_fixed.k1{2} = size Phi_fixed.k3{2} /\
+         (* 1 <= size Phi_fixed.w1{1} /\ *)
+         (* 1 <= size Phi_fixed.w2{1} /\ *)
+         (* 1 <= size Phi_fixed.w3{1} /\ *)
+         i{1} <= size c0{1} - 1 /\
+         Phi_fixed.k1{1} = rcons Phi_fixed.k1{2} r10{2} /\
+         Phi_fixed.k2{1} = rcons Phi_fixed.k2{2} r20{2} /\
+         Phi_fixed.k3{1} = rcons Phi_fixed.k3{2} r30{2}).
+  inline*. auto. progress;
+  smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+  (* have Hgate := gate_computation_order_tape (nth witness (rcons c2{2} g{2}) i{2}) i{2} 1 Phi_fixed.w1{2} Phi_fixed.w2{2} Phi_fixed.k1{2} Phi_fixed.k2{2} [r10{2}] [r20{2}] _. *)
+  (* have Hgate := gate_computation_order_tape (head witness (rcons c2{2} g{2})) (size Phi_fixed.w1{2} - 1) 1 Phi_fixed.w1{2} Phi_fixed.w2{2} Phi_fixed.k1{2} Phi_fixed.k2{2} [r10{2}] [r20{2}] _. *)
+  (* have Hgate := gate_computation_order_tape (head witness (rcons c2{2} g{2})) (size Phi_fixed.w1{2} - 1) 2 Phi_fixed.w2{2} Phi_fixed.w3{2} Phi_fixed.k2{2} Phi_fixed.k3{2} [r20{2}] [r30{2}] _. *)
+  (* have Hgate := gate_computation_order_tape (head witness (rcons c2{2} g{2})) (size Phi_fixed.w1{2} - 1) 3 Phi_fixed.w3{2} Phi_fixed.w1{2} Phi_fixed.k3{2} Phi_fixed.k1{2} [r30{2}] [r10{2}] _. *)
+  wp.
+  rcondt{1} 2. progress.
+  - while (0 < n). auto. smt(). auto. progress. smt(size_rcons size_ge0).
+  rcondf{1} 9. progress.
+  - auto. while (0 < n). auto. smt(). auto. progress. smt(size_rcons size_ge0). smt().
+  wp. rnd. rnd. rnd.
+  auto.
+  while (={k1, k2, k3}(Phi_fixed, Phi_fixed) /\
+         size Phi_fixed.k1{1} = size c{1} - n{1} /\
+         size Phi_fixed.k2{1} = size c{1} - n{1} /\
+         size Phi_fixed.k3{1} = size c{1} - n{1} /\
+         size Phi_fixed.k1{2} = size c{2} - n{2} /\
+         size Phi_fixed.k2{2} = size c{2} - n{2} /\
+         size Phi_fixed.k3{2} = size c{2} - n{2} /\
+         0 <= n{2}  /\
+         n{1} = n{2} + 1).
+  auto. progress; smt(size_rcons size_ge0).
+  auto. progress; smt(size_rcons size_ge0 nth_rcons).
+qed.
+
+lemma compute_fixed_eq_gate g:
+    equiv[Phi_fixed.main ~ Phi.compute :
+    ={c} /\ c{1} = [g] /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)
+    ==>
+    ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)].
+proof.
+  proc.
+  inline Phi_fixed.sample_tapes Phi_fixed.compute Phi_fixed.sample_once.
+  sp. rcondt{1} 1. progress.
+  rcondt{2} 1. progress.
+  rcondf{2} 3. progress. inline*. auto.
+  rcondf{1} 8. progress. auto.
+  rcondt{1} 10. progress. auto.
+  rcondf{1} 12. progress. inline*. auto.
+  auto.
+  inline Phi.gate_eval Phi_fixed.gate_eval.
+  auto.
+qed.
+
+
+lemma compute_fixed_eq:
+    equiv[Phi_fixed.main ~ Phi.compute :
+    ={c} /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)
+    /\ size Phi_fixed.w1{1} = 1
+    /\ size Phi_fixed.w2{1} = 1
+    /\ size Phi_fixed.w3{1} = 1
+    /\ valid_circuit c{1}
+    /\ size Phi_fixed.k1{1} = size Phi_fixed.w1{1} - 1
+    /\ size Phi_fixed.k2{1} = size Phi_fixed.w2{1} - 1
+    /\ size Phi_fixed.k3{1} = size Phi_fixed.w3{1} - 1
+    ==>
+    ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)].
+proof.
+   exists* c{1}; elim*=> c.
+   elim /last_ind c.
+   proc. inline *. sim. sp.
+   rcondf{2} 1. progress.
+   rcondf{1} 1. progress.
+   sp.
+   rcondf{1} 1. progress.
+   auto.
+
+   (* Inductive case *)
+   progress.
+   transitivity Phi_fixed.main_split
+  (c{1} = rcons s x /\ c{2} = s /\ g{2} = x /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi_fixed)
+    /\ size Phi_fixed.w1{1} = 1
+    /\ size Phi_fixed.w2{1} = 1
+    /\ size Phi_fixed.w3{1} = 1
+    /\ size Phi_fixed.k1{1} = size Phi_fixed.w1{1} - 1
+    /\ size Phi_fixed.k2{1} = size Phi_fixed.w2{1} - 1
+    /\ size Phi_fixed.k3{1} = size Phi_fixed.w3{1} - 1
+    /\ valid_circuit c{1}
+  ==> ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi_fixed))
+  (c{1} = s /\ g{1} = x /\ c{2} = rcons s x /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)
+    /\ size Phi_fixed.w1{1} = 1
+    /\ size Phi_fixed.w2{1} = 1
+    /\ size Phi_fixed.w3{1} = 1
+    /\ size Phi_fixed.k1{1} = size Phi_fixed.w1{1} - 1
+    /\ size Phi_fixed.k2{1} = size Phi_fixed.w2{1} - 1
+    /\ size Phi_fixed.k3{1} = size Phi_fixed.w3{1} - 1
+    /\ valid_circuit (rcons c{1} g{1})
+  ==> ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)).
+   - progress.
+     exists Phi.k1{2} Phi.k2{2} Phi.k3{2} Phi.w1{2} Phi.w2{2} Phi.w3{2} (s, x). simplify. done.
+     smt().
+   - by proc*; call main_split.
+   transitivity Phi.compute_stepped_reversed
+  (={c, g} /\ g{1} = x /\ c{1} = s /\ ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi)
+    /\ size Phi_fixed.w1{1} = 1
+    /\ size Phi_fixed.w2{1} = 1
+    /\ size Phi_fixed.w3{1} = 1
+    /\ size Phi_fixed.k1{1} = size Phi_fixed.w1{1} - 1
+    /\ size Phi_fixed.k2{1} = size Phi_fixed.w2{1} - 1
+    /\ size Phi_fixed.k3{1} = size Phi_fixed.w3{1} - 1
+    /\ valid_circuit (rcons c{1} g{1})
+  ==> ={k1, k2, k3, w1, w2, w3}(Phi_fixed, Phi))
+  (c{2} = rcons s x /\ c{1} = s /\ g{1} = x /\ ={k1, k2, k3, w1, w2, w3}(Phi, Phi)
+  ==> ={k1, k2, k3, w1, w2, w3}(Phi, Phi)).
+   - progress; smt().
+   - smt().
+
+   proc*.
+   inline Phi_fixed.main_split Phi.compute_stepped_reversed.
+   auto. sp.
+   have Hgate := compute_fixed_eq_gate x.
+   call Hgate. clear Hgate.
+   auto.
+   call H. clear H. auto. progress.
+   smt(valid_circuit_rcons_head).
+
+   proc.
+   inline *. sp.
+   splitwhile{2} 1 : i < size c - 1.
+   rcondt{1} 4; progress.
+   - auto. while (true). auto. auto.
+   rcondt{2} 2; progress.
+   - auto. while (i <= size c - 1). auto. auto. progress.
+     smt().
+     auto. progress; smt(size_rcons size_ge0).
+   rcondf{1} 18; progress.
+   - auto. while (true). auto. auto.
+   rcondf{2} 16; progress.
+   - auto. while (i <= size c - 1). auto. auto. progress.
+     smt().
+     auto. progress; smt(size_rcons size_ge0).
+
+   auto.
+   while (c{2} = rcons c0{1} x /\
+          i{2} <= size c{2} - 1 /\
+          ={i} /\ ={k1, k2, k3, w1, w2, w3}(Phi, Phi)).
+   auto. progress.
+   smt(size_rcons size_ge0 nth_rcons).
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   auto. progress.
+   smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+   auto; progress; smt(gate_computation_order_tape size_rcons size_ge0 cats1 nth_rcons nth_onth nth_rcons).
+qed.
+
+
+(* lemma extraction_success c' y' v1 v2 v3: *)
+(*     phoare[Phi.verify : c = c' /\ vs = v1 /\ y = y' /\ e = 1 ==> res] = 1%r /\ *)
+(*     phoare[Phi.verify : c = c' /\ vs = v2 /\ y = y' /\ e = 2 ==> res] = 1%r /\ *)
+(*     phoare[Phi.verify : c = c' /\ vs = v3 /\ y = y' /\ e = 3 ==> res] = 1%r *)
+(*     => *)
+(*     phoare[Soundness(Phi).main : c = c' /\ vs' = [v1;v2;v3] /\ y = y' ==> res] = 1%r. *)
+(* proof. *)
+(*   progress. *)
+(*   proc. *)
+(*   auto. *)
+(*   sp. *)
+(*   rcondt 1; auto. *)
+(*   rcondt 5; auto. call (:true); auto. *)
+(*   rcondt 9; auto. call (:true); auto. call(:true); auto. *)
+(*   rcondf 13; auto. call (:true); auto. call(:true); auto. call(:true); auto. *)
+(*   rcondt 18. admit. *)
+(*   rcondt 21. admit. *)
+(*   rcondt 24. admit. *)
+(*   rcondf 27. admit. *)
+(*   auto. *)
+
+lemma compute_fixed_output_eq:
+    eager[Phi'.sample_tapes(); , Phi'.compute_fixed ~ Phi'.compute, :
+    ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}
+    ==>
+    ={res}].
+proof.
+    eager proc.
+    sim. auto.
+    eager while( H : Phi'.sample_tapes(); ~ :
+  ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}
+  ==> ={c, w1, w2, w3} /\ ={k1, k2, k3}(Phi', Phi')).
+    (* eager while( H : Phi'.sample_tapes(); ~ Phi'.sample_tapes(); : ={c, w1, w2, w3} /\ c{1} = c' /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2} ==> true). *)
+    auto.
+    while (={c} /\ size w1{1} = size w1{2}
+                /\ size w2{1} = size w2{2}
+                /\ size w3{1} = size w3{2}
+                /\ size w1{1} = size w2{1}
+                /\ size w1{1} = size w3{1}
+                /\ size w1{2} = size w2{2}
+                /\ size w1{2} = size w3{2}
+                (* /\ size k1{1} = size w1{1} - 1 *)
+                (* /\ size k2{1} = size k1{1} *)
+                (* /\ size k3{1} = size k1{1} *)
+                (* /\ size w1{2} = size k1{2} - size c{2} + 1 *)
+                (* /\ size k1{2} = size k2{2} *)
+                (* /\ size k1{2} = size k3{2} *)
+                (* /\ size k1{2} = size c' *)
+                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
+    auto.
+    progress.
+    apply dinput_ll.
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    smt(size_rcons).
+    rewrite !nth_rcons - H - H0 - H1 - H2 - H3.
+    case (i < size w1{1}); progress.
+    smt.
+    case (i = size w1{1}); progress.
+    have -> := ohead_head (ADDC(0,0)) c{2} H8.
+    rewrite oget_some.
+    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
+    smt().
+    smt().
+    smt().
+    smt().
+    auto. progress.
+    smt.
+qed.
+
+lemma size_behead (l : 'a list):
+    size l <= 1 => behead l = [].
+proof.
+    elim l.
+    smt().
+    smt().
+qed.
+
+lemma eval_gate_aux_size g s:
+    size (eval_circuit_aux [g] s) = size s + 1 by smt.
+
+lemma eval_circuit_aux_size c:
+    (forall s,
+      size (eval_circuit_aux c s) = size s + size c).
+proof.
+    elim c; progress.
+    elim x; progress;
+    case x=> x1 x2.
+    simplify.
+    smt.
+    smt.
+    smt.
+    smt.
+qed.
+
+lemma eval_circuit_rcons c:
+  (forall s g,
+    (rcons (eval_circuit_aux c s) (eval_gate g (eval_circuit_aux c s))
+    =
+    eval_circuit_aux (rcons c g) s)).
+proof.
+  elim c; smt.
+qed.
+
+lemma eval_circuit_cat c c':
+  (forall s,
+    (eval_circuit_aux (c ++ c') s)
+    =
+    eval_circuit_aux c' (eval_circuit_aux c s)).
+proof.
+  elim c; smt.
 qed.
 
 lemma compute_gate_correct g:
@@ -1032,16 +1160,16 @@ equiv decomp_local_eq c' x':
     let vs = res{1} in
     let vs' = res{2} in
     size vs = size vs' /\ size vs = 3 /\
-    size ((nth ([],[]) vs 0).`1) - 1 = size c' /\
-    size ((nth ([],[]) vs' 0).`1) - 1 = size c' /\
-    (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs' 0).`2)) /\
-    (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs 0).`1) - 1) /\
+    (* size ((nth ([],[]) vs 0).`1) - 1 = size c' /\ *)
+    (* size ((nth ([],[]) vs' 0).`1) - 1 = size c' /\ *)
+    (* (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs' 0).`2)) /\ *)
+    (* (forall i, 0 <= i < size vs => size ((nth ([],[]) vs i).`2) = size ((nth ([],[]) vs 0).`1) - 1) /\ *)
     (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs) =
     (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 vs').
 proof.
   proc.
   auto.
-  have Heq := compute_fixed_output_eq.
+  have Heq := compute_fixed_output_eq c'.
   symmetry.
   call Heq.
   clear Heq.
@@ -1057,8 +1185,8 @@ lemma decomp_local_correct_pr c' x' &m:
     valid_circuit c' =>
     Pr[Phi.decomp_local(c', x') @ &m :
       size res = 3 /\
-      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
-      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (* size ((nth ([],[]) res 0).`1) - 1 = size c' /\ *)
+      (* (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\ *)
       (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
 proof.
   move=> Hcircuit.
@@ -1074,8 +1202,8 @@ lemma decomp_local_correct c' x':
       valid_circuit c /\ c = c' /\ x = x'
       ==>
       size res = 3 /\
-      size ((nth ([],[]) res 0).`1) - 1 = size c' /\
-      (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\
+      (* size ((nth ([],[]) res 0).`1) - 1 = size c' /\ *)
+      (* (forall i, 0 <= i < size res => size ((nth ([],[]) res i).`2) = size ((nth ([],[]) res 0).`1) - 1) /\ *)
       (foldr (fun (w : view) (acc : int), acc + (last 0 w.`1)) 0 res) = eval_circuit c' x'] = 1%r.
 proof.
  bypr => &m H.
@@ -1083,8 +1211,6 @@ proof.
  byequiv=>//.
  proc*. call (:true). call (:true). sim. call (:true). sim.
  auto. auto. progress. smt(). smt().
- smt().
- smt().
 qed.
 
 lemma decomp_correct c' x':
@@ -1227,90 +1353,50 @@ proof.
   have -> : (e{hr} = 2) = false by smt().
   simplify.
   have -> := valid_view_fold c{hr} result.`6 result.`4 result.`3 result.`1 (size result.`6) 3 _.
+  split. smt(size_ge0).
+  split. smt(size_ge0).
+  split.
   have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
-  smt(size_ge0).
+  smt().
+  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  smt().
   done.
 qed.
 
-lemma verifiability c' x' rs' e' &m:
-    valid_circuit c' =>
-    Pr[Verifiability(Phi).main(c', x', rs', e') @ &m : res] = 1%r.
-proof.
-  move=> Cvalid.
-  have <- := verifiability_local c' x' e' &m Cvalid.
-  byequiv=>//.
-  proc.
-  inline Phi.verify. auto.
-  while
-  ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
-      foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
-    (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{2} +
-      foldr (fun (w : share) (acc : int) => acc + w) 0 shares{2})
-    /\
-    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
-       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
-      eval_circuit c' x')
-    /\
-    ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} +
-       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) =
-      eval_circuit c' x')
-    /\ ={c, x} /\ size vs{1} = size vs{2} /\ size shares{1} = size shares{2}).
-  auto. smt(size_behead).
-  auto.
-  have Hdecomp := decomp_correct c' x'.
-  have Hdecompl := decomp_local_correct c' x'.
-  call{1} Hdecomp. call{2} Hdecompl. clear Hdecomp Hdecompl.
-  rewrite /valid_view_op /f.
-  simplify. skip.
-  progress.
-  smt().
-  smt().
-  smt().
-  smt().
-  simplify.
-  rewrite - !nth_last.
-  rewrite /reconstruct.
-  progress.
-  simplify.
-  have ->:
-  (nth 0 (nth ([], []) result0 0).`1 (size (nth ([], []) result0 0).`1 - 1) +
-  nth 0 (nth ([], []) result0 1).`1 (size (nth ([], []) result0 1).`1 - 1) +
-  nth 0 (nth ([], []) result0 2).`1 (size (nth ([], []) result0 2).`1 - 1) =
-  foldr (fun (s : share) (acc : int) => acc + s) 0 shares_L) = true.
-  rewrite H7 /eval_circuit.
-  rewrite !nth_last.
-  have -> :
-  (last 0 (nth ([], []) result0 0).`1 + last 0 (nth ([], []) result0 1).`1 +
-  last 0 (nth ([], []) result0 2).`1) =
-  foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 result0.
-  smt(size_behead size_ge0).
-  smt().
-  simplify.
-  have ->:
-(let (v1, k1) = nth ([], []) result0 0 in
- let (v2, k2) = nth ([], []) result0 1 in
- foldr
-   (fun (i : int) (acc : bool) =>
-      acc /\
-      nth 0 v1 (i + 1) =
-      phi_decomp (nth (ADDC (0, 0)) c{2} i) i 1 v1 v2 k1 k2) true
-   (range 0 (size v1 - 1))).
-  progress.
-  rewrite valid_view_fold.
-  progress.
-  smt(size_ge0).
+(* lemma verifiability c' x' rs' e' &m: *)
+(*     valid_circuit c' => *)
+(*     Pr[Verifiability(Phi).main(c', x', rs', e') @ &m : res] = 1%r. *)
+(* proof. *)
+(*   move=> Cvalid. *)
+(*   have <- := verifiability_local c' x' e' &m Cvalid. *)
+(*   byequiv=>//. *)
+(*   proc. *)
+(*   inline Phi.verify. auto. *)
+(*   while *)
+(*   ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} + *)
+(*       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) = *)
+(*     (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{2} + *)
+(*       foldr (fun (w : share) (acc : int) => acc + w) 0 shares{2}) *)
+(*     /\ *)
+(*     ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} + *)
+(*        foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) = *)
+(*       eval_circuit c' x') *)
+(*     /\ *)
+(*     ( (foldr (fun (w : view) (acc : int) => acc + last 0 w.`1) 0 vs{1} + *)
+(*        foldr (fun (w : share) (acc : int) => acc + w) 0 shares{1}) = *)
+(*       eval_circuit c' x') *)
+(*     /\ ={c, x} /\ size vs{1} = size vs{2} /\ size shares{1} = size shares{2}). *)
+(*   auto. smt(size_behead). *)
+(*   auto. *)
+(*   have Hdecomp := decomp_correct c' x'. *)
+(*   have Hdecompl := decomp_local_correct c' x'. *)
+(*   call{1} Hdecomp. call{2} Hdecompl. clear Hdecomp Hdecompl. *)
+(*   rewrite /valid_view_op /f. *)
+(*   simplify. skip. *)
+(*   progress. *)
 
-  smt(valid_view_fold size_ge0).
-
-  smt().
-  admit.
-  search size.
-  smt(size_ge0).
-
-equiv decomp_local_eq:
-
-equiv correctness_correctness_local:
-   Correctness(Phi).main ~ Correctness_local.main : ={c, x} ==> ={res}.
+lemma correctness_correctness_local:
+   equiv[Correctness(Phi).main ~ Correctness_local.main : ={c, x} ==> ={res}].
 proof.
    proc.
    seq 1 1 :
