@@ -24,8 +24,8 @@ module type Committer = {
 module Correctness(C : Committer) = {
   proc main(m : message) : bool = {
     var c, b;
-    c   = C.commit(m);
-    b        = verify m c;
+    c <- C.commit(m);
+    b <- verify m c;
     return b;
   }
 }.
@@ -33,16 +33,16 @@ module Correctness(C : Committer) = {
 module BindingGame(C : Committer) = {
   proc main(c : commitment, m1 m2 : message) = {
     var v1, v2;
-    v1 = verify m1 c;
-    v2 = verify m2 c;
+    v1 <- verify m1 c;
+    v2 <- verify m2 c;
     return v1 /\ v2 /\ (m1 = m2);
   }
 
   proc bind_three(c1, c2, c3, m1 m1' m2 m2' m3 m3' : message) = {
     var v1, v2, v3;
-    v1 = main(c1, m1, m1');
-    v2 = main(c2, m2, m2');
-    v3 = main(c3, m3, m3');
+    v1 <- main(c1, m1, m1');
+    v2 <- main(c2, m2, m2');
+    v3 <- main(c3, m3, m3');
     return v1 /\ v2 /\ v3;
   }
 }.

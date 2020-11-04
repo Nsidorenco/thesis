@@ -52,15 +52,17 @@ clone import MPC as MPC' with
   type random <- random,
   type verification_input <- verification_input,
   op n = 3,
+  op d = 2,
   op circuit_eval = eval_circuit,
   op output (v : view) = last 0 (fst v),
   op reconstruct (ss : share list) = (foldr (fun (s : share) (acc : int), acc + s) 0 ss),
   op f (vs : view list, e : int) =
-    let v1 = (nth ([],[]) vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
-    let v2 = (nth ([],[]) vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
-    let y1 = last 0 (fst (nth ([], []) vs 0)) in
-    let y2 = last 0 (fst (nth ([], []) vs 1)) in
-    let y3 = last 0 (fst (nth ([], []) vs 2)) in ([v1; v2], y1, y2, y3),
+    let v1 = (nth witness vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
+    let v2 = (nth witness vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
+    let y1 = last 0 (fst (nth witness vs 0)) in
+    let y2 = last 0 (fst (nth witness vs 1)) in
+    let y3 = last 0 (fst (nth witness vs 2)) in ([v1; v2], y1, y2, y3),
+  op f_inv = (fun x => let (vs, o1, o2, o3) = x in vs),
   op drandom = dlist dinput 3
   proof *.
   realize drandom_llfuni. split.
@@ -69,6 +71,20 @@ clone import MPC as MPC' with
       - rewrite /drandom.
         admitted.
         (* apply is_full_funiform. *)
+  realize f_inv_correct.
+      progress.
+      rewrite /f_inv /f /d /nth_looping.
+      progress.
+      have : i < 2. smt(). clear H0 => H0.
+      case (e = 0).
+      case (i = 0). progress.
+      case (0 < size vs). progress.
+      case (i = 0). progress.
+      case (e + i = 0). progress.
+      rewrite H2.
+      rewrite /nth_looping. smt().
+      case (e = 2).
+      progress.
 
 op phi_decomp (g : gate, idx, p : int, w1 w2 : int list, k1 k2 : int list) : output =
 with g = ADDC inputs =>
@@ -1743,7 +1759,7 @@ proof.
   auto; smt().
 qed.
 
-module Privacy = {
+module Privacy' = {
   proc real(h : input, c : circuit, e : int, rs : random list) = {
     var w1, w2, w3, y1, y2, y3, ret, vs, vs';
     vs = Phi.decomp(c, h, rs);

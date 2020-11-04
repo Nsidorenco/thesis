@@ -13,19 +13,36 @@ type verification_input.
 type circuit = gate list.
 type view = share list * random.
 
+op challenge : int distr.
 op output (v : view) : share.
 op reconstruct (ss : share list) : output.
 op circuit_eval (c : circuit) (x : input) : output.
 op f (vs : view list, e : int) : verification_input.
+op f_inv (vs : verification_input) : view list.
 
 const n : int.
+const d : int.
+
+axiom n_pos : 0 < n.
+axiom d_pos : 0 < d.
+axiom e_size e : e \in challenge => e + d <= n.
+
+op nth_looping (vs : 'a list) (i : int) =
+  if (i < size vs) then nth witness vs i
+  else nth witness vs (i - (size vs)).
+
+axiom f_inv_correct vs e:
+  forall i, 0 <= i < d => nth_looping vs (e+i) = nth_looping (f_inv (f vs e)) i.
+
+axiom f_inv_size vs e: size(f_inv (f vs e)) = min (size vs) d.
 
 (* random seed distribution *)
 op drandom : {random distr | is_lossless drandom /\ is_funiform drandom} as drandom_llfuni.
 
 module type Phi = {
+  proc sample_tapes(n : int) : random list
   proc decomp(c : circuit, x : input, rs : random list) : view list
-  proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool
+  proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool {}
   proc simulator(c : circuit, y : output, e : int) : view list * output * verification_input
   proc extractor(vs : verification_input list) : input option
 }.
@@ -43,6 +60,21 @@ module Correctness(D : Phi) = {
     }
     y <- reconstruct(shares);
     return (circuit_eval c x) = y;
+  }
+}.
+
+module Privacy(D : Phi) = {
+  proc real(c, x, e) = {
+    var rs, vs;
+    rs <- D.sample_tapes(size c);
+    vs <- D.decomp(c, x, rs);
+    return (f vs e);
+  }
+
+  proc ideal(c, y, e) = {
+    var vs;
+    vs <- D.simulator(c, y, e);
+    return vs;
   }
 }.
 
