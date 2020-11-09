@@ -44,6 +44,9 @@ clone export SigmaProtocols as Sigma with
       apply dinter_uni.
   qed.
 
+op in_dom_f n (e : challenge) i =
+  if (e + d) < n then i \in [e..e+d] else i \in [e..n] \/ i \in [0..d-(n - e)].
+
 module ZKBoo(C : Committer, D : Phi) : SProtocol = {
   var ws : view list
 
@@ -76,10 +79,12 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     ws <- f_inv z;
     i <- 0;
     valid_com <- true;
-    while (i < size ws) {
-      view <- nth witness ws i;
-      com <- nth witness cs (e+i);
-      valid_com <- valid_com /\ (verify view com);
+    while (i < size cs) {
+      if (in_dom_f (size cs) e i) {
+        view <- nth witness ws (e+i);
+        com <- nth witness cs i;
+        valid_com <- valid_com /\ (verify view com);
+      }
       i <- i + 1;
     }
     valid <- D.verify(c, z, e, y);
@@ -139,12 +144,11 @@ axiom bind_three_equiv c1 c2 c3 a1 a1' a2 a2' a3 a3' &m:
 
 
 local module Com_Inter = {
+  module Corr = Correctness(Com)
   var ws : view list
-  var ws' : view list
-  var cs : commitment list
 
   proc decomposition(c, w, e, y) = {
-    var ks, z, valid;
+    var ks, z, valid, ws';
     ks <- Decomp.sample_tapes(size c);
     ws <- Decomp.decomp(c, w, ks);
 
@@ -155,9 +159,16 @@ local module Com_Inter = {
     return valid;
   }
 
-  proc com(ws) = {
-    var ys, i, ctmp, ytmp;
+  proc commitment(ws, e : challenge) = {
+    var z, ws';
+    var ys, i, ctmp, ytmp, cs;
+    var valid_com, view, c;
+
+    z <-  f ws e;
+    ws' <- f_inv z;
+    valid_com <- true;
     ys <- [];
+    cs <- [];
     i <- 0;
     while (i < size ws) {
       ctmp <- Com.commit(nth witness ws i);
@@ -166,76 +177,118 @@ local module Com_Inter = {
       ys <- rcons ys ytmp;
       i <- i + 1;
     }
-  }
-
-  proc ver(ws' e) = {
-    var valid_com, i, view, c;
-    valid_com <- true;
     i <- 0;
-    while (i < size ws') {
-      view <- nth witness ws' i;
-      c <- nth witness cs (e+i);
-      valid_com <- valid_com /\ (verify view c);
+    while (i < size ws) {
+      if (in_dom_f (size ws) e i) {
+        view <- nth witness ws' (e+i);
+        c <- nth witness cs i;
+        valid_com <- valid_com /\ (verify view c);
+      }
       i <- i + 1;
     }
     return valid_com;
   }
 
-  proc commitment(ws : view list, e : challenge) = {
-    var z, ws', v;
-    com(ws);
+  proc commitment_combined(ws, e : challenge) = {
+    var z, ws', c;
+    var ys, i, ctmp, ytmp;
+    var valid_com, view, cs;
+
     z <-  f ws e;
     ws' <- f_inv z;
-    v <- ver(ws', e);
-    return v;
+    valid_com <- true;
+    ys <- [];
+    cs <- [];
+    i <- 0;
+    while (i < size ws) {
+      if (in_dom_f (size ws) e i) {
+        ctmp <- Com.commit(nth witness ws i);
+        ytmp <- output(nth witness ws i);
+        cs <- rcons cs ctmp;
+        ys <- rcons ys ytmp;
+        view <- nth witness ws' (e+i);
+        c <- nth witness cs i;
+        valid_com <- valid_com /\ (verify view c);
+      } else {
+        ctmp <- Com.commit(nth witness ws i);
+        ytmp <- output(nth witness ws i);
+        cs <- rcons cs ctmp;
+        ys <- rcons ys ytmp;
+      }
+
+      i <- i + 1;
+    }
+    return valid_com;
   }
 
-  proc commitment_stepped(w, l, e) = {
-    var v; 
-    var valid_com, view, c;
-    var ctmp, ytmp, z, ws';
-    ctmp <- Com.commit(w);
-    ytmp <- output(w);
-    cs <- [ctmp];
+  proc commitment_combined_fixed(ws, e : challenge) = {
+    var z, ws';
+    var ys, i, ctmp, ytmp;
+    var valid_com, view, cs;
 
-    z <-  f (rcons l w) e;
+    z <-  f ws e;
     ws' <- f_inv z;
-
     valid_com <- true;
-    if (f_inv (f (rcons l w) e) <> f_inv (f l e)) {
-      view <- last witness ws';
-      c <- nth_looping cs (e + (size l));
-      valid_com <- valid_com /\ (verify view c);
-    }
+    ys <- [];
+    cs <- [];
+    i <- 0;
+    while (i < size ws) {
+      if (in_dom_f (size ws) e i) {
+        ctmp <- Com.commit(nth witness ws i);
+        ytmp <- output(nth witness ws i);
+        cs <- rcons cs ctmp;
+        ys <- rcons ys ytmp;
+        view <- nth witness ws' (e+i);
+        valid_com <- valid_com /\ (verify view ctmp);
+      } else {
+        ctmp <- Com.commit(nth witness ws i);
+        ytmp <- output(nth witness ws i);
+        cs <- rcons cs ctmp;
+        ys <- rcons ys ytmp;
+      }
 
-    v <- commitment(l, e);
-    return v /\ valid_com;
+      i <- i + 1;
+    }
+    return valid_com;
+  }
+
+
+  proc commitment_game(ws, e : challenge) = {
+    var z, ws', b;
+    var valid_com, i;
+
+    z <-  f ws e;
+    ws' <- f_inv z;
+    valid_com <- true;
+    i <- 0;
+    while (i < size ws) {
+      if (in_dom_f (size ws) e i) {
+        b <- Corr.main(nth witness ws i);
+        valid_com <- valid_com /\ b;
+      } else {
+        Com.commit(nth witness ws i);
+      }
+      i <- i + 1;
+    }
+    return valid_com;
   }
 
   proc main(h : statement, w : witness, e : challenge) = {
     var valid_com, valid, c, y;
     (c, y) <- h;
-    cs <- [];
     valid <- decomposition(c, w, e, y);
     valid_com <- commitment(ws, e);
     return valid_com /\ valid;
   }
 }.
 
-lemma in_dom (a b x : int):
-    a < b /\ b < x =>
-    x \notin [a..b].
-proof.
-  progress. smt.
-qed.
-
 local equiv com_inter:
   Com_Inter.main ~ Completeness(ZKBoo(Com, Decomp)).special : ={h, w, e, glob Decomp, glob Com} ==> ={res}.
 proof.
   proc.
   inline ZKBoo(Com, Decomp).init ZKBoo(Com, Decomp).response ZKBoo(Com, Decomp).verify.
-  inline Com_Inter.decomposition Com_Inter.commitment Com_Inter.com Com_Inter.ver.
-  auto.
+  inline Com_Inter.decomposition Com_Inter.commitment.
+  auto. 
   swap{2} 26 -5.
   auto.
   swap{2} 10 2.
@@ -245,114 +298,253 @@ proof.
   auto.
   sim.
   auto.
-  while (ZKBoo.ws{2} = ws0{1} /\ Com_Inter.cs{1} = cs{2} /\ ={i, ys, glob Com}). auto.
-  call (:true). auto. 
+  while (ws{2} = ws'0{1} /\ size cs0{2} = size ws{1} /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ ={ys, e1, glob Com}). auto.
+  - smt().
+  auto.
+  while (={i, ys, glob Com} /\ cs{1} = cs{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ size cs{2} <= size ZKBoo.ws{2}); auto.
+  - call(:true). auto.
+    smt(size_ge0 size_rcons).
   auto.
   call (:true); auto.
-  call (:true).
-  call (:true).
-  auto.
+  call (:true); auto.
+  call (:true); auto.
+  smt(size_ge0).
 qed.
+
+lemma foldr_and b s (ws : view list) e (cs : commitment list) (ws' : view list):
+    foldr
+    (fun (i, acc) =>
+      if in_dom_f (size ws) e i then
+      acc /\
+      verify (nth witness ws' (e + i)) (nth witness cs i)
+    else acc) b s = 
+    (foldr
+    (fun (i, acc) =>
+      if in_dom_f (size ws) e i then
+      acc /\
+      verify (nth witness ws' (e + i)) (nth witness cs i)
+    else acc) true s /\ b).
+proof.
+  elim s; progress.
+
+  (* Inductive case *)
+  smt.
+qed.
+
+lemma foldr_rcons (ws : view list) b e (ws' : view list) (cs : commitment list) x :
+  foldr
+    (fun (i : int) (acc : bool) =>
+      if in_dom_f (size ws) e i then
+        acc /\ verify (nth witness ws' (e + i)) (nth witness cs i)
+      else acc) b
+    (range 0 (size cs)) =
+  foldr
+    (fun (i : int) (acc : bool) =>
+      if in_dom_f (size ws) e i then
+        acc /\
+        verify (nth witness ws' (e + i))
+          (nth witness (rcons cs x) i)
+      else acc) b
+    (range 0 (size cs)).
+proof.
+  congr.
+  have := contra.
+  progress.
+admitted.
+  
 
 local lemma commitment_correct:
     phoare[Com_Inter.commitment : e \in dchallenge ==> res] = 1%r.
 proof.
-  (* bypr=> &m' e_dom. *)
-  (* byphoare(:e \in dchallenge==>)=>//. *)
-  exists* ws; elim*=>ws.
-  elim ws; progress.
-  proc.
-  (* Base Case*)
-  inline Com_Inter.com Com_Inter.ver.
-  wp. rcondf 4. auto.
-      rcondf 10. auto. progress. smt(f_inv_size).
-      auto.
-  (* (* while (valid_com = true /\ ws'0 = [] /\ size Com_Inter.cs = min (size ws) d /\ 0 <= i0) (0). *) *)
-  (* auto. progress. smt(). *)
-  (* auto. rcondf 4; auto.  *)
-  (* progress; smt(d_pos f_inv_correct f_inv_size size_eq0). *)
-  (* Inductive Case *)
-  bypr=> &m [ws_rel e_dom].
-  have -> : Pr[Com_Inter.commitment(ws{m}, e{m}) @ &m : res] = 
-            Pr[Com_Inter.commitment_stepped(x, l, e{m}) @ &m : res].
+  bypr=> &m pre.
+  have -> : Pr[Com_Inter.commitment(ws{m}, e{m}) @ &m : res]
+          = Pr[Com_Inter.commitment_combined(ws{m}, e{m}) @ &m : res].
   - byequiv=>//.
     proc.
-    inline Com_Inter.commitment Com_Inter.com Com_Inter.ver.
     auto.
-    splitwhile{1} 5 : (i < size ws0 - 1).
-    swap{2} 17 -9.
-    rcondt{1} 6; auto.
-    - while (i < size ws0); auto.
-      call (:true); skip.
-      progress. smt().
-      progress. smt(size_rcons size_ge0).
-    rcondf{1} 11; auto.
-    - call (:true).
-      while (i < size ws0); auto.
-      call (:true); skip.
-      progress. smt().
-      progress; smt(size_rcons size_ge0).
-    (* splitwhile{1} 13 : (i0 < e + d). *)
-    (* splitwhile{1} 14 : (i0 < e + d + 1). *)
-    case (f_inv (f (rcons s x) e{1}) = f_inv (f s e{1})).
-    while (ws'0{1} = ws'1{2} /\ ={i0} /\ valid_com{1} = valid_com0{2}).
-    - auto. progress. admit.
-    auto. 
-    call (:true).
-    while (={i, Com_Inter.cs, glob Com} /\ ws0{1} = rcons ws0{2} x /\ i{1} < size ws0{1}).
-    - auto.
-      call (:true); auto.
-      smt(nth_rcons size_rcons size_ge0).
-    auto. smt(nth_rcons size_rcons size_ge0).
-    splitwhile{1} 17 : (i0 < size ws'0 - 1).
-    rcondt{1} 18. auto.
-    - while (i0 < size ws'0); auto. progress. smt().
-      call (:true).
-      while (i < size ws0 /\ size Com_Inter.cs = i); auto. call(:true). auto.
-      + progress. smt(size_rcons size_ge0).
-        smt(size_rcons size_ge0).
-      smt(size_rcons size_ge0 f_inv_size).
-    rcondf{1} 22; auto.
-    - while (i0 < size ws'0); auto. progress. smt().
-      call (:true).
-      while (i < size ws0 /\ size Com_Inter.cs = i); auto. call(:true). auto.
-      + progress. smt(size_rcons size_ge0).
-        smt(size_rcons size_ge0).
-      smt(size_rcons size_ge0 f_inv_size).
-    while (={i0} /\ ws'0{1} = rcons ws'1{2} x /\ valid_com{1} = valid_com0{2} /\ Com_Inter.cs{1} = rcons Com_Inter.cs{2} ctmp{2}).
-    - auto. progress.
-      + congr. congr. smt(nth_rcons).
-      + admit.
-      + smt(size_rcons size_ge0).
-      + smt(size_rcons size_ge0).
-      + smt(size_rcons size_ge0).
+    while{1} (cs{1} = cs{2} /\ ws'{1} = ws'{2} /\ 0 <= i{1} /\ i{1} <= size ws{1} /\
+              valid_com{1} = foldr (fun (i, acc) => if (in_dom_f (size ws{1}) e{1} i) then acc /\ verify (nth witness ws'{1} (e{1} + i)) (nth witness cs{1} i) else acc) true (range 0 i{1}))
+             (size ws{1} - i{1}).
+    - progress.
+      auto. progress. smt(). smt().
+      rewrite rangeSr. smt().
+      rewrite - cats1.
+      rewrite foldr_cat.
+      have -> : (foldr (fun (i : int) (acc : bool) =>
+              if in_dom_f (size ws{hr}) e{hr} i then
+                acc /\
+                verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
+              else acc) true [i{hr}]) = verify (nth witness ws'{m0} (e{hr} + i{hr})) (nth witness cs{m0} i{hr}).
+      smt().
+      by rewrite - foldr_and.
+      smt().
+      smt().
+      smt().
+      rewrite rangeSr. smt().
+      rewrite - cats1.
+      rewrite foldr_cat.
+      have -> : (foldr (fun (i : int) (acc : bool) =>
+              if in_dom_f (size ws{hr}) e{hr} i then
+                acc /\
+                verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
+              else acc) true [i{hr}]) = true.
+      smt().
+      trivial.
+      smt().
     auto.
-    call (:true).
-    while (={i, Com_Inter.cs, glob Com} /\ ws0{1} = rcons ws0{2} x /\ i{1} < size ws0{1}).
-    - auto.
-      call (:true); auto.
-      smt(nth_rcons size_rcons size_ge0).
-    auto. progress.
-    smt(size_rcons size_ge0 f_inv_size).
-    smt(size_rcons size_ge0 f_inv_size).
-    smt(size_rcons size_ge0 f_inv_size).
-    smt(size_rcons size_ge0 f_inv_size).
-    smt(size_rcons size_ge0 f_inv_size).
-    smt.
-    admit.
-    smt(size_rcons size_ge0 f_inv_size).
-    smt(size_rcons size_ge0 f_inv_size).
-    admit.
-    admit.
-    smt(size_rcons size_ge0 f_inv_size).
+    while (={cs, ys, e, i, ws, glob Com} /\ 0 <= i{1} /\ size cs{1} = i{1} /\ i{1} <= size ws{1} /\
+           valid_com{2} = foldr (fun (i, acc) => if (in_dom_f (size ws{2}) e{2} i) then acc /\ verify (nth witness ws'{2} (e{2} + i)) (nth witness cs{2} i) else acc) true (range 0 i{2})).
+    - if{2}; auto; call (:true).
+      skip; progress.
+      smt(). 
+      smt(size_rcons).
+      smt(size_rcons).
+      have -> : (range 0 (size cs{2} + 1)) = (range 0 (size cs{2})) ++ [size cs{2}]. smt(rangeSr cats1).
+      rewrite foldr_cat.
+      have -> :
+      (foldr
+        (fun (i : int) (acc : bool) =>
+            if in_dom_f (size ws{2}) e{2} i then
+              acc /\
+              verify (nth witness ws'{2} (e{2} + i))
+                (nth witness (rcons cs{2} result_R) i)
+            else acc) true [size cs{2}]) =
+      verify (nth witness ws'{2} (e{2} + size cs{2}))
+        (nth witness (rcons cs{2} result_R) (size cs{2})).
+      smt().
+      rewrite - foldr_and.
+      rewrite !nth_rcons. simplify.
+      (* TODO: tomorrow. *)
+      (* Reason about i inside foldr: *)
+      (* if range < n, then we should be able to use nth_rcons inside foldr *)
+      admit.
+      skip; progress.
+      smt().
+      smt(size_rcons).
+      smt(size_rcons).
+      admit.
+      auto.
+      progress.
+      smt(size_ge0).
+      smt.
+      smt(size_ge0).
+      smt.
+      smt().
+      smt().
 
-    byphoare(: w = x /\ l = s /\ e = e{m} ==> )=>//.
+  have -> : Pr[Com_Inter.commitment_combined(ws{m}, e{m}) @ &m : res]
+          = Pr[Com_Inter.commitment_combined_fixed(ws{m}, e{m}) @ &m : res].
+  - byequiv=>//.
     proc.
-    auto. call (:true). admit.
-    call H. auto.
-    progress.
-    admit.
+    sp. auto.
+    inline Com_Inter.Corr.main.
+    sim.
+    while(={ws, ws', cs, ys, valid_com, glob Com, i, e} /\ i{1} = size cs{1}).
+    if. smt.
+    - auto.
+      call (:true).
+      skip; progress.
+      congr. by rewrite nth_rcons.
+      by rewrite size_rcons.
+    - auto.
+      call (:true).
+      skip; progress.
+      by rewrite size_rcons.
+    skip; progress.
+
+  have -> : Pr[Com_Inter.commitment_combined_fixed(ws{m}, e{m}) @ &m : res]
+          = Pr[Com_Inter.commitment_game(ws{m}, e{m}) @ &m : res].
+  - byequiv=>//.
+    proc.
+    sp. auto.
+    inline Com_Inter.Corr.main.
+    sim.
+    while(={ws, ws', e, i, glob Com, valid_com}).
+    if. smt().
+    - auto.
+      call (:true).
+      wp; skip; progress.
+      smt.
+    - auto.
+      call (:true).
+      skip; progress.
+    skip; progress.
+
+  byphoare(: ws = ws{m} /\ e = e{m} ==> )=>//; proc.
+  sp.
+  while (valid_com = true) (size ws - i).
+  - progress.
+    if.
+    + auto.
+      call Com_correct.
+      skip; smt().
+    + auto.
+      call Com_ll.
+      skip; smt().
+    skip; smt().
+qed.
     
+local equiv com_inter:
+  Com_Inter.main ~ Completeness(ZKBoo(Com, Decomp)).special : ={h, w, e, glob Decomp, glob Com} ==> ={res}.
+proof.
+  proc.
+  inline ZKBoo(Com, Decomp).init ZKBoo(Com, Decomp).response ZKBoo(Com, Decomp).verify.
+  inline Com_Inter.decomposition Com_Inter.commitment.
+  auto. 
+  swap{2} 26 -5.
+  auto.
+  swap{2} 10 2.
+  swap{2} [12..13] 3.
+  swap{2} [15..17] 4.
+  swap{2} [12..18] -5.
+  auto.
+  sim.
+  auto.
+  unroll{2} 16.
+  unroll{2} 27.
+  swap{2} 6 2.
+  sp.
+  seq 2 2 : (#pre /\ ={ws}(Com_Inter, ZKBoo)).
+  - call(:true); auto.
+    call(:true); auto.
+  case (0 < size Com_Inter.ws{1}).
+  while (ws{2} = ws'0{1} /\ nth witness cs{2} 0 = c10{1} /\ size cs0{2} = size ws{1} /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ ={ys, e1, glob Com}). auto.
+  - smt().
+  auto. 
+  while (={i, ys, glob Com} /\ cs{1} = cs{2} /\ nth witness cs{2} 0 = c10{1} /\ ws{1} = ZKBoo.ws{2} /\ 0 < i{1} /\ size cs{2} = i{2} /\ size cs{2} <= size ZKBoo.ws{2}); auto.
+  - call (:true). auto. 
+    smt(size_rcons).
+  auto. 
+  sp.
+  seq 1 1 : (#pre /\ valid0{1} = valid{2}).
+  - call(:true); auto.
+  sp.
+  rcondt{1} 1; auto.
+  rcondt{2} 1; auto.
+  call(:true); auto.
+  smt(size_ge0).
+
+  (* Case: Empty list*)
+  rcondf{2} 11; auto.
+  - call (:true); auto.
+  rcondf{1} 12; auto.
+  - call (:true); auto.
+  rcondf{1} 13; auto.
+  - call (:true); auto.
+    smt(size_ge0).
+  rcondf{2} 11; auto.
+  - call (:true); auto.
+  rcondf{1} 14; auto.
+  - call (:true); auto.
+    smt(size_ge0).
+  rcondf{2} 20; auto.
+  - call (:true); auto.
+  rcondf{2} 20; auto.
+  - call (:true); auto.
+  call(:true). auto.
+qed.
+
+
 axiom Decomp_verifiability :
   phoare[Verifiability(Decomp).main : true ==> res] = 1%r.
 
