@@ -43,58 +43,66 @@ module type Phi = {
   proc sample_tapes(n : int) : random list
   proc decomp(c : circuit, x : input, rs : random list) : view list
   proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool {}
-  proc simulator(c : circuit, y : output, e : int) : view list * output * verification_input
+  proc simulator(c : circuit, y : output, e : int) : verification_input * share list
   proc extractor(vs : verification_input list) : input option
 }.
 
-module Correctness(D : Phi) = {
-  proc main(c, x) = {
-    var vs, shares, v, y, rs;
-    rs <$ dlist drandom n;
-    vs <- D.decomp(c, x, rs);
-    shares <- [];
-    while (vs <> []) {
-      v <- oget(ohead vs);
-      shares <- (output v)::shares;
-      vs <- behead vs;
-    }
-    y <- reconstruct(shares);
-    return (circuit_eval c x) = y;
-  }
-}.
+(* module Correctness(D : Phi) = { *)
+(*   proc main(c, x) = { *)
+(*     var vs, shares, v, y, rs, i; *)
+(*     rs <$ dlist drandom n; *)
+(*     vs <- D.decomp(c, x, rs); *)
+(*     shares <- []; *)
+(*     i <- 0; *)
+(*     while (i < size vs) { *)
+(*       v <- nth witness vs i; *)
+(*       shares <- rcons shares (output v); *)
+(*       i <- i + 1; *)
+(*     } *)
+(*     y <- reconstruct(shares); *)
+(*     return (circuit_eval c x) = y; *)
+(*   } *)
+(* }. *)
 
 module Privacy(D : Phi) = {
   proc real(c, x, e) = {
-    var rs, vs;
+    var rs, vs, ys, i;
     rs <- D.sample_tapes(size c);
     vs <- D.decomp(c, x, rs);
-    return (f vs e);
+    ys <- [];
+    i <- 0;
+    while (i < n) {
+      ys <- rcons ys (output (nth witness vs i));
+      i <- i + 1;
+    }
+    return ((f vs e), ys);
   }
 
   proc ideal(c, y, e) = {
-    var vs;
-    vs <- D.simulator(c, y, e);
-    return vs;
+    var vs, ys;
+    (vs, ys) <- D.simulator(c, y, e);
+    return (vs, ys);
   }
 }.
 
 module Verifiability(D : Phi) = {
-  proc main(c, x, e) = {
-    var vs, validity, vs', shares, y, v, vs_copy, rs;
-    rs <$ dlist drandom n;
-    vs <- D.decomp(c, x, rs);
-    vs_copy <- vs;
-    shares <- [];
-    while (vs <> []) {
-      v <- oget(ohead vs);
-      shares <- (output v)::shares;
-      vs <- behead vs;
+  proc main(c, w, e) = {
+    var vs, valid, vs', ys, y, v, rs, y', i;
+    rs <- D.sample_tapes(size c);
+    vs <- D.decomp(c, w, rs);
+    ys <- [];
+    i <- 0;
+    while (i < n) {
+      v <- nth witness vs i;
+      ys <- rcons ys (output v);
+      i <- i + 1;
     }
-    y <- reconstruct(shares);
-    vs' <- f vs_copy e;
-    validity <- D.verify(c, vs', e, y);
+    y <- reconstruct(ys);
+    y' <- circuit_eval c w;
+    vs' <- f vs e;
+    valid <- D.verify(c, vs', e, y);
 
-    return validity;
+    return valid /\ y = y';
   }
 }.
 

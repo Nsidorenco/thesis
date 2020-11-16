@@ -58,11 +58,11 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     cs <- [];
     ys <- [];
     i <- 0;
-    while (i < size ws) {
-      ctmp <- C.commit(nth witness ws i);
+    while (i < n) {
       ytmp <- output(nth witness ws i);
-      cs <- rcons cs ctmp;
       ys <- rcons ys ytmp;
+      ctmp <- C.commit(nth witness ws i);
+      cs <- rcons cs ctmp;
       i <- i + 1;
     }
     return (ys, cs);
@@ -79,8 +79,8 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     ws <- f_inv z;
     i <- 0;
     valid_com <- true;
-    while (i < size cs) {
-      if (in_dom_f (size cs) e i) {
+    while (i < n) {
+      if (in_dom_f n e i) {
         view <- nth witness ws (e+i);
         com <- nth witness cs i;
         valid_com <- valid_com /\ (verify view com);
@@ -89,7 +89,7 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     }
     valid <- D.verify(c, z, e, y);
 
-    return valid_com /\ valid;
+    return valid_com /\ valid /\ reconstruct ys = y;
 
   }
 
@@ -101,17 +101,21 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
   }
 
   proc simulator(h : statement, e : challenge) = {
-    var c, y, yn, vs, ys, cs, vs', ctmp, ytmp, i, a;
+    var c, y, ys, vs, cs, vs', ctmp, i, a;
     (c, y) <- h;
-    (vs, yn, vs') <- D.simulator(c, y, e);
+    (vs', ys) <- D.simulator(c, y, e);
+    vs <- f_inv vs';
     cs <- [];
-    ys <- [];
     i <- 0;
-    while (i < size vs) {
-      ctmp <- C.commit(nth witness vs i);
-      ytmp <- output(nth witness vs i);
-      cs <- rcons cs ctmp;
-      ys <- rcons ys ytmp;
+    while (i < n) {
+      if (in_dom_f n e i) {
+        ctmp <- C.commit(nth witness vs (e-i));
+        cs <- rcons cs ctmp;
+      } else{
+        ctmp <- C.commit(witness);
+        cs <- rcons cs ctmp;
+      }
+      i <- i + 1;
     }
     a <- (ys, cs);
 
@@ -142,44 +146,48 @@ axiom Com_ll: islossless Com.commit.
 axiom bind_three_equiv c1 c2 c3 a1 a1' a2 a2' a3 a3' &m:
     Pr[BindingGame(Com).bind_three(c1, c2, c3, a1, a1', a2, a2', a3, a3') @ &m : ! res] = binding_prob.
 
-
 local module Com_Inter = {
   module Corr = Correctness(Com)
   var ws : view list
 
   proc decomposition(c, w, e, y) = {
-    var ks, z, valid, ws';
+    var ks, z, valid, ws', ys, i, ytmp;
     ks <- Decomp.sample_tapes(size c);
     ws <- Decomp.decomp(c, w, ks);
 
     z <-  f ws e;
     ws' <- f_inv z;
 
+    ys <- [];
+    i <- 0;
+    while (i < n) {
+      ytmp <- output(nth witness ws i);
+      ys <- rcons ys ytmp;
+      i <- i + 1;
+    }
+
     valid <- Decomp.verify(c, z, e, y);
-    return valid;
+    return valid /\ reconstruct ys = y;
   }
 
-  proc commitment(ws, e : challenge) = {
+  proc commitment(ws : view list, e : challenge) = {
     var z, ws';
-    var ys, i, ctmp, ytmp, cs;
+    var ctmp, cs, i;
     var valid_com, view, c;
 
     z <-  f ws e;
     ws' <- f_inv z;
     valid_com <- true;
-    ys <- [];
     cs <- [];
     i <- 0;
-    while (i < size ws) {
+    while (i < n) {
       ctmp <- Com.commit(nth witness ws i);
-      ytmp <- output(nth witness ws i);
       cs <- rcons cs ctmp;
-      ys <- rcons ys ytmp;
       i <- i + 1;
     }
     i <- 0;
-    while (i < size ws) {
-      if (in_dom_f (size ws) e i) {
+    while (i < n) {
+      if (in_dom_f n e i) {
         view <- nth witness ws' (e+i);
         c <- nth witness cs i;
         valid_com <- valid_com /\ (verify view c);
@@ -200,8 +208,8 @@ local module Com_Inter = {
     ys <- [];
     cs <- [];
     i <- 0;
-    while (i < size ws) {
-      if (in_dom_f (size ws) e i) {
+    while (i < n) {
+      if (in_dom_f n e i) {
         ctmp <- Com.commit(nth witness ws i);
         ytmp <- output(nth witness ws i);
         cs <- rcons cs ctmp;
@@ -232,8 +240,8 @@ local module Com_Inter = {
     ys <- [];
     cs <- [];
     i <- 0;
-    while (i < size ws) {
-      if (in_dom_f (size ws) e i) {
+    while (i < n) {
+      if (in_dom_f n e i) {
         ctmp <- Com.commit(nth witness ws i);
         ytmp <- output(nth witness ws i);
         cs <- rcons cs ctmp;
@@ -261,8 +269,8 @@ local module Com_Inter = {
     ws' <- f_inv z;
     valid_com <- true;
     i <- 0;
-    while (i < size ws) {
-      if (in_dom_f (size ws) e i) {
+    while (i < n) {
+      if (in_dom_f n e i) {
         b <- Corr.main(nth witness ws i);
         valid_com <- valid_com /\ b;
       } else {
@@ -296,31 +304,35 @@ proof.
   swap{2} [15..17] 4.
   swap{2} [12..18] -5.
   auto.
-  sim.
+  fission{2} 16 @ 2 , 4.
+  while (ws{2} = ws'0{1} /\ size cs0{2} = n /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i0{1} = i0{2} /\ ={ys, e1, glob Com}).
+  - auto.
   auto.
-  while (ws{2} = ws'0{1} /\ size cs0{2} = size ws{1} /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ ={ys, e1, glob Com}). auto.
-  - smt().
-  auto.
-  while (={i, ys, glob Com} /\ cs{1} = cs{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ size cs{2} <= size ZKBoo.ws{2}); auto.
+  while (={cs, glob Com} /\ i0{1} = i{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ i{2} <= n); auto.
   - call(:true). auto.
     smt(size_ge0 size_rcons).
   auto.
+  swap{2} 13 3.
+  call (:true); auto.
+  while (={i, ys} /\ ={ws}(Com_Inter, ZKBoo)). sim.
+  auto.
   call (:true); auto.
   call (:true); auto.
-  call (:true); auto.
+  progress.
+  smt(n_pos).
   smt(size_ge0).
 qed.
 
-lemma foldr_and b s (ws : view list) e (cs : commitment list) (ws' : view list):
+lemma foldr_and b s e (cs : commitment list) (ws' : view list) n:
     foldr
     (fun (i, acc) =>
-      if in_dom_f (size ws) e i then
+      if in_dom_f n e i then
       acc /\
       verify (nth witness ws' (e + i)) (nth witness cs i)
     else acc) b s = 
     (foldr
     (fun (i, acc) =>
-      if in_dom_f (size ws) e i then
+      if in_dom_f n e i then
       acc /\
       verify (nth witness ws' (e + i)) (nth witness cs i)
     else acc) true s /\ b).
@@ -362,16 +374,16 @@ proof.
   - byequiv=>//.
     proc.
     auto.
-    while{1} (cs{1} = cs{2} /\ ws'{1} = ws'{2} /\ 0 <= i{1} /\ i{1} <= size ws{1} /\
-              valid_com{1} = foldr (fun (i, acc) => if (in_dom_f (size ws{1}) e{1} i) then acc /\ verify (nth witness ws'{1} (e{1} + i)) (nth witness cs{1} i) else acc) true (range 0 i{1}))
-             (size ws{1} - i{1}).
+    while{1} (cs{1} = cs{2} /\ ws'{1} = ws'{2} /\ 0 <= i{1} /\ i{1} <= n /\
+              valid_com{1} = foldr (fun (i, acc) => if (in_dom_f n e{1} i) then acc /\ verify (nth witness ws'{1} (e{1} + i)) (nth witness cs{1} i) else acc) true (range 0 i{1}))
+             (n - i{1}).
     - progress.
       auto. progress. smt(). smt().
       rewrite rangeSr. smt().
       rewrite - cats1.
       rewrite foldr_cat.
       have -> : (foldr (fun (i : int) (acc : bool) =>
-              if in_dom_f (size ws{hr}) e{hr} i then
+              if in_dom_f n e{hr} i then
                 acc /\
                 verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
               else acc) true [i{hr}]) = verify (nth witness ws'{m0} (e{hr} + i{hr})) (nth witness cs{m0} i{hr}).
@@ -384,7 +396,7 @@ proof.
       rewrite - cats1.
       rewrite foldr_cat.
       have -> : (foldr (fun (i : int) (acc : bool) =>
-              if in_dom_f (size ws{hr}) e{hr} i then
+              if in_dom_f n e{hr} i then
                 acc /\
                 verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
               else acc) true [i{hr}]) = true.
@@ -392,8 +404,8 @@ proof.
       trivial.
       smt().
     auto.
-    while (={cs, ys, e, i, ws, glob Com} /\ 0 <= i{1} /\ size cs{1} = i{1} /\ i{1} <= size ws{1} /\
-           valid_com{2} = foldr (fun (i, acc) => if (in_dom_f (size ws{2}) e{2} i) then acc /\ verify (nth witness ws'{2} (e{2} + i)) (nth witness cs{2} i) else acc) true (range 0 i{2})).
+    while (={cs, e, i, ws, glob Com} /\ 0 <= i{1} /\ size cs{1} = i{1} /\ i{1} <= n /\
+           valid_com{2} = foldr (fun (i, acc) => if (in_dom_f n e{2} i) then acc /\ verify (nth witness ws'{2} (e{2} + i)) (nth witness cs{2} i) else acc) true (range 0 i{2})).
     - if{2}; auto; call (:true).
       skip; progress.
       smt(). 
@@ -404,7 +416,7 @@ proof.
       have -> :
       (foldr
         (fun (i : int) (acc : bool) =>
-            if in_dom_f (size ws{2}) e{2} i then
+            if in_dom_f n e{2} i then
               acc /\
               verify (nth witness ws'{2} (e{2} + i))
                 (nth witness (rcons cs{2} result_R) i)
@@ -425,7 +437,7 @@ proof.
       admit.
       auto.
       progress.
-      smt(size_ge0).
+      smt(n_pos).
       smt.
       smt(size_ge0).
       smt.
@@ -472,7 +484,7 @@ proof.
 
   byphoare(: ws = ws{m} /\ e = e{m} ==> )=>//; proc.
   sp.
-  while (valid_com = true) (size ws - i).
+  while (valid_com = true) (n - i).
   - progress.
     if.
     + auto.
@@ -483,316 +495,46 @@ proof.
       skip; smt().
     skip; smt().
 qed.
-    
-local equiv com_inter:
-  Com_Inter.main ~ Completeness(ZKBoo(Com, Decomp)).special : ={h, w, e, glob Decomp, glob Com} ==> ={res}.
-proof.
-  proc.
-  inline ZKBoo(Com, Decomp).init ZKBoo(Com, Decomp).response ZKBoo(Com, Decomp).verify.
-  inline Com_Inter.decomposition Com_Inter.commitment.
-  auto. 
-  swap{2} 26 -5.
-  auto.
-  swap{2} 10 2.
-  swap{2} [12..13] 3.
-  swap{2} [15..17] 4.
-  swap{2} [12..18] -5.
-  auto.
-  sim.
-  auto.
-  unroll{2} 16.
-  unroll{2} 27.
-  swap{2} 6 2.
-  sp.
-  seq 2 2 : (#pre /\ ={ws}(Com_Inter, ZKBoo)).
-  - call(:true); auto.
-    call(:true); auto.
-  case (0 < size Com_Inter.ws{1}).
-  while (ws{2} = ws'0{1} /\ nth witness cs{2} 0 = c10{1} /\ size cs0{2} = size ws{1} /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ ={ys, e1, glob Com}). auto.
-  - smt().
-  auto. 
-  while (={i, ys, glob Com} /\ cs{1} = cs{2} /\ nth witness cs{2} 0 = c10{1} /\ ws{1} = ZKBoo.ws{2} /\ 0 < i{1} /\ size cs{2} = i{2} /\ size cs{2} <= size ZKBoo.ws{2}); auto.
-  - call (:true). auto. 
-    smt(size_rcons).
-  auto. 
-  sp.
-  seq 1 1 : (#pre /\ valid0{1} = valid{2}).
-  - call(:true); auto.
-  sp.
-  rcondt{1} 1; auto.
-  rcondt{2} 1; auto.
-  call(:true); auto.
-  smt(size_ge0).
-
-  (* Case: Empty list*)
-  rcondf{2} 11; auto.
-  - call (:true); auto.
-  rcondf{1} 12; auto.
-  - call (:true); auto.
-  rcondf{1} 13; auto.
-  - call (:true); auto.
-    smt(size_ge0).
-  rcondf{2} 11; auto.
-  - call (:true); auto.
-  rcondf{1} 14; auto.
-  - call (:true); auto.
-    smt(size_ge0).
-  rcondf{2} 20; auto.
-  - call (:true); auto.
-  rcondf{2} 20; auto.
-  - call (:true); auto.
-  call(:true). auto.
-qed.
-
 
 axiom Decomp_verifiability :
   phoare[Verifiability(Decomp).main : true ==> res] = 1%r.
 
-lemma completeness:
-    phoare[Completeness(ZKBoo(Com,Decomp)).special : R h w ==> res] = 1%r.
+axiom Decomp_correctness c w y:
+  phoare[Decomp.decomp : R (c, y) w ==> R (c, reconstruct (map output res)) w] = 1%r.
+
+local lemma decomposition_correct :
+    phoare[Com_Inter.decomposition : R (c, y) w ==> res] = 1%r.
 proof.
+  bypr=> &m pre.
+  have -> : Pr[Com_Inter.decomposition(c{m}, w{m}, e{m}, y{m}) @ &m : res]
+          = Pr[Verifiability(Decomp).main(c{m}, w{m}, e{m}) @ &m : res].
+  - byequiv(: ={glob Decomp, c, e, w} /\ y{1} = circuit_eval c{2} w{2} ==>)=>//.
+    proc.
+    call (:true).
+    wp.
+    while (={i, ys} /\ Com_Inter.ws{1} = vs{2}); auto.
+    auto. 
+    call (:true).
+    auto.
+    call (:true).
+    auto. 
+admitted.
+
+lemma completeness:
+    phoare[Completeness(ZKBoo(Com,Decomp)).special : R h w /\ e \in dchallenge ==> res] = 1%r.
+proof.
+  bypr=> &m rel.
+  have <- : Pr[Com_Inter.main(h{m}, w{m}, e{m}) @ &m : res]
+          = Pr[Completeness(ZKBoo(Com, Decomp)).special(h{m}, w{m}, e{m}) @ &m : res].
+  - byequiv com_inter=>//.
+  byphoare(: h = h{m} /\ w = w{m} /\ e = e{m} ==>)=>//.
   proc.
-  inline Completeness(ZKBoo(Com, Decomp)).special.
-  inline ZKBoo(Com, Decomp).init ZKBoo(Com, Decomp).response ZKBoo(Com, Decomp).verify.
-  sp; auto.
-  swap 23 -5.
-  swap [6..10] 3.
-  swap [15..17] -6.
-  swap 16 -2.
-  swap 17 -2.
-  swap 18 -6.
-  (* Apply commitment game *)
-  (* Need intermediate that contains both while loops *)
-  (* Prove with induction on list of views that commit correctness => global correctness *)
-
-  
-  
-
-local module Intermediate = {
-  module ComCorrectness = Correctness(Com)
-  module DecompVer = Verifiability(Decomp)
-
-  proc main(h : statement, w : witness, e : challenge) = {
-    var c, y, ver;
-    (c, y) <- h;
-    (* Steps: *)
-    (* Decomposition game *)
-    ver <- DecompVer.main(c, w, e);
-    (* Commitment correctness *)
-    (* - This needs f_inv and f properties *)
-    return ver;
-  }
-}.
-
-(* local lemma inter_completeness h' w' e' &m: *)
-(*     R h' w' => *)
-(*     Pr[Intermediate.main(h', w', e') @ &m : res] = 1%r. *)
-(* proof. *)
-(*   rewrite /R. rewrite pairS. *)
-(*   progress. *)
-(*   byphoare(: (h = h' /\ w = w' /\ e = e') ==>)=>//; last first. smt(). *)
-(*   proc. *)
-(*   call Decomp_verifiability. *)
-(*   case (e' = 1). *)
-(*     rcondt 10. auto. do ? call(:true); auto. *)
-(*     inline *. *)
-(*     auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     sp. wp. *)
-(*     call Com_ll. *)
-(*     call Com_correct. *)
-(*     call Com_correct. *)
-(*     auto. *)
-(*     have Hcircuit := compute_circuit_correct h'.`1 [w'] []. *)
-(*     call Hcircuit. clear Hcircuit. *)
-(*     auto; progress. *)
-(*     apply dinput_ll. *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(nth_last size_ge0). *)
-(*     rewrite /valid_view_op. *)
-(*     rewrite foldr_range_forall. *)
-(*     progress. *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*   case (e' = 2). *)
-(*     rcondf 10. auto. do ? call(:true); auto. *)
-(*     inline *. *)
-(*     auto. *)
-(*     rcondt 10. auto. do ? call(:true); auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     sp. wp. *)
-(*     call Com_correct. *)
-(*     call Com_correct. *)
-(*     call Com_ll. *)
-(*     auto. *)
-(*     have Hcircuit := compute_circuit_correct h'.`1 [w'] []. *)
-(*     call Hcircuit. *)
-(*     auto; progress. *)
-(*     apply dinput_ll. *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(nth_last size_ge0). *)
-(*     rewrite /valid_view_op. *)
-(*     rewrite foldr_range_forall. *)
-(*     progress. *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*   (* case (e' = 2) *) *)
-(*     rcondf 10. auto. do ? call(:true); auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     auto. *)
-(*     rcondf 10. auto. do ? call(:true); auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     auto. *)
-(*     inline Phi.output Phi.share. *)
-(*     sp. wp. *)
-(*     call Com_correct. *)
-(*     call Com_ll. *)
-(*     call Com_correct. *)
-(*     auto. *)
-(*     have Hcircuit := compute_circuit_correct h'.`1 [w'] []. *)
-(*     call Hcircuit. *)
-(*     auto; progress. *)
-(*     apply dinput_ll. *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(nth_last size_ge0). *)
-(*     rewrite /valid_view_op. *)
-(*     rewrite foldr_range_forall. *)
-(*     progress. *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(*     have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt(). *)
-(*     smt(). *)
-(* qed. *)
-
-(* local equiv inter_equiv : *)
-(*     Sigma.Completeness(ZKBoo(Com)).special ~ Intermediate.main : *)
-(*     ={h, w, e, glob Com} /\ R h{1} w{1} ==> ={res}. *)
-(* proof. *)
-(*   proc. *)
-(*   inline ZKBoo(Com).init ZKBoo(Com).response ZKBoo(Com).verify. *)
-(*   sp. *)
-(*   case (e{1} = 1). *)
-(*   rcondt{1} 17. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondt{2} 9. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondt{1} 26. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   inline Phi.reconstruct Intermediate.ComCorrectness.main. *)
-(*   swap{2} [6..8] 9. *)
-(*   auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. sim. *)
-(*   call (:true); auto. *)
-
-(*   case (e{1} = 2). *)
-(*   rcondf{1} 17. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondt{1} 17. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondf{2} 9. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *; auto. *)
-(*   rcondt{2} 9. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *; auto. *)
-(*   rcondf{1} 26. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondt{1} 26. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   inline Phi.reconstruct Intermediate.ComCorrectness.main. *)
-(*   swap{2} [6..8] 9. *)
-(*   wp. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. sim. *)
-(*   call (:true); auto. *)
-
-(*   (* case e = 3 *) *)
-(*   rcondf{1} 17. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondf{1} 17. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondf{2} 9. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *; auto. *)
-(*   rcondf{2} 9. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *; auto. *)
-(*   rcondf{1} 26. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   rcondf{1} 26. progress. *)
-(*     auto; do ? call (:true); auto. *)
-(*     inline *. auto. *)
-(*   inline Phi.reconstruct Intermediate.ComCorrectness.main. *)
-(*   swap{2} [6..8] 9. *)
-(*   wp. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. *)
-(*   call (:true); auto. sim. *)
-(*   call (:true); auto. *)
-(* qed. *)
-
-(* lemma zkboo_completeness h' w' e' &m: *)
-(*     R h' w' /\ valid_circuit h'.`1 => *)
-(*     Pr[Sigma.Completeness(ZKBoo(Com)).special(h', w', e') @ &m : res] = 1%r. *)
-(* proof. *)
-(*   move=> rel. *)
-(*   have -> : Pr[Completeness(ZKBoo(Com)).special(h', w', e') @ &m : res] = *)
-(*             Pr[Intermediate.main(h', w', e') @ &m : res]. *)
-(*   - byequiv inter_equiv=>/#. *)
-(*   by have := inter_completeness h' w' e' &m rel. *)
-(* qed. *)
+  call commitment_correct.
+  call decomposition_correct.
+  auto; progress.
+  smt().
+  smt().
+qed.
 
 lemma Com_binding_three :
     phoare[BindingGame(Com).bind_three : true ==> ! res] = binding_prob.
@@ -903,80 +645,177 @@ proof.
     auto.
 qed.
 
+local module SHVZK_Inter = {
+    module ZK = ZKBoo(Com, Decomp)
+    module PZK = Privacy(Decomp)
+
+    proc real(h, w, e) = {
+      var vs,vs',y,c,cs,ys,i,ctmp,v,ret,valid_com,view,com;
+      (c, y) <- h;
+      (vs', ys) <- PZK.real(c, w, e);
+      cs <- [];
+      vs <- f_inv vs';
+      i <- 0;
+      while (i < n) {
+        if (in_dom_f n e i) {
+          ctmp <- Com.commit(nth witness vs (e - i));
+          cs <- rcons cs ctmp;
+          i <- i + 1;
+        } else {
+          ctmp <- Com.commit(witness);
+          cs <- rcons cs ctmp;
+          i <- i + 1;
+        }
+      }
+
+      i <- 0;
+      valid_com <- true;
+      while (i < n) {
+        if (in_dom_f n e i) {
+          view <- nth witness vs (e+i);
+          com <- nth witness cs i;
+          valid_com <- valid_com /\ (verify view com);
+        }
+        i <- i + 1;
+      }
+      v <- Decomp.verify(c, vs', e, y);
+
+      ret <- None;
+      if (v) {
+        ret <- Some ((ys, cs), e, vs');
+      }
+
+      return ret;
+    }
+
+    proc ideal(h, e : challenge) = {
+      var c, y, vs, vs', ys', cs, i, ctmp, ws, view, com, valid_com, v, ret;
+      (c, y) <- h;
+      (vs', ys') <- PZK.ideal(c, y, e);
+      vs <- f_inv vs';
+      cs <- [];
+      i <- 0;
+      while (i < n) {
+        ctmp <- Com.commit(nth witness vs i);
+        cs <- rcons cs ctmp;
+        i <- i + 1;
+      }
+      
+      ws <- f_inv vs';
+
+      i <- 0;
+      valid_com <- true;
+      while (i < n) {
+        if (in_dom_f n e i) {
+          view <- nth witness ws (e+i);
+          com <- nth witness cs i;
+          valid_com <- valid_com /\ (verify view com);
+        }
+        i <- i + 1;
+      }
+      v <- Decomp.verify(c, vs', e, y);
+
+      ret <- None;
+      if (v) {
+        ret <- Some ((ys', cs), e, vs');
+      }
+
+      return ret;
+    }
+}.
+
+axiom decomp_privacy:
+  equiv[Privacy(Decomp).real ~ Privacy(Decomp).ideal : ={c, e} ==> ={res}].
+
 equiv zkboo_shvzk:
     SHVZK(ZKBoo(Com, Decomp)).real ~ SHVZK(ZKBoo(Com, Decomp)).ideal :
-    ={h, e, glob Com} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res}.
+    ={h, e, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res}.
 proof.
+  transitivity SHVZK_Inter.real
+    (={h, e, w, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res})
+    (={h, e, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res}).
+  smt().
+  smt().
+  - proc.
+    auto.
+    inline ZKBoo(Com, Decomp).init.
+    inline ZKBoo(Com, Decomp).response.
+    inline ZKBoo(Com, Decomp).verify.
+    inline SHVZK_Inter.PZK.real. 
+    auto.
+    call (:true). auto.
+    while (={valid_com} /\ e1{1} = e{2} /\ cs0{1} = cs{2} /\ i{2} = i0{1} /\ ws{1} = vs{2}). sim.
+    auto.
+    fission{1} 9 @ 2,4.
+    while (={i, cs, glob Com} /\
+           forall i, (if (in_dom_f n e{2} i) then (nth witness ZKBoo.ws{1} i = nth witness vs{2} (e{2} - i)) else true)).
+    - if{2}.
+      + auto.
+        call(:true).
+        skip; smt().
+      + auto.
+        call Com_hiding_alt.
+        skip; progress.
+    auto.
+    while (i0{2} = i{1} /\ ys0{2} = ys{1} /\ vs0{2} = ZKBoo.ws{1}). auto.
+    auto.
+    call (:true).
+    call (:true).
+    auto; progress.
+    smt.
+    smt.
+    smt.
+
+  transitivity SHVZK_Inter.ideal
+    (={h, e, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res})
+    (={h, e, glob Com, glob Decomp} /\ e{2} \in dchallenge ==> ={res}); last first.
+  (* Prove ideal ~ Inter.ideal *)
+  - proc. 
+    inline ZKBoo(Com, Decomp).simulator ZKBoo(Com, Decomp).verify SHVZK_Inter.PZK.ideal.
+    auto.
+    call (:true); auto.
+    while (={valid_com, ws} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ e{1} = e1{2}); auto.
+    while (={cs, vs, i, glob Com} /\
+           forall i, (if (in_dom_f n e0{2} i) then (nth witness vs{1} i = nth witness vs{2} (e0{2} - i)) else true)).
+    - if{2}.
+      + auto.
+        call (:true).
+        skip; progress. smt().
+      + auto.
+        call Com_hiding_alt.
+        skip; progress.
+    auto.
+    call (:true); auto.
+    progress.
+    smt.
+    smt.
+    
+  (* Prove precondition and post conditions*)
+  smt().
+  smt().
+
+  (* Prove Inter.real ~ Inter.ideal *)
   proc.
   auto.
-  inline ZKBoo(Com, Decomp).simulator.
-  sp. auto.
-  exists* h{1}.`1. elim*=> c.
-  exists* e{2}. elim*=> e.
-  exists* w{1}. elim*=> w.
-  call (:true). sim.
-  progress.
-  inline ZKBoo(Com).simulator.
-  inline ZKBoo(Com).response.
-  inline ZKBoo(Com).init.
+  call (:true).
+  while (={valid_com, i, e, cs} /\
+           forall i, (if (in_dom_f n e{2} i) then (nth witness vs{1} (e{2} + i) = nth witness ws{2} (e{2} + i)) else true)).
+  - auto; smt().
   auto.
-  case (e = 1).
-    rcondt{2} 4. auto.
-    swap{2} [8..9] 4.
-    swap{1} 14 -2.
-    auto.
-    call (:true). sim.
-    call (:true). sim.
-    inline Phi.output. auto.
-    call Com_hiding_alt.
-    call (:true).
-    call (:true).
-    wp. sp.
-    inline Privacy.ideal Phi.share Phi.output. auto.
-    have Hsim := phi_sim_circuit_equiv c e [w].
-    call Hsim. clear Hsim.
-    auto. smt(dlist_ll dinput_ll nth_last).
-  case (e = 2).
-    rcondf{2} 4. auto.
-    rcondt{2} 4. auto.
-    swap{2} [8..9] 4.
-    call (:true). sim.
-    call (:true). sim.
-    inline Phi.output. auto.
-    call (:true).
-    call (:true).
-    call Com_hiding_alt.
-    wp. sp.
-    inline Privacy.ideal Phi.share Phi.output. auto.
-    have Hsim := phi_sim_circuit_equiv c e [w].
-    call Hsim. clear Hsim.
-    wp. sp.
-    swap{1} 1 1.
-    rnd (fun x => (w - x20{1}) - x).
-    rnd.
-    auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
-  case (e = 3).
-    rcondf{2} 4. auto.
-    rcondf{2} 4. auto.
-    swap{2} [8..9] 4.
-    swap{1} 12 2.
-    call (:true). sim.
-    call (:true). sim.
-    inline Phi.output. auto.
-    call (:true).
-    call Com_hiding_alt.
-    call (:true).
-    wp. sp.
-    inline Privacy.ideal Phi.share Phi.output. auto.
-    have Hsim := phi_sim_circuit_equiv c e [w].
-    call Hsim. clear Hsim.
-    wp. sp.
-    swap{2} 1 1.
-    rnd (fun x => (w - x2{2}) - x).
-    rnd.
-    auto. smt(dlist_ll dinput_ll dinput_funi dinput_fu nth_last).
-
-    exfalso. smt.
+  while (={cs, i, glob Com} /\
+           forall i, (if (in_dom_f n e{1} i) then (nth witness vs{1} (e{1} - i) = nth witness vs{2} i) else true)).
+  - if{1}.
+    + auto.
+      call (:true).
+      skip; smt().
+    + auto.
+      call Com_hiding_alt.
+      skip; progress.
+  auto.
+  call decomp_privacy.
+  auto; progress.
+  smt.
+  smt.
 qed.
 
 local module SoundnessInter = {
