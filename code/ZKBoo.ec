@@ -15,7 +15,7 @@ type witness    = input.
 type message    = share list * Commit.commitment list.
 type challenge  = int.
 type response   = verification_input.
-op dchallenge = [1..3].
+op dchallenge   = [1..3].
 
 axiom challenge_size (c : challenge) : 0 < c <= 3.
 
@@ -343,26 +343,57 @@ proof.
   smt.
 qed.
 
-lemma foldr_rcons (ws : view list) b e (ws' : view list) (cs : commitment list) x :
+lemma bound_range (n m : int) :
+  all (fun i => n <= i < m) (range n m).
+proof.
+  smt.
+qed.
+
+lemma foldr_range b (f : int -> bool -> bool) n m:
+    foldr f b (range n m) = foldr (fun i acc => n <= i < m /\ f i acc) b (range n m).
+proof.
+  have := bound_range n m.
+  elim (range n m).
+  - progress.
+  - progress.
+  have -> : (n <= x && x < m) = true by smt().
+  simplify.
+  rewrite H. apply H2.
+  done.
+qed.
+
+
+lemma foldr_rcons b e (ws' : view list) (cs : commitment list) x :
   foldr
     (fun (i : int) (acc : bool) =>
-      if in_dom_f (size ws) e i then
+      if in_dom_f n e i then
         acc /\ verify (nth witness ws' (e + i)) (nth witness cs i)
       else acc) b
     (range 0 (size cs)) =
   foldr
     (fun (i : int) (acc : bool) =>
-      if in_dom_f (size ws) e i then
+      if in_dom_f n e i then
         acc /\
         verify (nth witness ws' (e + i))
           (nth witness (rcons cs x) i)
       else acc) b
     (range 0 (size cs)).
 proof.
+  rewrite eq_sym.
+  rewrite foldr_range.
+  rewrite eq_sym.
+  rewrite foldr_range.
   congr.
-  have := contra.
+  rewrite rel_ext.
+  simplify. 
+  rewrite /(===).
   progress.
-admitted.
+  rewrite nth_rcons.
+  case (0 <= x0 && x0 < size cs); trivial.
+  progress. 
+  have -> : x0 < size cs by apply H0.
+  trivial.
+qed.
   
 
 local lemma commitment_correct:
@@ -426,21 +457,24 @@ proof.
       smt().
       rewrite - foldr_and.
       rewrite !nth_rcons. simplify.
-      (* TODO: tomorrow. *)
-      (* Reason about i inside foldr: *)
-      (* if range < n, then we should be able to use nth_rcons inside foldr *)
-      admit.
+
+      by have -> := foldr_rcons (verify (nth witness ws'{2} (e{2} + size cs{2})) result_R)
+                                e{2} ws'{2} cs{2} result_R.
       skip; progress.
       smt().
       smt(size_rcons).
       smt(size_rcons).
-      admit.
+      rewrite rangeSr. apply size_ge0.
+      have -> : (rcons (range 0 (size cs{2})) (size cs{2})) = (range 0 (size cs{2})) ++ [size cs{2}]. smt(cats1).
+      rewrite foldr_cat=>/>.
+      rewrite H3=>/>.
+      by have -> := foldr_rcons true e{2} ws'{2} cs{2} result_R.
       auto.
       progress.
       smt(n_pos).
       smt.
       smt(size_ge0).
-      smt.
+      rewrite range_geq; trivial.
       smt().
       smt().
 
@@ -518,7 +552,10 @@ proof.
     auto.
     call (:true).
     auto. 
-admitted.
+    progress.
+    smt.
+  byphoare Decomp_verifiability=>/>.
+qed.
 
 lemma completeness:
     phoare[Completeness(ZKBoo(Com,Decomp)).special : R h w /\ e \in dchallenge ==> res] = 1%r.
