@@ -1,5 +1,5 @@
 (* Formalization of MPC Phi decomposition *)
-require import AllCore Distr List IntDiv DList.
+require import AllCore Distr List IntDiv DList DInterval.
 require (*--*) MPC.
 (** Ignore: This is now the preferred setup but is not yet the default **)
 pragma -oldip. pragma +implicits.
@@ -14,7 +14,7 @@ type gate   = [| ADDC of (int * int)
                | ADD of (int * int)].
 type circuit = gate list.
 type view    = share list * random.
-type verification_input = view list * output * output * output.
+type verification_input = view list.
 
 (* secret sharing distribution *)
 op dinput : {input distr | is_lossless dinput /\ is_funiform dinput} as dinput_llfuni.
@@ -44,6 +44,9 @@ op eval_circuit_aux(c : circuit, s : int list) : int list =
 op eval_circuit (c : circuit, s : int) : output =
     last 0 (eval_circuit_aux c [s]).
 
+op nth_looping (vs : 'a list) (i : int) =
+  nth witness vs (i %% 3).
+
 clone import MPC as MPC' with
   type input <- input,
   type output <- output,
@@ -53,18 +56,20 @@ clone import MPC as MPC' with
   type verification_input <- verification_input,
   op n = 3,
   op d = 2,
+  op challenge = [0..2],
   op circuit_eval = eval_circuit,
   op output (v : view) = last 0 (fst v),
   op reconstruct (ss : share list) = (foldr (fun (s : share) (acc : int), acc + s) 0 ss),
   op f (vs : view list, e : int) =
-    let v1 = (nth witness vs (if (e = 1) then 0 else if (e = 2) then 1 else 2)) in
-    let v2 = (nth witness vs (if (e = 1) then 1 else if (e = 2) then 2 else 0)) in
-    let y1 = last 0 (fst (nth witness vs 0)) in
-    let y2 = last 0 (fst (nth witness vs 1)) in
-    let y3 = last 0 (fst (nth witness vs 2)) in ([v1; v2], y1, y2, y3),
-  op f_inv = (fun x => let (vs, o1, o2, o3) = x in vs),
+    let v1 = (nth_looping vs e) in
+    let v2 = (nth_looping vs (e+1)) in
+    [v1; v2],
+  op f_inv = (fun x => x),
   op drandom = dlist dinput 3
   proof *.
+  realize n_pos by []. 
+  realize d_pos by [].
+  realize d_leq_n by [].
   realize drandom_llfuni. split.
       - rewrite /drandom.
         apply /dlist_ll /dinput_ll.
@@ -72,19 +77,22 @@ clone import MPC as MPC' with
         admitted.
         (* apply is_full_funiform. *)
   realize f_inv_correct.
+      rewrite /challenge.
+      rewrite /f_inv /f /nth_looping /in_dom_f /n /d.
       progress.
-      rewrite /f_inv /f /d /nth_looping.
-      progress.
-      have : i < 2. smt(). clear H0 => H0.
-      case (e = 0).
-      case (i = 0). progress.
-      case (0 < size vs). progress.
-      case (i = 0). progress.
-      case (e + i = 0). progress.
-      rewrite H2.
-      rewrite /nth_looping. smt().
-      case (e = 2).
-      progress.
+      case (e = 0); progress.
+      - have : i \in  [0..1] by smt().
+        smt.
+      case (e = 1); progress.
+      - have : i \in  [1..2] by smt().
+        smt.
+      case (e = 2); progress.
+      - have : i \in [2..2] \/ i \in [0..0].
+        case (i = 2); progress.
+        case (i = 0); progress.
+        smt.
+     smt.
+qed.
 
 op phi_decomp (g : gate, idx, p : int, w1 w2 : int list, k1 k2 : int list) : output =
 with g = ADDC inputs =>

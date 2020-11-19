@@ -1,5 +1,5 @@
 (* Formalization of ZKBoo Sigma-protocol *)
-require import AllCore Distr List DInterval DList DBool.
+require import AllCore Distr List DInterval DList DBool IntDiv.
 require (****) SigmaProtocols MPC.
 require import IdealCommitment.
 (** Ignore: This is now the preferred setup but is not yet the default **)
@@ -15,9 +15,7 @@ type witness    = input.
 type message    = share list * Commit.commitment list.
 type challenge  = int.
 type response   = verification_input.
-op dchallenge   = [1..3].
-
-axiom challenge_size (c : challenge) : 0 < c <= 3.
+op dchallenge   = challenge.
 
 op R (h : statement) (w : witness)     = let (c, y) = h in (y = circuit_eval c w).
 
@@ -32,20 +30,17 @@ clone export SigmaProtocols as Sigma with
   op dchallenge <- dchallenge
   proof *.
   realize dchallenge_llfuni.
-      (* TODO: by [dt_ll, dt_funi] *)
-      split. apply dinter_ll. trivial. apply is_full_funiform.
-      rewrite /is_full.
-      progress.
-      case (0 < x <= 3).
-      smt.
-      move=> H.
-      have : 0 < x <= 3. apply challenge_size.
-      smt().
-      apply dinter_uni.
-  qed.
-
-op in_dom_f n (e : challenge) i =
-  if (e + d) < n then i \in [e..e+d] else i \in [e..n] \/ i \in [0..d-(n - e)].
+      (* (* TODO: by [dt_ll, dt_funi] *) *)
+      (* split. apply dinter_ll. trivial. apply is_full_funiform. *)
+      (* rewrite /is_full. *)
+      (* progress. *)
+      (* case (0 < x <= 3). *)
+      (* smt. *)
+      (* move=> H. *)
+      (* have : 0 < x <= 3. apply challenge_size. *)
+      (* smt(). *)
+      (* apply dinter_uni. *)
+  admitted.
 
 module ZKBoo(C : Committer, D : Phi) : SProtocol = {
   var ws : view list
@@ -81,13 +76,13 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     valid_com <- true;
     while (i < n) {
       if (in_dom_f n e i) {
-        view <- nth witness ws (e+i);
+        view <- nth_looping ws (i-e);
         com <- nth witness cs i;
         valid_com <- valid_com /\ (verify view com);
       }
       i <- i + 1;
     }
-    valid <- D.verify(c, z, e, y);
+    valid <- D.verify(c, z, e, reconstruct ys);
 
     return valid_com /\ valid /\ reconstruct ys = y;
 
@@ -109,7 +104,7 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
     i <- 0;
     while (i < n) {
       if (in_dom_f n e i) {
-        ctmp <- C.commit(nth witness vs (e-i));
+        ctmp <- C.commit(nth_looping vs (i-e));
         cs <- rcons cs ctmp;
       } else{
         ctmp <- C.commit(witness);
@@ -151,7 +146,7 @@ local module Com_Inter = {
   var ws : view list
 
   proc decomposition(c, w, e, y) = {
-    var ks, z, valid, ws', ys, i, ytmp;
+    var ks, z, valid, ws', ys, i, ytmp, y';
     ks <- Decomp.sample_tapes(size c);
     ws <- Decomp.decomp(c, w, ks);
 
@@ -166,8 +161,9 @@ local module Com_Inter = {
       i <- i + 1;
     }
 
-    valid <- Decomp.verify(c, z, e, y);
-    return valid /\ reconstruct ys = y;
+    y' <- reconstruct ys;
+    valid <- Decomp.verify(c, z, e, y');
+    return valid /\ y' = y;
   }
 
   proc commitment(ws : view list, e : challenge) = {
@@ -188,7 +184,7 @@ local module Com_Inter = {
     i <- 0;
     while (i < n) {
       if (in_dom_f n e i) {
-        view <- nth witness ws' (e+i);
+        view <- nth_looping ws' (i-e);
         c <- nth witness cs i;
         valid_com <- valid_com /\ (verify view c);
       }
@@ -214,7 +210,7 @@ local module Com_Inter = {
         ytmp <- output(nth witness ws i);
         cs <- rcons cs ctmp;
         ys <- rcons ys ytmp;
-        view <- nth witness ws' (e+i);
+        view <- nth_looping ws' (i-e);
         c <- nth witness cs i;
         valid_com <- valid_com /\ (verify view c);
       } else {
@@ -246,7 +242,7 @@ local module Com_Inter = {
         ytmp <- output(nth witness ws i);
         cs <- rcons cs ctmp;
         ys <- rcons ys ytmp;
-        view <- nth witness ws' (e+i);
+        view <- nth_looping ws' (i-e);
         valid_com <- valid_com /\ (verify view ctmp);
       } else {
         ctmp <- Com.commit(nth witness ws i);
@@ -271,7 +267,7 @@ local module Com_Inter = {
     i <- 0;
     while (i < n) {
       if (in_dom_f n e i) {
-        b <- Corr.main(nth witness ws i);
+        b <- Corr.main(nth_looping ws' (i-e));
         valid_com <- valid_com /\ b;
       } else {
         Com.commit(nth witness ws i);
@@ -297,23 +293,24 @@ proof.
   inline ZKBoo(Com, Decomp).init ZKBoo(Com, Decomp).response ZKBoo(Com, Decomp).verify.
   inline Com_Inter.decomposition Com_Inter.commitment.
   auto. 
-  swap{2} 26 -5.
+  swap{2} 26 -4.
   auto.
   swap{2} 10 2.
   swap{2} [12..13] 3.
-  swap{2} [15..17] 4.
-  swap{2} [12..18] -5.
+  swap{2} [15..17] 3.
+  swap{2} [12..18] -2.
   auto.
-  fission{2} 16 @ 2 , 4.
+  fission{2} 9 @ 2 , 4.
   while (ws{2} = ws'0{1} /\ size cs0{2} = n /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i0{1} = i0{2} /\ ={ys, e1, glob Com}).
   - auto.
+  swap{1} [13..15] 8.
+  auto.
+  call (:true). 
   auto.
   while (={cs, glob Com} /\ i0{1} = i{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ i{2} <= n); auto.
   - call(:true). auto.
     smt(size_ge0 size_rcons).
   auto.
-  swap{2} 13 3.
-  call (:true); auto.
   while (={i, ys} /\ ={ws}(Com_Inter, ZKBoo)). sim.
   auto.
   call (:true); auto.
@@ -328,13 +325,13 @@ lemma foldr_and b s e (cs : commitment list) (ws' : view list) n:
     (fun (i, acc) =>
       if in_dom_f n e i then
       acc /\
-      verify (nth witness ws' (e + i)) (nth witness cs i)
+      verify (nth_looping ws' (i-e)) (nth witness cs i)
     else acc) b s = 
     (foldr
     (fun (i, acc) =>
       if in_dom_f n e i then
       acc /\
-      verify (nth witness ws' (e + i)) (nth witness cs i)
+      verify (nth_looping ws' (i-e)) (nth witness cs i)
     else acc) true s /\ b).
 proof.
   elim s; progress.
@@ -367,14 +364,14 @@ lemma foldr_rcons b e (ws' : view list) (cs : commitment list) x :
   foldr
     (fun (i : int) (acc : bool) =>
       if in_dom_f n e i then
-        acc /\ verify (nth witness ws' (e + i)) (nth witness cs i)
+        acc /\ verify (nth_looping ws' (i-e)) (nth witness cs i)
       else acc) b
     (range 0 (size cs)) =
   foldr
     (fun (i : int) (acc : bool) =>
       if in_dom_f n e i then
         acc /\
-        verify (nth witness ws' (e + i))
+        verify (nth_looping ws' (i-e))
           (nth witness (rcons cs x) i)
       else acc) b
     (range 0 (size cs)).
@@ -388,11 +385,10 @@ proof.
   simplify. 
   rewrite /(===).
   progress.
-  rewrite nth_rcons.
-  case (0 <= x0 && x0 < size cs); trivial.
-  progress. 
-  have -> : x0 < size cs by apply H0.
-  trivial.
+  rewrite /nth_looping nth_rcons.
+  case (0 <= x0 && x0 < size cs); progress.
+  case (in_dom_f n e x0); progress.
+  smt(size_rcons).
 qed.
   
 
@@ -406,7 +402,7 @@ proof.
     proc.
     auto.
     while{1} (cs{1} = cs{2} /\ ws'{1} = ws'{2} /\ 0 <= i{1} /\ i{1} <= n /\
-              valid_com{1} = foldr (fun (i, acc) => if (in_dom_f n e{1} i) then acc /\ verify (nth witness ws'{1} (e{1} + i)) (nth witness cs{1} i) else acc) true (range 0 i{1}))
+              valid_com{1} = foldr (fun (i, acc) => if (in_dom_f n e{1} i) then acc /\ verify (nth_looping ws'{1} (i - e{1})) (nth witness cs{1} i) else acc) true (range 0 i{1}))
              (n - i{1}).
     - progress.
       auto. progress. smt(). smt().
@@ -416,8 +412,8 @@ proof.
       have -> : (foldr (fun (i : int) (acc : bool) =>
               if in_dom_f n e{hr} i then
                 acc /\
-                verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
-              else acc) true [i{hr}]) = verify (nth witness ws'{m0} (e{hr} + i{hr})) (nth witness cs{m0} i{hr}).
+                verify (nth_looping ws'{m0} (i - e{hr})) (nth witness cs{m0} i)
+              else acc) true [i{hr}]) = verify (nth_looping ws'{m0} (i{hr} - e{hr})) (nth witness cs{m0} i{hr}).
       smt().
       by rewrite - foldr_and.
       smt().
@@ -429,14 +425,14 @@ proof.
       have -> : (foldr (fun (i : int) (acc : bool) =>
               if in_dom_f n e{hr} i then
                 acc /\
-                verify (nth witness ws'{m0} (e{hr} + i)) (nth witness cs{m0} i)
+                verify (nth_looping ws'{m0} (i-e{hr})) (nth witness cs{m0} i)
               else acc) true [i{hr}]) = true.
       smt().
       trivial.
       smt().
     auto.
     while (={cs, e, i, ws, glob Com} /\ 0 <= i{1} /\ size cs{1} = i{1} /\ i{1} <= n /\
-           valid_com{2} = foldr (fun (i, acc) => if (in_dom_f n e{2} i) then acc /\ verify (nth witness ws'{2} (e{2} + i)) (nth witness cs{2} i) else acc) true (range 0 i{2})).
+           valid_com{2} = foldr (fun (i, acc) => if (in_dom_f n e{2} i) then acc /\ verify (nth_looping ws'{2} (i-e{2})) (nth witness cs{2} i) else acc) true (range 0 i{2})).
     - if{2}; auto; call (:true).
       skip; progress.
       smt(). 
@@ -449,16 +445,17 @@ proof.
         (fun (i : int) (acc : bool) =>
             if in_dom_f n e{2} i then
               acc /\
-              verify (nth witness ws'{2} (e{2} + i))
+              verify (nth_looping ws'{2} (i - e{2}))
                 (nth witness (rcons cs{2} result_R) i)
             else acc) true [size cs{2}]) =
-      verify (nth witness ws'{2} (e{2} + size cs{2}))
+      verify (nth_looping ws'{2} (size cs{2} - e{2}))
         (nth witness (rcons cs{2} result_R) (size cs{2})).
       smt().
       rewrite - foldr_and.
-      rewrite !nth_rcons. simplify.
-
-      by have -> := foldr_rcons (verify (nth witness ws'{2} (e{2} + size cs{2})) result_R)
+      rewrite /nth_looping !nth_rcons. simplify.
+      progress.
+      pose b := (verify (nth witness ws'{2} ((size cs{2} - e{2}) %% n)%IntDiv) result_R).
+      by have -> := foldr_rcons (verify (nth witness ws'{2} ((size cs{2} - e{2}) %% n)) result_R)
                                 e{2} ws'{2} cs{2} result_R.
       skip; progress.
       smt().
@@ -490,7 +487,8 @@ proof.
     - auto.
       call (:true).
       skip; progress.
-      congr. by rewrite nth_rcons.
+      congr. rewrite /nth_looping nth_rcons.
+      smt(size_rcons).
       by rewrite size_rcons.
     - auto.
       call (:true).
@@ -505,12 +503,12 @@ proof.
     sp. auto.
     inline Com_Inter.Corr.main.
     sim.
-    while(={ws, ws', e, i, glob Com, valid_com}).
+    while(={ws, ws', e, i, glob Com, valid_com} /\ ws'{1} = f_inv z{1} /\ z{1} = f ws{1} e{m} /\ e{1} = e{m}).
     if. smt().
     - auto.
       call (:true).
       wp; skip; progress.
-      smt.
+      by have := f_inv_correct ws{2} e{m} pre i{2} H1. 
     - auto.
       call (:true).
       skip; progress.
@@ -533,27 +531,25 @@ qed.
 axiom Decomp_verifiability :
   phoare[Verifiability(Decomp).main : true ==> res] = 1%r.
 
-axiom Decomp_correctness c w y:
-  phoare[Decomp.decomp : R (c, y) w ==> R (c, reconstruct (map output res)) w] = 1%r.
-
 local lemma decomposition_correct :
     phoare[Com_Inter.decomposition : R (c, y) w ==> res] = 1%r.
 proof.
   bypr=> &m pre.
   have -> : Pr[Com_Inter.decomposition(c{m}, w{m}, e{m}, y{m}) @ &m : res]
           = Pr[Verifiability(Decomp).main(c{m}, w{m}, e{m}) @ &m : res].
-  - byequiv(: ={glob Decomp, c, e, w} /\ y{1} = circuit_eval c{2} w{2} ==>)=>//.
+  (* - byequiv(: ={glob Decomp, c, e, w} /\ c{2} = c{m} /\ w{1} = w{m} /\  /\ y{1} = circuit_eval c{2} w{2} ==>)=>//. *)
+  - byequiv=>//.
     proc.
     call (:true).
     wp.
     while (={i, ys} /\ Com_Inter.ws{1} = vs{2}); auto.
-    auto. 
+    progress.
     call (:true).
     auto.
     call (:true).
     auto. 
     progress.
-    smt.
+    smt().
   byphoare Decomp_verifiability=>/>.
 qed.
 
@@ -695,7 +691,7 @@ local module SHVZK_Inter = {
       i <- 0;
       while (i < n) {
         if (in_dom_f n e i) {
-          ctmp <- Com.commit(nth witness vs (e - i));
+          ctmp <- Com.commit(nth_looping vs (i-e));
           cs <- rcons cs ctmp;
           i <- i + 1;
         } else {
@@ -709,16 +705,16 @@ local module SHVZK_Inter = {
       valid_com <- true;
       while (i < n) {
         if (in_dom_f n e i) {
-          view <- nth witness vs (e+i);
+          view <- nth_looping vs (i-e);
           com <- nth witness cs i;
           valid_com <- valid_com /\ (verify view com);
         }
         i <- i + 1;
       }
-      v <- Decomp.verify(c, vs', e, y);
+      v <- Decomp.verify(c, vs', e, reconstruct ys);
 
       ret <- None;
-      if (v) {
+      if (v /\ valid_com /\ reconstruct ys = y) {
         ret <- Some ((ys, cs), e, vs');
       }
 
@@ -733,7 +729,7 @@ local module SHVZK_Inter = {
       cs <- [];
       i <- 0;
       while (i < n) {
-        ctmp <- Com.commit(nth witness vs i);
+        ctmp <- Com.commit(nth_looping vs (i-e));
         cs <- rcons cs ctmp;
         i <- i + 1;
       }
@@ -744,16 +740,16 @@ local module SHVZK_Inter = {
       valid_com <- true;
       while (i < n) {
         if (in_dom_f n e i) {
-          view <- nth witness ws (e+i);
+          view <- nth_looping ws (i-e);
           com <- nth witness cs i;
           valid_com <- valid_com /\ (verify view com);
         }
         i <- i + 1;
       }
-      v <- Decomp.verify(c, vs', e, y);
+      v <- Decomp.verify(c, vs', e, reconstruct ys');
 
       ret <- None;
-      if (v) {
+      if (v /\ valid_com /\ reconstruct ys' = y) {
         ret <- Some ((ys', cs), e, vs');
       }
 
@@ -762,7 +758,7 @@ local module SHVZK_Inter = {
 }.
 
 axiom decomp_privacy:
-  equiv[Privacy(Decomp).real ~ Privacy(Decomp).ideal : ={c, e} ==> ={res}].
+  equiv[Privacy(Decomp).real ~ Privacy(Decomp).ideal : ={c, e, glob Decomp} ==> ={res, glob Decomp}].
 
 equiv zkboo_shvzk:
     SHVZK(ZKBoo(Com, Decomp)).real ~ SHVZK(ZKBoo(Com, Decomp)).ideal :
@@ -785,7 +781,7 @@ proof.
     auto.
     fission{1} 9 @ 2,4.
     while (={i, cs, glob Com} /\
-           forall i, (if (in_dom_f n e{2} i) then (nth witness ZKBoo.ws{1} i = nth witness vs{2} (e{2} - i)) else true)).
+           forall i, (if (in_dom_f n e{2} i) then (nth witness ZKBoo.ws{1} i = nth_looping vs{2} (i - e{2})) else true)).
     - if{2}.
       + auto.
         call(:true).
@@ -801,7 +797,6 @@ proof.
     auto; progress.
     smt.
     smt.
-    smt.
 
   transitivity SHVZK_Inter.ideal
     (={h, e, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res})
@@ -812,19 +807,18 @@ proof.
     auto.
     call (:true); auto.
     while (={valid_com, ws} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ e{1} = e1{2}); auto.
-    while (={cs, vs, i, glob Com} /\
-           forall i, (if (in_dom_f n e0{2} i) then (nth witness vs{1} i = nth witness vs{2} (e0{2} - i)) else true)).
+    while (={cs, vs, i, glob Com} /\ e{1} = e0{2} /\
+           forall i, (if (in_dom_f n e0{2} i) then (nth_looping vs{1} i = nth_looping vs{2} i) else true)).
     - if{2}.
       + auto.
         call (:true).
-        skip; progress. smt().
+        skip; progress. 
       + auto.
         call Com_hiding_alt.
         skip; progress.
     auto.
     call (:true); auto.
     progress.
-    smt.
     smt.
     
   (* Prove precondition and post conditions*)
@@ -836,23 +830,21 @@ proof.
   auto.
   call (:true).
   while (={valid_com, i, e, cs} /\
-           forall i, (if (in_dom_f n e{2} i) then (nth witness vs{1} (e{2} + i) = nth witness ws{2} (e{2} + i)) else true)).
+           forall i, (if (in_dom_f n e{2} i) then (nth_looping vs{1} (i - e{2}) = nth_looping ws{2} (i - e{2})) else true)).
   - auto; smt().
   auto.
-  while (={cs, i, glob Com} /\
-           forall i, (if (in_dom_f n e{1} i) then (nth witness vs{1} (e{1} - i) = nth witness vs{2} i) else true)).
+  while (={cs, i, glob Com, vs, e}).
+           (* forall i, (if (in_dom_f n e{1} i) then (nth_looping vs{1} (i) = nth_looping vs{2} i) else true)). *)
   - if{1}.
     + auto.
       call (:true).
-      skip; smt().
+      by skip. 
     + auto.
       call Com_hiding_alt.
       skip; progress.
   auto.
   call decomp_privacy.
   auto; progress.
-  smt.
-  smt.
 qed.
 
 local module SoundnessInter = {
