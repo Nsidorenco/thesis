@@ -45,9 +45,9 @@ axiom f_inv_correct vs e:
 op drandom : {random distr | is_lossless drandom /\ is_funiform drandom} as drandom_llfuni.
 
 module type Phi = {
-  proc sample_tapes(n : int) : random list
+  proc* sample_tapes(n : int) : random list
   proc decomp(c : circuit, x : input, rs : random list) : view list
-  proc verify(c : circuit, vs : verification_input, e : int, y : output) : bool {}
+  proc verify(c : circuit, vs : verification_input, e : int, ys : share list) : bool {}
   proc simulator(c : circuit, y : output, e : int) : verification_input * share list
   proc extractor(vs : verification_input list) : input option
 }.
@@ -71,15 +71,10 @@ module type Phi = {
 
 module Privacy(D : Phi) = {
   proc real(c, x, e) = {
-    var rs, vs, ys, i;
+    var rs, vs, ys;
     rs <- D.sample_tapes(size c);
     vs <- D.decomp(c, x, rs);
-    ys <- [];
-    i <- 0;
-    while (i < n) {
-      ys <- rcons ys (output (nth witness vs i));
-      i <- i + 1;
-    }
+    ys <- map output vs;
     return ((f vs e), ys);
   }
 
@@ -92,34 +87,35 @@ module Privacy(D : Phi) = {
 
 module Verifiability(D : Phi) = {
   proc main(c, w, e) = {
-    var vs, valid, vs', ys, y, v, rs, y', i, ws;
+    var vs, valid, vs', ys, y, rs, y', ws;
     rs <- D.sample_tapes(size c);
     vs <- D.decomp(c, w, rs);
     ys <- [];
-    i <- 0;
-    while (i < n) {
-      v <- nth witness vs i;
-      ys <- rcons ys (output v);
-      i <- i + 1;
-    }
+    ys <- (map output vs);
+    (* i <- 0; *)
+    (* while (i < n) { *)
+    (*   v <- nth witness vs i; *)
+    (*   ys <- rcons ys (output v); *)
+    (*   i <- i + 1; *)
+    (* } *)
     y <- reconstruct(ys);
     y' <- circuit_eval c w;
     vs' <- f vs e;
     ws <- f_inv vs';
-    valid <- D.verify(c, vs', e, y);
+    valid <- D.verify(c, vs', e, ys);
 
     return valid /\ y = y';
   }
 }.
 
 module Soundness(D : Phi) = {
-  proc main(c, vs', y) = {
+  proc main(c, vs', ys) = {
     var xopt, x, rs, vs, shares, v, y', verified, e, tmp, v';
     verified <- true;
     e <- 1;
     while (onth vs' (e-1) <> None) {
       v <- oget (onth vs' (e-1));
-      tmp <- D.verify(c, v, e, y);
+      tmp <- D.verify(c, v, e, ys);
       verified <- verified /\ tmp;
       e <- e + 1;
     }
@@ -136,7 +132,7 @@ module Soundness(D : Phi) = {
       vs <- behead vs;
     }
     y' <- reconstruct(shares);
-    return y = y';
+    return reconstruct ys = y';
   }
 }.
 

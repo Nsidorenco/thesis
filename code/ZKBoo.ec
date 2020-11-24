@@ -46,16 +46,14 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
   var ws : view list
 
   proc init(h : statement, w : witness) = {
-    var y,c,ks,cs,ys,i,ctmp,ytmp;
+    var y,c,ks,cs,ys,i,ctmp;
     (c, y) <- h;
     ks <- D.sample_tapes(size c);
     ws <- D.decomp(c, w, ks);
     cs <- [];
-    ys <- [];
+    ys <- map output ws;
     i <- 0;
     while (i < n) {
-      ytmp <- output(nth witness ws i);
-      ys <- rcons ys ytmp;
       ctmp <- C.commit(nth witness ws i);
       cs <- rcons cs ctmp;
       i <- i + 1;
@@ -82,7 +80,7 @@ module ZKBoo(C : Committer, D : Phi) : SProtocol = {
       }
       i <- i + 1;
     }
-    valid <- D.verify(c, z, e, reconstruct ys);
+    valid <- D.verify(c, z, e, ys);
 
     return valid_com /\ valid /\ reconstruct ys = y;
 
@@ -146,23 +144,17 @@ local module Com_Inter = {
   var ws : view list
 
   proc decomposition(c, w, e, y) = {
-    var ks, z, valid, ws', ys, i, ytmp, y';
+    var ks, z, valid, ws', ys, y';
     ks <- Decomp.sample_tapes(size c);
     ws <- Decomp.decomp(c, w, ks);
 
     z <-  f ws e;
     ws' <- f_inv z;
 
-    ys <- [];
-    i <- 0;
-    while (i < n) {
-      ytmp <- output(nth witness ws i);
-      ys <- rcons ys ytmp;
-      i <- i + 1;
-    }
+    ys <- map output ws;
 
     y' <- reconstruct ys;
-    valid <- Decomp.verify(c, z, e, y');
+    valid <- Decomp.verify(c, z, e, ys);
     return valid /\ y' = y;
   }
 
@@ -300,18 +292,16 @@ proof.
   swap{2} [15..17] 3.
   swap{2} [12..18] -2.
   auto.
-  fission{2} 9 @ 2 , 4.
-  while (ws{2} = ws'0{1} /\ size cs0{2} = n /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i0{1} = i0{2} /\ ={ys, e1, glob Com}).
+  (* fission{2} 9 @ 2 , 4. *)
+  while (ws{2} = ws'0{1} /\ size cs0{2} = n /\ valid_com0{1} = valid_com{2} /\ cs{1} = cs0{2} /\ i{1} = i0{2} /\ ={ys, e1, glob Com}).
   - auto.
-  swap{1} [13..15] 8.
+  swap{1} [12..13] 8.
   auto.
   call (:true). 
   auto.
-  while (={cs, glob Com} /\ i0{1} = i{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ i{2} <= n); auto.
+  while (={cs, glob Com} /\ i{1} = i{2} /\ ws{1} = ZKBoo.ws{2} /\ size cs{2} = i{2} /\ i{2} <= n); auto.
   - call(:true). auto.
     smt(size_ge0 size_rcons).
-  auto.
-  while (={i, ys} /\ ={ws}(Com_Inter, ZKBoo)). sim.
   auto.
   call (:true); auto.
   call (:true); auto.
@@ -542,8 +532,6 @@ proof.
     proc.
     call (:true).
     wp.
-    while (={i, ys} /\ Com_Inter.ws{1} = vs{2}); auto.
-    progress.
     call (:true).
     auto.
     call (:true).
@@ -711,7 +699,7 @@ local module SHVZK_Inter = {
         }
         i <- i + 1;
       }
-      v <- Decomp.verify(c, vs', e, reconstruct ys);
+      v <- Decomp.verify(c, vs', e, ys);
 
       ret <- None;
       if (v /\ valid_com /\ reconstruct ys = y) {
@@ -746,7 +734,7 @@ local module SHVZK_Inter = {
         }
         i <- i + 1;
       }
-      v <- Decomp.verify(c, vs', e, reconstruct ys');
+      v <- Decomp.verify(c, vs', e, ys');
 
       ret <- None;
       if (v /\ valid_com /\ reconstruct ys' = y) {
@@ -779,7 +767,7 @@ proof.
     call (:true). auto.
     while (={valid_com} /\ e1{1} = e{2} /\ cs0{1} = cs{2} /\ i{2} = i0{1} /\ ws{1} = vs{2}). sim.
     auto.
-    fission{1} 9 @ 2,4.
+    (* fission{1} 9 @ 2,4. *)
     while (={i, cs, glob Com} /\
            forall i, (if (in_dom_f n e{2} i) then (nth witness ZKBoo.ws{1} i = nth_looping vs{2} (i - e{2})) else true)).
     - if{2}.
@@ -789,8 +777,6 @@ proof.
       + auto.
         call Com_hiding_alt.
         skip; progress.
-    auto.
-    while (i0{2} = i{1} /\ ys0{2} = ys{1} /\ vs0{2} = ZKBoo.ws{1}). auto.
     auto.
     call (:true).
     call (:true).
@@ -848,37 +834,32 @@ proof.
 qed.
 
 local module SoundnessInter = {
-  module ZK = ZKBoo(Com)
+  module ZK = ZKBoo(Com, Decomp)
   module BGame = BindingGame(Com)
-  proc extract_views(h : statement, m : message, z1 z2 z3 : response) = {
-    var k1,k2,k3,k1',k2',k3';
-    var w1,w2,w3,w1',w2',w3';
-    var cons, v1, v2, v3;
-    var y1, y2, y3, c1, c2, c3;
+  proc extract_views(h : statement, m : message, zs : response list) = {
+    var i, v, valid;
+    i <- 0;
+    valid <- true;
+    while (i < n) {
+      v <- ZK.verify(h, m , i, nth witness zs i);
+      valid <- valid /\ v;
+    }
 
-    v1 = ZK.verify(h, m, 1, z1);
-    v2 = ZK.verify(h, m, 2, z2);
-    v3 = ZK.verify(h, m, 3, z3);
-
-    (k1, w1, k2, w2) = z1;
-    (k2', w2', k3, w3) = z2;
-    (k3', w3', k1', w1') = z3;
-    (y1, y2, y3, c1, c2, c3) = m;
-    cons = BGame.bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
+    cons <- BGame.bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
 
     return v1 /\ v2 /\ v3;
   }
 
   proc main(h : statement, m : message, z1 z2 z3 : response) = {
     var v, w, w_get, ret;
-    v = extract_views(h, m, z1, z2, z3);
-    w = ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
+    v <- extract_views(h, m, z1, z2, z3);
+    w <- ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
 
     if (w = None \/ !v) {
-      ret = false;
+      ret <- false;
     } else{
-      w_get = oget w;
-      ret = R h w_get;
+      w_get <- oget w;
+      ret <- R h w_get;
     }
     return ret;
   }
