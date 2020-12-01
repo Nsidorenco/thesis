@@ -1,5 +1,5 @@
 (* Formalization of ZKBoo Sigma-protocol *)
-require import AllCore Distr List DInterval DList DBool IntDiv.
+require import AllCore Distr List DInterval DList DBool IntDiv Folding.
 require (****) SigmaProtocols MPC.
 require import IdealCommitment.
 (** Ignore: This is now the preferred setup but is not yet the default **)
@@ -329,26 +329,6 @@ proof.
   (* Inductive case *)
   smt.
 qed.
-
-lemma bound_range (n m : int) :
-  all (fun i => n <= i < m) (range n m).
-proof.
-  smt.
-qed.
-
-lemma foldr_range b (f : int -> bool -> bool) n m:
-    foldr f b (range n m) = foldr (fun i acc => n <= i < m /\ f i acc) b (range n m).
-proof.
-  have := bound_range n m.
-  elim (range n m).
-  - progress.
-  - progress.
-  have -> : (n <= x && x < m) = true by smt().
-  simplify.
-  rewrite H. apply H2.
-  done.
-qed.
-
 
 lemma foldr_rcons b e (ws' : view list) (cs : commitment list) x :
   foldr
@@ -833,61 +813,68 @@ proof.
   auto; progress.
 qed.
 
-local module SoundnessInter = {
-  module ZK = ZKBoo(Com, Decomp)
-  module BGame = BindingGame(Com)
-  proc extract_views(h : statement, m : message, zs : response list) = {
-    var i, v, valid;
-    i <- 0;
-    valid <- true;
-    while (i < n) {
-      v <- ZK.verify(h, m , i, nth witness zs i);
-      valid <- valid /\ v;
-    }
+(* local module SoundnessInter = { *)
+(*   module ZK = ZKBoo(Com, Decomp) *)
+(*   module BGame = BindingGame(Com) *)
+(*   proc extract_views(h : statement, m : message, zs : response list) = { *)
+(*     var i, v, valid, cons; *)
+(*     i <- 0; *)
+(*     valid <- true; *)
+(*     while (i < n) { *)
+(*       v <- ZK.verify(h, m , i, nth witness zs i); *)
+(*       valid <- valid /\ v; *)
+(*     } *)
 
-    cons <- BGame.bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3'));
+(*     cons <- BGame.bind_three(c1, c2, c3, (w1, k1), (w1', k1'), (w2, k2), (w2', k2'), (w3, k3), (w3', k3')); *)
 
-    return v1 /\ v2 /\ v3;
-  }
+(*     return v1 /\ v2 /\ v3; *)
+(*   } *)
 
-  proc main(h : statement, m : message, z1 z2 z3 : response) = {
-    var v, w, w_get, ret;
-    v <- extract_views(h, m, z1, z2, z3);
-    w <- ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]);
+(*   proc main(h : statement, m : message, z1 z2 z3 : response) = { *)
+(*     var v, w, w_get, ret; *)
+(*     v <- extract_views(h, m, z1, z2, z3); *)
+(*     w <- ZK.witness_extractor(h, m, [1;2;3], [z1;z2;z3]); *)
 
-    if (w = None \/ !v) {
-      ret <- false;
-    } else{
-      w_get <- oget w;
-      ret <- R h w_get;
-    }
-    return ret;
-  }
-}.
+(*     if (w = None \/ !v) { *)
+(*       ret <- false; *)
+(*     } else{ *)
+(*       w_get <- oget w; *)
+(*       ret <- R h w_get; *)
+(*     } *)
+(*     return ret; *)
+(*   } *)
+(* }. *)
 
-local equiv soundness_inter :
-  Sigma.SpecialSoundness(ZKBoo(Com)).main ~ SoundnessInter.main :
-  ={h, m} /\ c{1} = [1;2;3] /\ z{1} = [z1{2};z2{2};z3{2}] ==> ={res}.
-proof.
-  proc.
-  sp.
-  swap{2} 1 1.
-  rcondt{1} 1. auto.
-  rcondt{1} 7. auto. call (:true). auto. auto.
-  rcondt{1} 13. auto. call (:true). auto. auto. call (:true). auto. auto.
-  rcondf{1} 19. auto. call (:true). auto. auto. call (:true). auto. auto. call (:true). auto. auto.
-  inline SoundnessInter.extract_views.
-  swap{2} [7..9] 5.
-  swap{2} 1 13.
-  sp.
-  wp. call (:true). sim.
-  wp. call (:true). sim.
-  wp. call (:true). sim.
-  wp. call (:true). sim.
-  auto; progress.
-  inline *.
-  auto; smt().
-qed.
+(* local equiv soundness_inter : *)
+(*   Sigma.SpecialSoundness(ZKBoo(Com)).main ~ SoundnessInter.main : *)
+(*   ={h, m} /\ c{1} = [1;2;3] /\ z{1} = [z1{2};z2{2};z3{2}] ==> ={res}. *)
+(* proof. *)
+(*   proc. *)
+(*   sp. *)
+(*   swap{2} 1 1. *)
+(*   rcondt{1} 1. auto. *)
+(*   rcondt{1} 7. auto. call (:true). auto. auto. *)
+(*   rcondt{1} 13. auto. call (:true). auto. auto. call (:true). auto. auto. *)
+(*   rcondf{1} 19. auto. call (:true). auto. auto. call (:true). auto. auto. call (:true). auto. auto. *)
+(*   inline SoundnessInter.extract_views. *)
+(*   swap{2} [7..9] 5. *)
+(*   swap{2} 1 13. *)
+(*   sp. *)
+(*   wp. call (:true). sim. *)
+(*   wp. call (:true). sim. *)
+(*   wp. call (:true). sim. *)
+(*   wp. call (:true). sim. *)
+(*   auto; progress. *)
+(*   inline *. *)
+(*   auto; smt(). *)
+(* qed. *)
+
+lemma soundness h a vs' es &m:
+    size vs' = size es /\
+    (forall v, v \in vs' => size v = d) /\
+    (forall i, 0 <= i < n => (i \in in_doms_f n es i) (* Must reveal all views *)
+    =>
+    Pr[Sigma.SpecialSoundness(ZKBoo(Com, Decomp)).main(h, a, es, vs') @ &m : res] = 1%r.
 
 pred validate_response w1 w2 w3 w1' w2' w3' y y1 y2 y3 c' k1 k2 k3 k1' k2' k3' =
     w1 = w1' /\ w2 = w2' /\ w3 = w3' /\

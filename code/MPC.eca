@@ -34,6 +34,26 @@ op nth_looping (vs : 'a list) (i : int) =
 op in_dom_f n (e : challenge) i =
   if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]).
 
+op in_doms_f n (es : challenge list) i =
+   has (fun (e : challenge) => 
+        if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]))
+       es.
+
+op cyclic_distance e i = min (i - e %% n) (n - e + i).
+
+(* op map_index e i  *)
+   (* given view from challenge e recover the view i *)
+   (* new offset is based on e: *)
+   (*  view e is now view 0  *)
+   (*  view e+1 is now view 1 *)
+   (*  view i is then the distance from e to i. Where we consider cyclic distance *)
+
+pred fully_consistent (vs' : view list list) (es : challenge list) =
+  forall i, 0 <= i < size es =>
+    (forall j, in_doms_f n [nth witness es i; nth witness es (i+1 %% size es)] i =>
+      nth_looping (nth witness vs' (nth witness es i)) (cyclic_distance (nth witness es i) j) =
+      nth_looping (nth witness vs' (nth witness es ((i + 1) %% size es))) (cyclic_distance (nth witness es ((i + 1) %% size es)) j)).
+
 axiom f_inv_correct vs e:
   e \in challenge =>
   forall i, in_dom_f n e i =>
@@ -110,29 +130,22 @@ module Verifiability(D : Phi) = {
 
 module Soundness(D : Phi) = {
   proc main(c, vs', ys) = {
-    var xopt, x, rs, vs, shares, v, y', verified, e, tmp, v';
+    var xopt, rs, vs, shares, v,  verified, tmp, i;
     verified <- true;
-    e <- 1;
-    while (onth vs' (e-1) <> None) {
-      v <- oget (onth vs' (e-1));
-      tmp <- D.verify(c, v, e, ys);
+    i <- 0;
+    while (i < d+1) {
+      v <- (nth witness vs' i);
+      tmp <- D.verify(c, v, i, ys);
       verified <- verified /\ tmp;
-      e <- e + 1;
+      i <- i + 1;
     }
 
     xopt <- D.extractor(vs');
-    x <- oget xopt;
-    rs <$ dlist drandom n;
+    rs <- D.sample_tapes(n);
 
-    vs <- D.decomp(c, x, rs);
-    shares <- [];
-    while (vs <> []) {
-      v' <- oget(ohead vs);
-      shares <- (output v')::shares;
-      vs <- behead vs;
-    }
-    y' <- reconstruct(shares);
-    return reconstruct ys = y';
+    vs <- D.decomp(c, (oget xopt), rs);
+    shares <- map output vs;
+    return xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
   }
 }.
 
