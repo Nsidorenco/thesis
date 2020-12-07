@@ -984,7 +984,8 @@ proof.
   wp.
   inline *.
   auto.
-  while (size w10 = size w1 - size c0 /\
+    while (
+      size w10 = size w1 - size c0 /\
          size w20 = size w2 - size c0 /\
          size w30 = size w3 - size c0 /\
          size c' = size c0 + size w10 - 1 /\
