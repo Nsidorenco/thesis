@@ -8,7 +8,8 @@ type output.
 type share.
 type gate.
 type random.
-type verification_input.
+type projected_view.
+type verification_input = projected_view list.
 type challenge = int.
 
 type circuit = gate list.
@@ -18,6 +19,7 @@ op challenge : challenge distr.
 op output (v : view) : share.
 op reconstruct (ss : share list) : output.
 op circuit_eval (c : circuit) (x : input) : output.
+op valid_circuit (c : circuit) : bool.
 op f (vs : view list, e : int) : verification_input.
 op f_inv (vs : verification_input) : view list.
 
@@ -31,14 +33,20 @@ axiom d_leq_n : d <= n.
 op nth_looping (vs : 'a list) (i : int) =
   nth witness vs (i %% n).
 
-op in_dom_f n (e : challenge) i =
-  if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]).
+op in_dom_f (n : int) (e : challenge) (i : int) : bool.
 
 op in_doms_f n (es : challenge list) i =
-   has (fun (e : challenge) => 
-        if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]))
-       es.
+  foldr (fun e acc => acc \/ in_dom_f n e i) false es.
 
+(* op in_dom_f n (e : challenge) i = *)
+(*   if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]). *)
+
+(* op in_doms_f n (es : challenge list) i = *)
+(*    has (fun (e : challenge) =>  *)
+(*         if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1])) *)
+(*        es. *)
+
+op proj_mapping (i e : int) : int.
 op cyclic_distance e i = min (i - e %% n) (n - e + i).
 
 (* op map_index e i  *)
@@ -48,21 +56,27 @@ op cyclic_distance e i = min (i - e %% n) (n - e + i).
    (*  view e+1 is now view 1 *)
    (*  view i is then the distance from e to i. Where we consider cyclic distance *)
 
-pred fully_consistent (vs' : view list list) (es : challenge list) =
-  forall i, 0 <= i < size es =>
-    (forall j, in_doms_f n [nth witness es i; nth witness es (i+1 %% size es)] i =>
-      nth_looping (nth witness vs' (nth witness es i)) (cyclic_distance (nth witness es i) j) =
-      nth_looping (nth witness vs' (nth witness es ((i + 1) %% size es))) (cyclic_distance (nth witness es ((i + 1) %% size es)) j)).
+pred fully_consistent (vs' : verification_input list) (es : challenge list) =
+  forall (e e'), e \in es /\ e' \in es=>
+    (forall j, in_doms_f n [e; e'] j =>
+      nth witness (nth witness vs' e) (proj_mapping j e) =
+      nth witness (nth witness vs' e') (proj_mapping j e')).
+
+(* pred fully_consistent (vs' : view list list) (es : challenge list) = *)
+(*   forall i, 0 <= i < size es => *)
+(*     (forall j, in_doms_f n [nth witness es i; nth witness es (i+1 %% size es)] i => *)
+(*       nth_looping (nth witness vs' (nth witness es i)) (cyclic_distance (nth witness es i) j) = *)
+(*       nth_looping (nth witness vs' (nth witness es ((i + 1) %% size es))) (cyclic_distance (nth witness es ((i + 1) %% size es)) j)). *)
 
 axiom f_inv_correct vs e:
   e \in challenge =>
   forall i, in_dom_f n e i =>
-      nth witness vs i = nth_looping (f_inv (f vs e)) (i-e).
+      nth witness vs i = nth witness (f_inv (f vs e)) (proj_mapping i e).
 
 (* axiom f_inv_size vs e: size(f_inv (f vs e)) = min (size vs) d. *)
 
 (* random seed distribution *)
-op drandom : {random distr | is_lossless drandom /\ is_funiform drandom} as drandom_llfuni.
+op drandom : {random distr | is_lossless drandom /\ is_uniform drandom} as drandom_lluni.
 
 module type Phi = {
   proc* sample_tapes(n : int) : random list
@@ -129,22 +143,23 @@ module Verifiability(D : Phi) = {
 }.
 
 module Soundness(D : Phi) = {
-  proc main(c, vs', ys) = {
-    var xopt, rs, vs, shares, v,  verified, tmp, i;
+  proc main(c, vs', es, ys) = {
+    var xopt, v,  verified, tmp, i, e;
     verified <- true;
     i <- 0;
-    while (i < d+1) {
+    while (i < size vs') {
       v <- (nth witness vs' i);
-      tmp <- D.verify(c, v, i, ys);
+      e <- (nth witness es i);
+      tmp <- D.verify(c, v, e, ys);
       verified <- verified /\ tmp;
       i <- i + 1;
     }
 
     xopt <- D.extractor(vs');
-    rs <- D.sample_tapes(n);
+    (* rs <- D.sample_tapes(n); *)
 
-    vs <- D.decomp(c, (oget xopt), rs);
-    shares <- map output vs;
+    (* vs <- D.decomp(c, (oget xopt), rs); *)
+    (* shares <- map output vs; *)
     return xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
   }
 }.
