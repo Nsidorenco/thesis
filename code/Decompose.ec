@@ -90,7 +90,10 @@ clone import MPC as MPC' with
       case (e = 2); progress.
       - smt.
      smt.
-qed.
+  qed.
+  realize f_inv_hom.
+      smt.
+  qed.
 
 op phi_decomp (g : gate, idx, p : int, w1 w2 : int list, k1 k2 : int list) : output =
 with g = ADDC inputs =>
@@ -1052,7 +1055,9 @@ foldr
   smt().
 
   rewrite /reconstruct /output /circuit_eval /eval_circuit -!nth_last.
-  have : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  move: H10.
+  have <- : (result.`1, result.`2, result.`3, result.`4, result.`5, result.`6) = result by smt().
+  progress.
   smt(size_ge0).
   have -> : e{hr} = 2 by smt.
   by rewrite /output /f /nth_looping.
@@ -1233,7 +1238,7 @@ qed.
 
 module Soundness_Inter = {
   proc main(c, vs', es, ys) = {
-    var v1, v2, v3, w1, w2, w3, k1, k2, k3, xopt, e1, e2, e3;
+    var v1, v2, v3, w1, w2, w3, k1, k2, k3, xopt, e1, e2, e3, ret;
     var w1', w2', w3', k1', k2', k3';
     v1 <- nth witness vs' 0;
     v2 <- nth witness vs' 1;
@@ -1251,9 +1256,15 @@ module Soundness_Inter = {
     Phi.verify(c, v1, e1, ys);
     Phi.verify(c, v2, e2, ys);
     Phi.verify(c, v3, e3, ys);
-    xopt <- Phi.extractor(vs');
+
+    if (fully_consistent vs' es) {
+      xopt <- Phi.extractor(vs');
+      ret <- xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
+    } else {
+      ret <- false;
+    }
     
-    return xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
+    return ret;
   }
 }.
 
@@ -1263,16 +1274,20 @@ proof.
   proc.
   sp.
   inline Phi.decomp Phi.decomp_global Phi.sample_tapes.
+  swap{1} 2 -1.
+  swap{2} 4 -3.
+  auto.
+  rcondt{1} 2. auto. if; auto. call (:true); auto. smt(). smt().
+  rcondt{1} 7. auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
+  rcondt{1} 12. auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
+  rcondf{1} 17. auto; call (:true); auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
   auto.
   call (:true); auto.
-  rcondt{1} 1. auto. smt().
-  rcondt{1} 6. auto; call (:true); auto. smt().
-  rcondt{1} 11. auto; call (:true); auto; call (:true); auto. smt().
-  rcondf{1} 16. auto; call (:true); auto; call (:true); auto; call (:true); auto. smt().
+  call (:true); auto.
+  call (:true); auto.
+  if; auto.
+  call (:true);
   auto.
-  call (:true); auto.
-  call (:true); auto.
-  call (:true); auto.
 qed.
 
 lemma witness_extraction vs' c' y' &m:
@@ -1564,6 +1579,7 @@ proof.
    conseq (: v1 = nth witness vs' 0 /\
              v2 = nth witness vs' 1 /\
              v3 = nth witness vs' 2 /\
+             es = [0;1;2] /\
              (w1, k1) = nth witness v1 0 /\
              (w2, k2) = nth witness v1 1 /\
              (w2', k2') = nth witness v2 0 /\
@@ -1574,48 +1590,23 @@ proof.
              /\ e1 = 0 /\ e2 = 1 /\ e3 = 2 /\ size ys = 3
              ==> _).
    - rewrite /fully_consistent in H5.
-     progress.
-     have Hw3 := H5 2 0 _. smt(). progress.
-     have := Hw3 0 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /cyclic_distance /min /nth_looping /n /d. simplify.
+     progress; clear Hver.
+     have := H5 2 0 0 _. split. smt(). split. smt(). split; smt.
      smt().
 
-     have Hw1 := H5 0 1 _. smt(). progress.
-     have := Hw1 1 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /nth_looping /n. simplify.
+     have := H5 0 1 1 _. split. smt(). split. smt(). split; smt.
      smt().
 
-     have Hw2 := H5 1 2 _. smt(). progress.
-     have := Hw2 2 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /cyclic_distance /min /nth_looping /n /d. simplify.
+     have := H5 1 2 2 _. split. smt(). split. smt(). split; smt.
      smt().
 
-     rewrite /fully_consistent.
-     have Hw3 := H5 2 0 _. smt(). progress.
-     have := Hw3 0 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /cyclic_distance /min /nth_looping /n /d. simplify.
+     have := H5 2 0 0 _. split. smt(). split. smt(). split; smt.
      smt().
 
-     have Hw1 := H5 0 1 _. smt(). progress.
-     have := Hw1 1 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /nth_looping /n. simplify.
+     have := H5 0 1 1 _. split. smt(). split. smt(). split; smt.
      smt().
 
-     have Hw2 := H5 1 2 _. smt(). progress.
-     have := Hw2 2 _. rewrite /in_doms_f.
-     progress. clear Hver.
-     smt. simplify. clear Hver.
-     rewrite /cyclic_distance /min /nth_looping /n /d. simplify.
+     have := H5 1 2 2 _. split. smt(). split. smt(). split; smt.
      smt().
      smt().
 
@@ -1623,6 +1614,9 @@ proof.
   auto.
   have := witness_extraction vs'' c' (reconstruct ys') &m.
   progress.
+  rcondt 4. 
+  - inline *. auto. 
+  wp.
   call H7.
 
   have Hver2 := Hver 2 _; trivial.

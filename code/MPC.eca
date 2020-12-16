@@ -36,7 +36,7 @@ op nth_looping (vs : 'a list) (i : int) =
 op in_dom_f (n : int) (e : challenge) (i : int) : bool.
 
 op in_doms_f n (es : challenge list) i =
-  foldr (fun e acc => acc \/ in_dom_f n e i) false es.
+  foldr (fun e acc => acc /\ in_dom_f n e i) true es.
 
 (* op in_dom_f n (e : challenge) i = *)
 (*   if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]). *)
@@ -56,11 +56,10 @@ op cyclic_distance e i = min (i - e %% n) (n - e + i).
    (*  view e+1 is now view 1 *)
    (*  view i is then the distance from e to i. Where we consider cyclic distance *)
 
-pred fully_consistent (vs' : verification_input list) (es : challenge list) =
-  forall (e e'), e \in es /\ e' \in es=>
-    (forall j, in_doms_f n [e; e'] j =>
-      nth witness (nth witness vs' e) (proj_mapping j e) =
-      nth witness (nth witness vs' e') (proj_mapping j e')).
+op fully_consistent (vs' : verification_input list) (es : challenge list) =
+  forall l k j, 0 <= l < size es /\ 0 <= k < size es /\ in_doms_f n [nth witness es l; nth witness es k] j =>
+       nth witness (nth witness vs' l) (proj_mapping j (nth witness es l)) =
+       nth witness (nth witness vs' k) (proj_mapping j (nth witness es k)).
 
 (* pred fully_consistent (vs' : view list list) (es : challenge list) = *)
 (*   forall i, 0 <= i < size es => *)
@@ -72,6 +71,10 @@ axiom f_inv_correct vs e:
   e \in challenge =>
   forall i, in_dom_f n e i =>
       nth witness vs i = nth witness (f_inv (f vs e)) (proj_mapping i e).
+
+axiom f_inv_hom v v' i i':
+    nth witness (f_inv v) i <> nth witness (f_inv v') i' => 
+    nth witness v i <> nth witness v' i'.
 
 (* axiom f_inv_size vs e: size(f_inv (f vs e)) = min (size vs) d. *)
 
@@ -143,8 +146,8 @@ module Verifiability(D : Phi) = {
 }.
 
 module Soundness(D : Phi) = {
-  proc main(c, vs', es, ys) = {
-    var xopt, v,  verified, tmp, i, e;
+  proc main(c, vs', es : challenge list, ys) = {
+    var xopt, v,  verified, tmp, i, e, ret;
     verified <- true;
     i <- 0;
     while (i < size vs') {
@@ -155,12 +158,18 @@ module Soundness(D : Phi) = {
       i <- i + 1;
     }
 
-    xopt <- D.extractor(vs');
+    if (fully_consistent vs' es) {
+      xopt <- D.extractor(vs');
+      ret <- xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
+    } else{
+      ret <- false;
+    }
+
     (* rs <- D.sample_tapes(n); *)
 
     (* vs <- D.decomp(c, (oget xopt), rs); *)
     (* shares <- map output vs; *)
-    return xopt <> None /\ circuit_eval c (oget xopt) = reconstruct ys;
+    return ret;
   }
 }.
 
