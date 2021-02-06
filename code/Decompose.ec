@@ -119,7 +119,7 @@ with g = MULT inputs =>
 
 op simulator_eval (g : gate, idx, p : int, e : int, w1 w2 : int list, k1 k2 k3: int list) =
 with g = MULT inputs =>
-  if (p - e %% 3 = 1) then (nth witness k3 idx) else phi_decomp g idx p w1 w2 k1 k2
+  if ((p + 1) - e %% 3 = 1) then (nth witness k3 idx) else phi_decomp g idx p w1 w2 k1 k2
   (* if p = 1 then phi_decomp g p w1 w2 k1 k2 else *)
   (* if p = 2 then phi_decomp g p w1 w2 k2 k3 else *)
 with g = ADDC inputs =>
@@ -1201,7 +1201,6 @@ equiv verify_properties c' vs' e' ys':
       res{1} <=> valid_view_op e' (nth_looping vs' 0) (nth_looping vs' 1) c' /\ output (nth_looping vs' 0) = nth_looping ys' e' /\ output (nth_looping vs' 1) = nth_looping ys' (e'+1)
       /\ size (fst (nth_looping vs' 0)) = size (fst (nth_looping vs' 1)) /\ size (fst (nth_looping vs' 0)) = size c' + 1
       /\ size (snd (nth_looping vs' 0)) = size (snd (nth_looping vs' 1)) /\ size (snd (nth_looping vs' 0)) = size c'.
-    (* if res{1} then valid_view_op (e' + 1) (nth_looping vs' 0) (nth_looping vs' 1) c' else !res{1}. *)
 proof.
   proc.
   auto.
@@ -1277,10 +1276,17 @@ proof.
   swap{1} 2 -1.
   swap{2} 4 -3.
   auto.
-  rcondt{1} 2. auto. if; auto. call (:true); auto. smt(). smt().
-  rcondt{1} 7. auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
-  rcondt{1} 12. auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
-  rcondf{1} 17. auto; call (:true); auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. smt(). smt().
+  rcondt{1} 2. auto. if; auto. call (:true); auto; progress; smt(size_ge0).
+  - progress. smt(size_ge0).
+  rcondt{1} 7. auto; call (:true); auto. if; auto. call (:true); auto. 
+  - smt(size_ge0).
+  - smt(size_ge0).
+  rcondt{1} 12. auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. 
+  - smt(size_ge0).
+  - smt(size_ge0).
+  rcondf{1} 17. auto; call (:true); auto; call (:true); auto; call (:true); auto. if; auto. call (:true); auto. 
+  - smt(size_ge0).
+  - smt(size_ge0).
   auto.
   call (:true); auto.
   call (:true); auto.
@@ -1547,7 +1553,7 @@ lemma soundness c' vs'' es' ys' &m:
     size vs'' = size es' /\ undup es' = es' /\ size es' = 3 /\ es' = [0;1;2] /\
     (forall i, 0 <= i < size es' => nth witness es' i \in challenge) /\
     valid_circuit c' /\
-    fully_consistent vs'' es' /\ size ys' = size vs'' =>
+    fully_consistent vs'' es' /\ size ys' = n =>
     (* (forall i, 0 <= i < n => in_doms_f n es i) (* Must reveal all views *) => *)
       Pr[Soundness(Phi).main(c', vs'', es', ys') @ &m : res] = 1%r.
 proof.
@@ -1757,40 +1763,42 @@ proof.
 
     - (* MULT *)
       elim x=> x1 x2.
-      rnd (fun z => (nth 0 w2{2} x1 * nth 0 w2{2} x2 + nth 0 w3{1} x1 * nth 0 w2{2} x2 + nth 0 w2{2} x1 * nth 0 w3{1} x2 + r2{2} - z)).
-      skip. progress. smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      rewrite /valid_gate in H2.
-      rewrite !nth_rcons.
-      rewrite -H1 -H0 -H.
-      case (i < size s).
-      smt().
-      progress.
-      have -> : i = size s by smt(size_rcons).
-      simplify.
-      rewrite H8 H9 H10 H8 -H5.
-      simplify.
-      have <- := H16 x1 _. smt().
-      have <- := H16 x2 _. smt().
-      smt().
-      smt(size_rcons).
-      smt(size_rcons).
-      smt(size_rcons).
-      smt(size_rcons).
-      smt(size_rcons).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
-      smt(dinput_funi size_rcons nth_rcons oget_some).
+      rnd (fun z => (nth witness w2{2} x1 * nth witness w2{2} x2 + nth witness w3{1} x1 * nth witness w2{2} x2 + nth witness w2{2} x1 * nth witness w3{1} x2 + r2{2} - z)).
+      skip. smt(dinput_funi size_rcons nth_rcons oget_some).
+      (* skip. progress. smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* smt(dinput_funi size_rcons nth_rcons oget_some). *)
+      (* rewrite /valid_gate in H2. *)
+      (* rewrite !nth_rcons. *)
+      (* rewrite -H1 -H0 -H. *)
+      (* case (i < size s). *)
+      (* smt(). *)
+      (* progress. *)
+      (* have -> : i = size s by smt(size_rcons). *)
+      (* simplify. *)
+      (* rewrite H8 H9 H10 H8 -H5. *)
+      (* simplify. *)
+      (* have <- := H16 x1 _. smt(). *)
+      (* have <- := H16 x2 _. smt(). *)
+      (* smt(). *)
+      (* smt(size_rcons). *)
+      (* smt(size_rcons). *)
+      (* smt(size_rcons). *)
+      (* have := H15; progress. *)
+      (* congr.  *)
+      (* rewrite !nth_rcons. *)
+      (* rewrite H9 H8 H13. *)
+      (* by have -> : size w1{2} - 1 = size k3{2} by smt(). *)
 
     case (e' = 1); progress.
     (* rnd. rnd. rnd. auto. *)
@@ -1804,10 +1812,37 @@ proof.
     (* Discharge trivial case: ADDC MULTC ADD *)
     rnd; skip; smt(nth_rcons size_rcons).
     rnd; skip; smt(nth_rcons size_rcons).
-    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress.
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    rewrite /valid_gate in H2.
+    rewrite !nth_rcons.
+    rewrite -H1 -H0 -H.
+    case (i < size s).
+    smt().
+    progress.
+    case (i = size s).
+    - progress.
+      have <- : (x.`1, x.`2) = x by smt().
+      simplify.
+      have <- := H16 x.`1 _. smt().
+      smt().
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
+
     - (* MULT *)
       elim x=> x1 x2.
-      rnd (fun z => (nth 0 w3{1} x1 * nth 0 w3{1} x2 + nth 0 w1{1} x1 * nth 0 w3{1} x2 + nth 0 w3{1} x1 * nth 0 w1{1} x2 + r2{2} - z)).
+      rnd (fun z => (nth witness w3{1} x1 * nth witness w3{1} x2 + nth witness w1{1} x1 * nth witness w3{1} x2 + nth witness w3{1} x1 * nth witness w1{1} x2 + r2{2} - z)).
       skip. smt(dinput_funi size_rcons nth_rcons oget_some).
 
     case (e' = 2).
@@ -1821,7 +1856,33 @@ proof.
     (* Discharge trivial case: ADDC MULTC ADD *)
     rnd; skip; smt(nth_rcons size_rcons).
     rnd; skip; smt(nth_rcons size_rcons).
-    rnd; skip; progress; smt(nth_rcons size_rcons).
+    rnd; skip; progress.
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    smt(nth_rcons size_rcons).
+    rewrite /valid_gate in H2.
+    rewrite !nth_rcons.
+    rewrite -H1 -H0 -H.
+    case (i < size s).
+    smt().
+    progress.
+    case (i = size s).
+    - progress.
+      have <- : (x.`1, x.`2) = x by smt().
+      simplify.
+      have <- := H16 x.`1 _. smt().
+      smt().
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
+      smt(size_rcons).
     - (* MULT *)
       elim x=> x1 x2.
       rnd (fun z => (nth 0 w1{1} x1 * nth 0 w1{1} x2 + nth 0 w2{1} x1 * nth 0 w1{1} x2 + nth 0 w1{1} x1 * nth 0 w2{1} x2 + r2{2} - z)).

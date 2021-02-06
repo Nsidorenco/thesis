@@ -38,34 +38,12 @@ op in_dom_f (n : int) (e : challenge) (i : int) : bool.
 op in_doms_f n (es : challenge list) i =
   foldr (fun e acc => acc /\ in_dom_f n e i) true es.
 
-(* op in_dom_f n (e : challenge) i = *)
-(*   if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]). *)
-
-(* op in_doms_f n (es : challenge list) i = *)
-(*    has (fun (e : challenge) =>  *)
-(*         if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1])) *)
-(*        es. *)
-
 op proj_mapping (i e : int) : int.
-op cyclic_distance e i = min (i - e %% n) (n - e + i).
-
-(* op map_index e i  *)
-   (* given view from challenge e recover the view i *)
-   (* new offset is based on e: *)
-   (*  view e is now view 0  *)
-   (*  view e+1 is now view 1 *)
-   (*  view i is then the distance from e to i. Where we consider cyclic distance *)
 
 op fully_consistent (vs' : verification_input list) (es : challenge list) =
   forall l k j, 0 <= l < size es /\ 0 <= k < size es /\ in_doms_f n [nth witness es l; nth witness es k] j =>
        nth witness (nth witness vs' l) (proj_mapping j (nth witness es l)) =
        nth witness (nth witness vs' k) (proj_mapping j (nth witness es k)).
-
-(* pred fully_consistent (vs' : view list list) (es : challenge list) = *)
-(*   forall i, 0 <= i < size es => *)
-(*     (forall j, in_doms_f n [nth witness es i; nth witness es (i+1 %% size es)] i => *)
-(*       nth_looping (nth witness vs' (nth witness es i)) (cyclic_distance (nth witness es i) j) = *)
-(*       nth_looping (nth witness vs' (nth witness es ((i + 1) %% size es))) (cyclic_distance (nth witness es ((i + 1) %% size es)) j)). *)
 
 axiom f_inv_correct vs e:
   e \in challenge =>
@@ -75,8 +53,6 @@ axiom f_inv_correct vs e:
 axiom f_inv_hom v v' i i':
     nth witness (f_inv v) i <> nth witness (f_inv v') i' => 
     nth witness v i <> nth witness v' i'.
-
-(* axiom f_inv_size vs e: size(f_inv (f vs e)) = min (size vs) d. *)
 
 (* random seed distribution *)
 op drandom : {random distr | is_lossless drandom /\ is_uniform drandom} as drandom_lluni.
@@ -88,23 +64,6 @@ module type Phi = {
   proc simulator(c : circuit, y : output, e : int) : verification_input * share list
   proc extractor(vs : verification_input list) : input option
 }.
-
-(* module Correctness(D : Phi) = { *)
-(*   proc main(c, x) = { *)
-(*     var vs, shares, v, y, rs, i; *)
-(*     rs <$ dlist drandom n; *)
-(*     vs <- D.decomp(c, x, rs); *)
-(*     shares <- []; *)
-(*     i <- 0; *)
-(*     while (i < size vs) { *)
-(*       v <- nth witness vs i; *)
-(*       shares <- rcons shares (output v); *)
-(*       i <- i + 1; *)
-(*     } *)
-(*     y <- reconstruct(shares); *)
-(*     return (circuit_eval c x) = y; *)
-(*   } *)
-(* }. *)
 
 module Privacy(D : Phi) = {
   proc real(c, x, e) = {
@@ -129,12 +88,6 @@ module Verifiability(D : Phi) = {
     vs <- D.decomp(c, w, rs);
     ys <- [];
     ys <- (map output vs);
-    (* i <- 0; *)
-    (* while (i < n) { *)
-    (*   v <- nth witness vs i; *)
-    (*   ys <- rcons ys (output v); *)
-    (*   i <- i + 1; *)
-    (* } *)
     y <- reconstruct(ys);
     y' <- circuit_eval c w;
     vs' <- f vs e;
@@ -165,10 +118,6 @@ module Soundness(D : Phi) = {
       ret <- false;
     }
 
-    (* rs <- D.sample_tapes(n); *)
-
-    (* vs <- D.decomp(c, (oget xopt), rs); *)
-    (* shares <- map output vs; *)
     return ret;
   }
 }.
