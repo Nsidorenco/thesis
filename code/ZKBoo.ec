@@ -27,20 +27,7 @@ clone export SigmaProtocols as Sigma with
   type response <- response,
 
   op R <- R,
-  op dchallenge <- dchallenge
-  proof *.
-  realize dchallenge_llfuni.
-      (* (* TODO: by [dt_ll, dt_funi] *) *)
-      (* split. apply dinter_ll. trivial. apply is_full_funiform. *)
-      (* rewrite /is_full. *)
-      (* progress. *)
-      (* case (0 < x <= 3). *)
-      (* smt. *)
-      (* move=> H. *)
-      (* have : 0 < x <= 3. apply challenge_size. *)
-      (* smt(). *)
-      (* apply dinter_uni. *)
-  admitted.
+  op dchallenge <- dchallenge.
 
 module ZKBoo(C : Committer, D : Phi) : SProtocol = {
   var ws : view list
