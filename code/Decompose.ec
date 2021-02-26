@@ -25,15 +25,15 @@ lemma dinput_fu : is_full dinput by apply/funi_ll_full; [exact/dinput_funi|exact
 
 op eval_gate (g : gate, s : int list) : output =
   with g = MULT inputs => let (i, j) = inputs in
-                          let x = (nth witness s i) in
-                          let y = (nth witness s j) in x * y
+                          let x = (nth 0 s i) in
+                          let y = (nth 0 s j) in x * y
   with g = ADD inputs =>  let (i, j) = inputs in
-                          let x = (nth witness s i) in
-                          let y = (nth witness s j) in x + y
+                          let x = (nth 0 s i) in
+                          let y = (nth 0 s j) in x + y
   with g = ADDC inputs => let (i, c) = inputs in
-                          let x = (nth witness s i) in x + c
+                          let x = (nth 0 s i) in x + c
   with g = MULTC inputs => let (i, c) = inputs in
-                          let x = (nth witness s i) in x * c.
+                          let x = (nth 0 s i) in x * c.
 
 op eval_circuit_aux(c : circuit, s : int list) : int list =
     with c = [] => s
@@ -42,7 +42,7 @@ op eval_circuit_aux(c : circuit, s : int list) : int list =
      eval_circuit_aux gs (rcons s r).
 
 op eval_circuit (c : circuit, s : int) : output =
-    last witness (eval_circuit_aux c [s]).
+    last 0 (eval_circuit_aux c [s]).
 
 op nth_looping (vs : 'a list) (i : int) =
   nth witness vs (i %% 3).
@@ -58,7 +58,7 @@ clone import MPC as MPC' with
   op d = 2,
   op challenge = [0..2],
   op circuit_eval = eval_circuit,
-  op output (v : view) = last witness (fst v),
+  op output (v : view) = last 0 (fst v),
   op in_dom_f n (e : challenge) i =
     if (e + d <= n) then i \in [e..e+d-1] else (i \in [e..n-1] \/ i \in [0..d-(n - e)-1]),
   op proj_mapping (i e : int) = (i - e) %% 3,
@@ -70,26 +70,39 @@ clone import MPC as MPC' with
   op f_inv = (fun x => x),
   op drandom = dlist dinput 3
   proof *.
-  realize n_pos by []. 
-  realize d_pos by [].
-  realize d_leq_n by [].
+  realize n_pos by trivial.
+  realize d_pos by trivial.
+  realize d_leq_n by trivial.
   realize drandom_lluni. split.
       - rewrite /drandom.
         apply /dlist_ll /dinput_ll.
       - rewrite /drandom.
-        smt.
+        rewrite dlist_uni.
+        apply (funi_uni dinput_funi).
   qed.
   realize f_inv_correct.
-      rewrite /challenge.
-      rewrite /f_inv /f /nth_looping /in_dom_f /n /d.
+      rewrite /challenge. rewrite /f_inv /f /nth_looping /in_dom_f /n /d.
       progress.
       case (e = 0); progress.
-      - smt.
+      - rewrite /proj_mapping. simplify. 
+        case (i < 0). move: H0. simplify. smt.
+        case (i < 2). move: H0. simplify. progress. smt().
+        move: H0. simplify. progress. smt.
       case (e = 1); progress.
-      - smt.
+      - rewrite /proj_mapping. simplify. 
+        case (i < 1). move: H0. simplify. smt.
+        case (i < 3). move: H0. simplify. progress. clear H H1. 
+        case (i = 1). smt().
+        case (i = 2). smt(). progress. smt.
+        move: H0. simplify. progress. smt.
       case (e = 2); progress.
-      - smt.
-     smt.
+        case (i = 0). smt().
+        case (i = 2). smt().
+        move: H0. simplify.
+        have -> := supp_dinter 2 2 i. 
+        have -> := supp_dinter 0 0 i. progress. smt().
+      move: H. 
+      have -> := supp_dinter 0 2 e. progress. smt().
   qed.
   realize f_inv_hom.
       smt.
@@ -98,28 +111,28 @@ clone import MPC as MPC' with
 op phi_decomp (g : gate, idx, p : int, w1 w2 : int list, k1 k2 : int list) : output =
 with g = ADDC inputs =>
     let (i, c) = inputs in
-    let x = (nth witness w1 i) in
+    let x = (nth 0 w1 i) in
     if p = 0 then x + c else x
 with g = MULTC inputs =>
     let (i, c) = inputs in
-    let x = (nth witness w1 i) in x * c
+    let x = (nth 0 w1 i) in x * c
 with g = ADD inputs =>
     let (i, j) = inputs in
-    let x = (nth witness w1 i) in
-    let y = (nth witness w1 j) in x + y
+    let x = (nth 0 w1 i) in
+    let y = (nth 0 w1 j) in x + y
 with g = MULT inputs =>
     let (i, j) = inputs in
-    let xp = (nth witness w1 i) in
-    let yp = (nth witness w1 j) in
-    let xp' = (nth witness w2 i) in
-    let yp' = (nth witness w2 j) in
-    let r1 = (nth witness k1 idx) in
-    let r2 = (nth witness k2 idx) in
+    let xp = (nth 0 w1 i) in
+    let yp = (nth 0 w1 j) in
+    let xp' = (nth 0 w2 i) in
+    let yp' = (nth 0 w2 j) in
+    let r1 = (nth 0 k1 idx) in
+    let r2 = (nth 0 k2 idx) in
     xp * yp + xp' * yp + xp * yp' + r1 - r2.
 
 op simulator_eval (g : gate, idx, p : int, e : int, w1 w2 : int list, k1 k2 k3: int list) =
 with g = MULT inputs =>
-  if ((p + 1) - e %% 3 = 1) then (nth witness k3 idx) else phi_decomp g idx p w1 w2 k1 k2
+  if ((p + 1) - e %% 3 = 1) then (nth 0 k3 idx) else phi_decomp g idx p w1 w2 k1 k2
   (* if p = 1 then phi_decomp g p w1 w2 k1 k2 else *)
   (* if p = 2 then phi_decomp g p w1 w2 k2 k3 else *)
 with g = ADDC inputs =>
@@ -127,16 +140,71 @@ with g = ADDC inputs =>
 with g = MULTC inputs => phi_decomp g idx p w1 w2 k1 k2
 with g = ADD inputs => phi_decomp g idx p w1 w2 k1 k2.
 
+op folding_op (N : int) (f : int -> bool) =
+  (foldr (fun i acc, acc /\ f i)
+    true (range 0 N)).
+
+pred forall_op (N : int) (f : int -> bool) =
+    forall i, 0 <= i < N => f i.
+
+(* Helper lemma*)
+lemma foldr_false (N : int) f :
+  foldr (fun (i : int) (acc : bool) => acc /\ f i) false (range 0 N) = false.
+proof.
+  elim /natind N.
+  - progress. rewrite range_geq. assumption. done.
+  - progress.
+    rewrite rangeSr. assumption.
+    rewrite -cats1.
+    rewrite foldr_cat.
+    simplify.
+    by rewrite H0.
+qed.
+    
+
+(* Helper Lemma *)
+lemma op_reflect N f : folding_op N f = forall_op N f.
+proof.
+  rewrite /folding_op /forall_op.
+  elim /natind N.
+  - progress. rewrite range_geq. assumption. smt().
+  - progress.
+    rewrite rangeSr. assumption.
+    rewrite -cats1.
+    rewrite foldr_cat.
+    simplify.
+    have -> : (forall (i : int), 0 <= i && i < n + 1 => f i) <=> (forall (i : int), 0 <= i && i < n => f i) /\ f n.
+    - progress.
+      smt().
+      smt().
+      smt().
+    case (f n); progress.
+    by rewrite foldr_false.
+qed.
 
 op valid_view_op (p : int) (view view2 : view) (c : circuit) =
   (foldr (fun i acc,
-            acc /\ (nth witness view.`1 (i + 1)) = phi_decomp (nth witness c i) i p view.`1 view2.`1 view.`2 view2.`2)
+            acc /\ (nth 0 view.`1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) c i) i p view.`1 view2.`1 view.`2 view2.`2)
     true (range 0 (size view.`1 - 1))).
 
 pred valid_view (p : int) (view view2 : view) (c : circuit) =
-    forall i, 0 <= i < size view.`1 => (nth witness view.`1 (i + 1)) = phi_decomp (nth witness c i) i p view.`1 view2.`1 view.`2 view2.`2.
+    forall i, 0 <= i < size view.`1 - 1 => (nth 0 view.`1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) c i) i p view.`1 view2.`1 view.`2 view2.`2.
 
-axiom valid_view_reflect: valid_view_op = valid_view.
+(* Allow us to change the verification code to a logical statement *)
+lemma valid_view_reflect: valid_view_op = valid_view.
+proof.
+  rewrite /valid_view_op /valid_view.
+  progress.
+  rewrite fun_ext2.
+  progress.
+  rewrite fun_ext2.
+  progress.
+  have := op_reflect (size y.`1 - 1) (fun i =>
+  nth 0 y.`1 (i + 1) =
+  phi_decomp (nth (ADDC(0,0)) y0 i) i x y.`1 x0.`1 y.`2 x0.`2
+  ).
+  progress.
+qed.
 
 module Circuit = {
   proc eval(c, s) = {
@@ -207,7 +275,7 @@ module Phi = {
 
   proc compute(c : circuit, w1 w2 w3, k1 k2 k3) = {
     while (c <> []) {
-     (k1, k2, k3, w1, w2, w3) <- gate_eval(head witness c, w1, w2, w3, k1, k2, k3);
+     (k1, k2, k3, w1, w2, w3) <- gate_eval(head (ADDC(0,0)) c, w1, w2, w3, k1, k2, k3);
      c <- behead c;
     }
     return (k1, k2, k3, w1, w2, w3);
@@ -216,7 +284,7 @@ module Phi = {
   proc compute_fixed(c : circuit, w1 w2 w3 : share list, k1 k2 k3 : random) = {
     var g, v1, v2, v3;
     while (c <> []) {
-      g <- (head witness c);
+      g <- (head (ADDC(0,0)) c);
       v1 <- phi_decomp g (size w1 - 1) 0 w1 w2 k1 k2;
       v2 <- phi_decomp g (size w1 - 1) 1 w2 w3 k2 k3;
       v3 <- phi_decomp g (size w1 - 1) 2 w3 w1 k3 k1;
@@ -228,13 +296,6 @@ module Phi = {
     return (k1, k2, k3, w1, w2, w3);
   }
 
-  proc compute_stepped(c : circuit, w1 w2 w3, k1 k2 k3) = {
-    (k1, k2, k3, w1, w2, w3) <- compute([head (ADDC(0,0)) c], w1, w2, w3, k1, k2, k3);
-    c <- behead c;
-    (k1, k2, k3, w1, w2, w3) <- compute(c, w1, w2, w3, k1, k2, k3);
-
-    return (k1, k2, k3, w1, w2, w3);
-  }
   proc compute_stepped_reversed(c : circuit, g : gate, w1 w2 w3, k1 k2 k3) = {
     (k1, k2, k3, w1, w2, w3) <- compute(c, w1, w2, w3, k1, k2, k3);
     (k1, k2, k3, w1, w2, w3) <- compute([g], w1, w2, w3, k1, k2, k3);
@@ -347,7 +408,7 @@ module Phi = {
       }
     }
     while (c <> []) {
-      g <- head witness c;
+      g <- head (ADDC(0,0)) c;
       r1 <$ dinput;
       r2 <$ dinput;
       r3 <$ dinput;
@@ -381,8 +442,8 @@ module Phi = {
     x1 <$ dinput;
     x2 <$ dinput;
     (k1, k2, k3, w1, w2) <- simulate(c, e, [x1], [x2], [], [], []);
-    y1 <- last witness w1;
-    y2 <- last witness w2;
+    y1 <- last 0 w1;
+    y2 <- last 0 w2;
     y3 <- y - (y1 + y2);
 
     vs' <- ([(w1, k1); (w2, k2)]);
@@ -412,7 +473,7 @@ module Phi = {
     (w3, k3) <- (nth witness v2 1);
     (w3', k3') <- (nth witness v3 0);
     (w1', k1') <- (nth witness v3 1);
-    ret <- Some( (nth witness w1 0) + (nth witness w2 0) + (nth witness w3 0) );
+    ret <- Some( (nth 0 w1 0) + (nth 0 w2 0) + (nth 0 w3 0) );
 
     return ret;
   }
@@ -437,7 +498,7 @@ pred valid_gate (g : gate) idx =
 
 pred valid_circuit (c : circuit) =
   forall i, (0 <= i /\ i < size c) =>
-    valid_gate (nth witness c i) i.
+    valid_gate (nth (ADDC(0,0)) c i) i.
 
 lemma valid_circuit_rcons_head g c:
     valid_circuit (rcons c g) => valid_circuit c.
@@ -467,10 +528,10 @@ proof.
     progress.
     have H' := H (size c) _.
     smt(size_ge0 size_rcons).
-    smt.
-    have H' := H (size c) _.
-    smt(size_ge0 size_rcons).
-    smt.
+    smt(size_ge0 size_rcons nth_rcons).
+    have := H (size c) _.
+    smt(size_ge0 size_rcons nth_rcons).
+    rewrite nth_rcons. progress.
 qed.
 
 lemma gate_computation_order g i (p : int) (w1 w2 w1' w2' : share list) k1 k2 k1' k2' :
@@ -514,7 +575,7 @@ lemma circuit_computation_order c:
       phi_decomp (nth (ADDC(0,0)) c i) i p (w1++w1') (w2++w2') (k1++k1') (k2++k2')).
 proof.
   elim /last_ind c; progress.
-  smt().
+  smt(nth_cat).
   rewrite nth_rcons.
   case (i < size s); move=> Hi.
   progress.
@@ -526,7 +587,7 @@ proof.
   smt(valid_circuit_rcons_tail size_ge0).
   apply Hgate.
   progress.
-  smt().
+  smt(nth_cat).
 qed.
 
 equiv compute_fixed_output_eq:
@@ -534,7 +595,7 @@ equiv compute_fixed_output_eq:
      ={c, w1, w2, w3} /\ size w1{2} = size w2{2} /\ size w1{2} = size w3{2}==>
      let (k1, k2, k3, w1, w2, w3) = res{1} in
      let (k1', k2', k3', w1', w2', w3') = res{2} in
-     last witness w1 + last witness w2 + last witness w3 = last witness w1' + last witness w2' + last witness w3'.
+     last 0 w1 + last 0 w2 + last 0 w3 = last 0 w1' + last 0 w2' + last 0 w3'.
 proof.
     proc.
     inline Phi.gate_eval.
@@ -545,7 +606,7 @@ proof.
                 /\ size w1{1} = size w3{1}
                 /\ size w1{2} = size w2{2}
                 /\ size w1{2} = size w3{2}
-                /\ forall i, nth witness w1{1} i + nth witness w2{1} i + nth witness w3{1} i = nth witness w1{2} i + nth witness w2{2} i + nth witness w3{2} i).
+                /\ forall i, nth 0 w1{1} i + nth 0 w2{1} i + nth 0 w3{1} i = nth 0 w1{2} i + nth 0 w2{2} i + nth 0 w3{2} i).
     auto.
     progress.
     apply dinput_ll.
@@ -560,14 +621,15 @@ proof.
     case (i < size w1{1}); progress.
     smt.
     case (i = size w1{1}); progress.
-    elim (head witness c{2}); move=>x; case x=> x1 x2.
-    smt().
+    elim (head (ADDC(0,0)) c{2}); move=>x; case x=> x1 x2.
+    rewrite /phi_decomp.
+    smt(nth_rcons).
     smt().
     smt().
     smt().
     auto.
     progress.
-    smt.
+    smt(nth_last).
 qed.
 
 lemma size_behead (l : 'a list):
@@ -575,7 +637,10 @@ lemma size_behead (l : 'a list):
 proof.
     elim l.
     smt().
-    smt().
+    progress.
+    have : size l = 0. smt(size_ge0).
+    progress.
+    smt(size_ge0 size_cat).
 qed.
 
 lemma eval_gate_aux_size g s:
@@ -621,20 +686,20 @@ lemma compute_gate_correct g:
           size cprev = size w1 - 1 /\
           size k1 = size k2 /\ size k1 = size w1 - 1 /\ size k1 = size k3 /\
           (forall i, 0 <= i /\ i < size w1 =>
-            (nth witness w1 i) + (nth witness w2 i) + (nth witness w3 i) = (nth witness s i)) /\
+            (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s i)) /\
           (forall i, 0 <= i /\ i + 1 < size w1 =>
-            (nth witness w1 (i + 1)) = phi_decomp (nth witness (cprev) i) i 0 w1 w2 k1 k2 /\
-            (nth witness w2 (i + 1)) = phi_decomp (nth witness (cprev) i) i 1 w2 w3 k2 k3 /\
-            (nth witness w3 (i + 1)) = phi_decomp (nth witness (cprev) i) i 2 w3 w1 k3 k1))
+            (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 0 w1 w2 k1 k2 /\
+            (nth 0 w2 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 1 w2 w3 k2 k3 /\
+            (nth 0 w3 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev) i) i 2 w3 w1 k3 k1))
         ==>
         let (k1, k2, k3, w1, w2, w3) = res in
         let s' = (eval_circuit_aux [g] s) in
         (forall i, 0 <= i /\ i < size w1 =>
-          (nth witness w1 i) + (nth witness w2 i) + (nth witness w3 i) = (nth witness s' i)) /\
+          (nth 0 w1 i) + (nth 0 w2 i) + (nth 0 w3 i) = (nth 0 s' i)) /\
         (forall i, 0 <= i /\ i + 1 < size w1 =>
-          (nth witness w1 (i + 1)) = phi_decomp (nth witness (cprev++[g]) i) i 0 w1 w2 k1 k2 /\
-          (nth witness w2 (i + 1)) = phi_decomp (nth witness (cprev++[g]) i) i 1 w2 w3 k2 k3 /\
-          (nth witness w3 (i + 1)) = phi_decomp (nth witness (cprev++[g]) i) i 2 w3 w1 k3 k1)
+          (nth 0 w1 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 0 w1 w2 k1 k2 /\
+          (nth 0 w2 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 1 w2 w3 k2 k3 /\
+          (nth 0 w3 (i + 1)) = phi_decomp (nth (ADDC(0,0)) (cprev++[g]) i) i 2 w3 w1 k3 k1)
          /\ size (cprev ++ [g]) = size w1 - 1 /\ valid_gate g (size w1 - 1)
          /\ size k1 = size w1 - 1 /\ size k2 = size k1 /\ size k3 = size k1
          /\ size s' = size w1 /\ size s' = size w2 /\ size s' = size w3]=1%r).
@@ -657,26 +722,50 @@ proof.
   move: H2 H20.
   rewrite /valid_gate.
   elim g; move=>x; case x=> i c; smt(nth_rcons nth_out).
-  smt.
+  have : i < size w1{hr} + 1. smt(size_rcons).
+  have : size w1{hr} <= i. smt().
+  smt().
   rewrite !nth_rcons.
   rewrite nth_cat.
   case (i < size w1{hr}); progress.
   case (i < size cprev); progress.
   rewrite - !cats1.
   case (i + 1 < size w1{hr}). progress.
-  smt.
-  progress. smt.
+  have <- := circuit_computation_order
+            cprev i 0 w1{hr} w2{hr}
+            [phi_decomp g (size w1{hr} - 1) 0 w1{hr} w2{hr} (k1{hr} ++ [v]) (k2{hr} ++ [v0])]
+            [phi_decomp g (size w1{hr} - 1) 1 w2{hr} w3{hr} (k2{hr} ++ [v0]) (k3{hr} ++ [v4])]
+            k1{hr} k2{hr}
+            [v] [v0] _. smt().
+  smt().
+  progress. 
   have -> : i + 1 = size w1{hr}. smt().
   have : i = size cprev. smt().
   progress.
-  rewrite - !cats1 - H4.
-  smt.
+  smt(circuit_computation_order).
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
   rewrite - !cats1.
-  smt. smt().
-  smt(size_cat size_rcons).
+  smt(circuit_computation_order). smt().
+  rewrite H4.
+  have -> : i + 1 = size w1{hr} by smt().
+  have Hi : i = size w1{hr} - 1 by smt().
+  rewrite - !cats1 Hi.
+  simplify.
+  have H' := gate_computation_order_eq
+          g i 0 w1{hr} w2{hr} 
+          [phi_decomp g (size w1{hr} - 1) 0 w1{hr} w2{hr} (k1{hr} ++ [v]) (k2{hr} ++ [v0])]
+          [phi_decomp g (size w1{hr} - 1) 1 w2{hr} w3{hr} (k2{hr} ++ [v0]) (k3{hr} ++ [v4])]
+          (k1{hr} ++ [v]) (k2{hr} ++ [v0]) _. smt(size_ge0 size_cat).
+  rewrite Hi in H'. 
+  apply H'.
+
+  rewrite size_rcons in H20.
+  have Hcontra : i < size w1{hr} by smt().
+  have : false. move: Hcontra. apply: contraLR.
+  progress; trivial.
+  trivial. 
 
   rewrite !nth_rcons.
   rewrite nth_cat.
@@ -684,49 +773,101 @@ proof.
   case (i < size cprev); progress.
   rewrite - !cats1.
   progress. case (i + 1 < size w2{hr}).
-  progress. smt.
+  progress.
+  have := (H9 i _). smt().
+  progress.
+  rewrite -circuit_computation_order.
+  - smt().
+  apply H25.
   smt().
-  have -> : i + 1 = size w1{hr}. smt().
-  have : i = size cprev. smt().
+  have Hi : i = size cprev by smt().
+  have -> : i + 1 = size w1{hr} by smt().
   progress.
   rewrite - !cats1 - H4.
-  smt.
+  rewrite -H -H0 -Hi=>/>.
+  move: H20 H2.
+  elim g; move=> x; case x=> x y;
+  move=> _ Hvalid;
+  rewrite /valid_gate in Hvalid=>/>.
+  - have Hx : x < size w2{hr} by smt().
+    rewrite nth_cat.
+    by rewrite Hx.
+  - have Hx : x < size w2{hr} by smt().
+    rewrite nth_cat.
+    by rewrite Hx.
+  - have Hx : x < size w2{hr} by smt().
+    have Hy : y < size w2{hr} by smt().
+    rewrite nth_cat.
+    simplify.
+    rewrite Hi H4 -H6 H5.
+    have -> : ! size k2{hr} < size k2{hr} by smt().
+    have -> : size k2{hr} - size k2{hr} = 0 by smt().
+    simplify.
+    rewrite !nth_cat.
+    rewrite -H5 -H7 Hx Hy=>/>.
+    have -> : x < size w3{hr} by smt().
+    have -> : y < size w3{hr} by smt().
+    trivial.
+    smt(nth_cat).
+
+  have Hi : i = size w2{hr} by smt(size_rcons).
+  rewrite size_rcons in H20.
+  have Hcontra : i < size w1{hr} by smt().
+  have : false. move: Hcontra. apply: contraLR.
+  progress; trivial.
+  trivial. 
+
   case (i + 1 < size w1{hr}); progress.
   have := H8 i _. smt().
   case (i = size cprev); progress.
   rewrite - !cats1.
-  smt. smt().
-  smt(size_cat size_rcons).
+  smt(nth_cat).
+  rewrite - !cats1.
+  rewrite !nth_cat.
+  rewrite -H1 H.
+  rewrite H21.
+  have -> : i < size cprev by smt().
+  simplify.
+  rewrite -circuit_computation_order.
+  have Hi : i < size w1{hr} by smt(size_rcons).
+  smt().
+  smt(). 
 
   rewrite !nth_rcons.
   rewrite nth_cat.
-  case (i < size w1{hr}); progress.
-  case (i < size cprev); progress.
-  rewrite - !cats1.
-  case (i + 1 < size w3{hr}).
-  smt.
-  smt().
-  have -> : i + 1 = size w1{hr}. smt().
-  have : i = size cprev. smt().
-  progress.
-  rewrite - !cats1 - H4.
-  smt.
-  case (i + 1 < size w1{hr}); progress.
-  have := H8 i _. smt().
-  case (i = size cprev); progress.
-  rewrite - !cats1.
-  smt. smt().
-  smt(size_cat size_rcons).
+  have Hi : i + 1 = size w1{hr} by smt(size_rcons).
+  rewrite Hi -H1 H=>/>.
+  have -> : size cprev = i by smt().
+  simplify.
+  rewrite -!cats1.
+  move: H20 H2.
+  elim g; move=> x; case x=> x y;
+  move=> _ Hvalid;
+  rewrite /valid_gate in Hvalid=>/>.
+  - smt(nth_cat).
+  - smt(nth_cat).
+  - have Hx : x < size w2{hr} by smt().
+    have Hy : y < size w2{hr} by smt().
+    rewrite nth_cat.
+    simplify.
+    rewrite -H6 H7.
+    have -> : size k3{hr} - size k3{hr} = 0 by smt().
+    have -> : ! size k3{hr} < size k3{hr} by smt().
+    simplify.
+    rewrite !nth_cat.
+    have : i = size k1{hr} by smt(size_rcons).
+    rewrite -H -H1 H0 -H7 Hx Hy=>/>.
+    smt(nth_cat).
 
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
-  smt(size_cat size_rcons).
+  rewrite cats1; smt(size_rcons size_ge0).
+  smt().
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
+  smt(size_rcons).
 qed.
 
 
