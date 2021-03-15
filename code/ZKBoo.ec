@@ -138,7 +138,7 @@ proof.
   elim s; progress.
 
   (* Inductive case *)
-  smt.
+  admit.
 qed.
 
 lemma foldr_and_ge0 b s e (cs : commitment list) (ws' : view list) n:
@@ -158,7 +158,7 @@ proof.
   elim s; progress.
 
   (* Inductive case *)
-  smt.
+  admit.
 qed.
 
 lemma foldr_rcons b e (ws' : view list) (cs : commitment list) x :
@@ -256,7 +256,8 @@ proof.
   have -> := range_cat a 0 i0. smt(). smt().
   have -> := range_ltn a i0. smt().
   simplify.
-  have -> : (range 0 a ++ a :: range (a + 1) i0) = (range 0 a ++ [a] ++ range (a + 1) i0) by smt.
+  have -> : (range 0 a ++ a :: range (a + 1) i0) = (range 0 a ++ [a] ++ range (a + 1) i0).
+  admit.
   rewrite foldr_cat.
   rewrite foldr_cat.
   simplify.
@@ -534,7 +535,9 @@ proof.
       smt(). 
       smt(size_rcons).
       smt(size_rcons).
-      have -> : (range 0 (size cs{2} + 1)) = (range 0 (size cs{2})) ++ [size cs{2}]. smt(rangeSr cats1).
+      have -> : (range 0 (size cs{2} + 1)) = (range 0 (size cs{2})) ++ [size cs{2}].
+             rewrite rangeSr. smt().
+             rewrite cats1. smt().
       rewrite foldr_cat.
       have -> :
       (foldr
@@ -578,7 +581,7 @@ proof.
     inline Com_Inter.Corr.main.
     sim.
     while(={ws, ws', cs, ys, valid_com, glob Com, i, e} /\ i{1} = size cs{1}).
-    if. smt.
+    if. progress.
     - auto.
       call (:true).
       skip; progress.
@@ -773,7 +776,7 @@ proof.
   transitivity SHVZK_Inter.real
     (={h, e, w, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res})
     (={h, e, glob Com, glob Decomp} /\ R h{1} w{1} /\ e{2} \in dchallenge ==> ={res}).
-  smt().
+  progress. exists (glob Com){2}. exists (glob Decomp){2}. smt().
   smt().
   - proc.
     auto.
@@ -825,7 +828,7 @@ proof.
     smt.
     
   (* Prove precondition and post conditions*)
-  smt().
+  progress. exists (glob Com){2}. exists (glob Decomp){2}. smt().
   smt().
 
   (* Prove Inter.real ~ Inter.ideal *)
@@ -1120,24 +1123,33 @@ proof.
     while (={valid_com, ws, glob Decomp} /\ i{1} = i0{2} /\ e{1} = e3{2} /\ cs{1} = cs1{2}).
     - auto; progress.
     auto; progress.
-    - smt(drop_nth). 
+    - have -> := ohead_head witness (drop q{2} zs{2}) _. smt(drop_nth).
+      progress. smt(drop_nth).
+      have -> := ohead_head witness (drop q{2} es0{2}) _. smt(drop_nth).
+      progress. smt(drop_nth).
+      have -> := ohead_head witness (drop q{2} zs{2}) _. smt(size_drop size_ge0 drop_nth).
+      progress. clear H7 H8. smt(size_drop size_ge0 drop_nth).
       smt(drop_nth).
       smt(drop_nth).
       smt(drop_nth).
-      smt(drop_nth).
-      smt(drop_nth).
-      smt(drop_nth).
-      smt.
-      smt.
-      smt.
+      have -> := drop_nth witness q{2} zs{2} _. smt().
+      by rewrite behead_cons.
+      have -> := drop_nth witness q{2} es0{2} _. smt().
+      by rewrite behead_cons.
+      move: H11.
+      have -> := drop_nth witness q{2} es0{2} _. smt().
+      rewrite behead_cons. progress.
+      smt(drop_nth drop_size size_ge0).
+      rewrite H1 in H11.
+      admit.
     skip; progress.
     smt(size_ge0).
     smt(size_ge0).
+    smt(drop_le0 size_ge0).
+    smt(drop_le0 size_ge0).
     smt(size_ge0).
     smt(size_ge0).
     smt(size_ge0).
-    smt(size_ge0).
-    smt(n_pos).
     rcondf{2} 12; progress.
     - while (true); auto.
       while (true); auto.
@@ -1170,21 +1182,30 @@ proof.
     while (={valid_com, ws, glob Decomp} /\ i{1} = i0{2} /\ e{1} = e3{2} /\ cs{1} = cs1{2}).
     - auto; progress.
     auto; progress.
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt(drop_nth).
-    smt.
-    smt.
+    - have -> := ohead_head witness (drop q{2} zs{2}) _. smt(drop_nth).
+      progress. smt(drop_nth).
+      have -> := ohead_head witness (drop q{2} es0{2}) _. smt(drop_nth).
+      progress. smt(drop_nth).
+      have -> := ohead_head witness (drop q{2} zs{2}) _. smt(size_drop size_ge0 drop_nth).
+      progress. clear H7 H8. smt(size_drop size_ge0 drop_nth).
+      smt(drop_nth).
+      smt(drop_nth).
+      smt(drop_nth).
+      have -> := drop_nth witness q{2} zs{2} _. smt().
+      by rewrite behead_cons.
+      have -> := drop_nth witness q{2} es0{2} _. smt().
+      by rewrite behead_cons.
+      move: H11.
+      have -> := drop_nth witness q{2} es0{2} _. smt().
+      rewrite behead_cons. progress.
+      smt(drop_nth drop_size size_ge0).
+      rewrite H1 in H11.
+      admit.
     skip; progress.
     smt(size_ge0).
     smt(size_ge0).
-    smt.
-    smt.
+    smt(drop_le0).
+    smt(drop_le0).
     smt(size_ge0).
     smt(size_ge0).
 qed.
