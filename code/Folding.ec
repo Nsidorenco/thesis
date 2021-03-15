@@ -3,7 +3,11 @@ require import AllCore List.
 lemma bound_range (n m : int) :
   all (fun i => n <= i < m) (range n m).
 proof.
-  smt.
+  rewrite allP.
+  move=> x.
+  simplify.
+  rewrite /range mema_iota.
+  by rewrite addzCA subzz.
 qed.
 
 lemma foldr_range b (f : int -> bool -> bool) n m:
@@ -13,7 +17,7 @@ proof.
   elim (range n m).
   - progress.
   - progress.
-  have -> : (n <= x && x < m) = true by smt().
+  have -> : (n <= x && x < m) = true by rewrite H0 H1.
   simplify.
   rewrite H. apply H2.
   done.
