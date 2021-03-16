@@ -2501,7 +2501,7 @@ lemma phi_sim_circuit_equiv c' e':
               (if (e' = 1) then w2{1} = w1{2} /\ w3{1} = w2{2} /\ k2{1} = k1{2} /\ k3{1} = k2{2}
                 else w3{1} = w1{2} /\ w1{1} = w2{2} /\ k3{1} = k1{2} /\ k1{1} = k2{2})) /\
              ={c} /\ e{2} = e' /\ c{1} = c' /\
-             (forall i, 0 <= i < size w1{1} => (nth witness w1{1} i) + (nth witness w2{1} i) + (nth witness w3{1} i) = (nth witness s i))
+             (forall i, 0 <= i < size w1{1} => (nth 0 w1{1} i) + (nth 0 w2{1} i) + (nth 0 w3{1} i) = (nth 0 s i))
             ==>
             (let (k1, k2, k3, phi_w1, phi_w2, phi_w3) = res{1} in
               let (sim_k1, sim_k2, sim_k3, sim_w1, sim_w2) = res{2} in
@@ -2512,7 +2512,7 @@ lemma phi_sim_circuit_equiv c' e':
               size k2 = size sim_k2 /\
               size k3 = size sim_k3 /\
               size phi_w1{1} = (size s + size c') /\
-              (forall i, 0 <= i < size phi_w1{1} => (nth witness phi_w1 i) + (nth witness phi_w2 i) + (nth witness phi_w3 i) = (nth witness (eval_circuit_aux c' s) i)) /\
+              (forall i, 0 <= i < size phi_w1{1} => (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 (eval_circuit_aux c' s) i)) /\
             (if e' = 0 then
               (sim_k1, sim_k2, sim_w1, sim_w2) = (k1, k2, phi_w1, phi_w2)
             else
@@ -2559,7 +2559,7 @@ proof.
         (if (e' = 1) then w2{1} = w1{2} /\ w3{1} = w2{2} /\ k2{1} = k1{2} /\ k3{1} = k2{2}
           else w3{1} = w1{2} /\ w1{1} = w2{2} /\ k3{1} = k1{2} /\ k1{1} = k2{2})) /\
         e{2} = e' /\ 
-        (forall i, 0 <= i < size w1{1} => (nth witness w1{1} i) + (nth witness w2{1} i) + (nth witness w3{1} i) = (nth witness s i)) ==>
+        (forall i, 0 <= i < size w1{1} => (nth 0 w1{1} i) + (nth 0 w2{1} i) + (nth 0 w3{1} i) = (nth 0 s i)) ==>
           (let (k1, k2, k3, phi_w1, phi_w2, phi_w3) = res{1} in
             let (sim_k1, sim_k2, sim_k3, sim_w1, sim_w2) = res{2} in
             (size phi_w1) = (size phi_w2) /\ (size phi_w2 = size phi_w3) /\
@@ -2569,7 +2569,7 @@ proof.
             size k2 = size sim_k2 /\
             size k3 = size sim_k3 /\
             size phi_w1{1} = size s + size (rcons x l) /\
-            (forall i, 0 <= i < size phi_w1 => (nth witness phi_w1 i) + (nth witness phi_w2 i) + (nth witness phi_w3 i) = (nth witness (eval_circuit_aux (rcons x l) s) i)) /\
+            (forall i, 0 <= i < size phi_w1 => (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 (eval_circuit_aux (rcons x l) s) i)) /\
           (if e' = 0 then
             (sim_k1, sim_k2, sim_w1, sim_w2) = (k1, k2, phi_w1, phi_w2)
           else
@@ -2589,8 +2589,63 @@ proof.
       (* Invariant that behead c{1} = [l] *)
       wp.
       while (c{1} = rcons c0{2} l /\ w10{2} = w1{1} /\ w20{2} = w2{1} /\ w30{2} = w3{1} /\ k1{1} = k10{2} /\ k2{1} = k20{2} /\ k3{1} = k30{2}).
-      auto; progress; smt(nth_rcons size_rcons size_ge0).
-      auto; progress; smt(nth_rcons size_rcons size_ge0).
+      auto. progress.
+      rewrite -cats1 behead_cat=>//.
+      apply cats1.
+        
+      congr.
+      rewrite -!nth0_head.
+      rewrite -cats1 nth_rcons.
+      have -> : 0 < size c0{2}. 
+      - case (0 = size c0{2}). smt(size_eq0).
+        smt(size_ge0).
+      trivial.
+
+      congr.
+      rewrite -!nth0_head.
+      rewrite -cats1 nth_rcons.
+      have -> : 0 < size c0{2}. 
+      - case (0 = size c0{2}). smt(size_eq0).
+        smt(size_ge0).
+      trivial.
+
+      congr.
+      rewrite -!nth0_head.
+      rewrite -cats1 nth_rcons.
+      have -> : 0 < size c0{2}. 
+      - case (0 = size c0{2}). smt(size_eq0).
+        smt(size_ge0).
+      trivial.
+
+      case (behead c0{2} = []).
+      move=> Hcontra.
+      have Hsize: size (behead c0{2}) = 0 by smt(size_eq0 size_ge0).
+      rewrite -cats1 behead_cat in H9. assumption.
+      rewrite size_cat in H9.
+      move: H9. rewrite Hsize.
+      trivial.
+      trivial.
+
+      rewrite -cats1 behead_cat. assumption.
+      rewrite -size_eq0.
+      rewrite size_cat.
+      smt(size_ge0).
+
+      rewrite -cats1 behead_cat. assumption.
+      rewrite size_cat. 
+      case (size (behead c0{2}) = 0)=>Hsize.
+      - rewrite size_eq0 in Hsize.
+        trivial.
+      smt(size_ge0).
+
+      auto; progress.
+      smt(size_ge0 cats1 size_cat).
+      smt(size_ge0 cats1 size_cat).
+      rewrite -cats1.
+      case (size c{2} = 0)=>Hsize.
+      - rewrite size_eq0 in Hsize. trivial.
+      smt(size_ge0 size_cat).
+
   symmetry.
   transitivity
     Phi.simulate_stepped_reversed
@@ -2619,7 +2674,7 @@ proof.
       (if (e' = 1) then w2{2} = w1{1} /\ w3{2} = w2{1} /\ k2{2} = k1{1} /\ k3{2} = k2{1}
         else w3{2} = w1{1} /\ w1{2} = w2{1} /\ k3{2} = k1{1} /\ k1{2} = k2{1})) /\
        e{1} = e' /\ ={c, g} /\ c{1} = x /\ g{1} = l /\
-       (forall i, 0 <= i < size w1{2} => (nth witness w1{2} i) + (nth witness w2{2} i) + (nth witness w3{2} i) = (nth witness s i))
+       (forall i, 0 <= i < size w1{2} => (nth 0 w1{2} i) + (nth 0 w2{2} i) + (nth 0 w3{2} i) = (nth 0 s i))
      ==>
       (let (k1, k2, k3, phi_w1, phi_w2, phi_w3) = res{2} in
         let (sim_k1, sim_k2, sim_k3, sim_w1, sim_w2) = res{1} in
@@ -2630,7 +2685,7 @@ proof.
         size k2 = size sim_k2 /\
         size k3 = size sim_k3 /\
         size phi_w1{1} = size s + size (rcons x l) /\
-        (forall i, 0 <= i < size phi_w1 => (nth witness phi_w1 i) + (nth witness phi_w2 i) + (nth witness phi_w3 i) = (nth witness (eval_circuit_aux (rcons x l) s) i)) /\
+        (forall i, 0 <= i < size phi_w1 => (nth 0 phi_w1 i) + (nth 0 phi_w2 i) + (nth 0 phi_w3 i) = (nth 0 (eval_circuit_aux (rcons x l) s) i)) /\
       (if e' = 0 then
         (sim_k1, sim_k2, sim_w1, sim_w2) = (k1, k2, phi_w1, phi_w2)
       else
@@ -2650,8 +2705,76 @@ proof.
     (* Invariant that behead c{1} = [l] *)
     wp.
     while (c{1} = rcons c0{2} l /\ ={p1, p2} /\ e{1} = e0{2} /\ w10{2} = w1{1} /\ w20{2} = w2{1} /\ k1{1} = k10{2} /\ k2{1} = k20{2} /\ k3{1} = k30{2}).
-    auto; progress; smt(nth_rcons size_rcons size_ge0).
-    auto; progress; smt(nth_rcons size_rcons size_ge0).
+    auto. progress.
+    rewrite -cats1 behead_cat=>//.
+    apply cats1.
+
+    congr.
+    rewrite -!nth0_head.
+    rewrite -cats1 nth_rcons.
+    have -> : 0 < size c0{2}. 
+    - case (0 = size c0{2}). smt(size_eq0).
+      smt(size_ge0).
+    trivial.
+
+    congr.
+    rewrite -!nth0_head.
+    rewrite -cats1 nth_rcons.
+    have -> : 0 < size c0{2}. 
+    - case (0 = size c0{2}). smt(size_eq0).
+      smt(size_ge0).
+    trivial.
+
+    case (behead c0{2} = []).
+    move=> Hcontra.
+    have Hsize: size (behead c0{2}) = 0 by smt(size_eq0 size_ge0).
+    rewrite -cats1 behead_cat in H9. assumption.
+    rewrite size_cat in H9.
+    move: H9. rewrite Hsize.
+    trivial.
+    trivial.
+
+    rewrite -cats1 behead_cat. assumption.
+    rewrite -size_eq0.
+    rewrite size_cat.
+    smt(size_ge0).
+
+    rewrite -cats1 behead_cat. assumption.
+    rewrite size_cat. 
+    case (size (behead c0{2}) = 0)=>Hsize.
+    - rewrite size_eq0 in Hsize.
+      trivial.
+    smt(size_ge0).
+
+    auto; progress.
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    have -> : c{1} = rcons x l by smt().
+    rewrite size_rcons.
+    have <- : c0{2} = x by smt().
+    rewrite -size_eq0 in H0.
+    smt(size_ge0).
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
+    smt().
   (* main proof *)
   symmetry.
   proc. auto.
@@ -2659,8 +2782,10 @@ proof.
   have IH' := IH cprev s.
   call Hgate. call IH'.
   clear IH IH' Hgate.
-  auto; progress.
-  smt(valid_circuit_rcons_head rcons_cat).
+  auto; progress; try move: H31; try (move: H29; elim result_L; elim result_R); progress.
+  have -> := valid_circuit_rcons_head g{1} (cprev ++ c{1}).
+  move : H0.
+  by rewrite rcons_cat=>/>.
   smt().
   smt().
   smt().
@@ -2673,214 +2798,143 @@ proof.
   smt().
   smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
+  smt().
   smt().
   rewrite /valid_circuit in H0.
-  have := H0 (size cprev + size c{1}) _. smt.
-  smt. 
+  have := H0 (size cprev + size c{1}) _. smt(size_ge0 size_cat size_rcons).
+  have := nth_last (ADDC(0,0)) (cprev ++ rcons c{1} g{1}).
+  rewrite size_cat size_rcons addzA.
+  have -> : (size cprev + size c{1} + 1 - 1) = (size cprev + size c{1}) by smt().
+  move=> Hlast />.
+  by rewrite Hlast last_cat last_rcons.
   rewrite /valid_circuit in H0.
-  have := H0 (size cprev + size c{1}) _. smt.
-  smt. 
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
+  have := H0 (size cprev + size c{1}) _. smt(size_ge0 size_cat size_rcons).
+  have := nth_last (ADDC(0,0)) (cprev ++ rcons c{1} g{1}).
+  rewrite size_cat size_rcons addzA.
+  have -> : (size cprev + size c{1} + 1 - 1) = (size cprev + size c{1}) by smt().
+  move=> Hlast />.
+  by rewrite Hlast last_cat last_rcons size_cat.
   smt(size_cat).
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  smt().
+  move: H48.
+  elim result_L0.
+  elim result_R0.
   progress.
   smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
-  move: H29.
-  have -> : result_L = (result_L.`1,result_L.`2,result_L.`3,result_L.`4,result_L.`5,result_L.`6) by smt().
-  have -> : result_R = (result_R.`1,result_R.`2,result_R.`3,result_R.`4,result_R.`5) by smt().
-  smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
   progress.
-  smt.
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
+  by rewrite -H54 eval_circuit_rcons.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt.
+  elim result_L0.
+  elim result_R0.
+  progress.
+  by rewrite -H54 eval_circuit_rcons eval_circuit_aux_size size_rcons.
+  move: H48 H50.
+  elim result_L0.
+  elim result_R0.
+  progress.
+  rewrite -eval_circuit_rcons.
+  smt(nth_rcons).
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt.
+  elim result_L0.
+  elim result_R0.
+  trivial.
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
+  trivial.
+  move: H48.
+  elim result_L0.
+  elim result_R0.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
   smt().
   move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
-  smt().
-  move: H48.
-  have -> : result_L0 = (result_L0.`1,result_L0.`2,result_L0.`3,result_L0.`4,result_L0.`5,result_L0.`6) by smt().
-  have -> : result_R0 = (result_R0.`1,result_R0.`2,result_R0.`3,result_R0.`4,result_R0.`5) by smt().
+  elim result_L0.
+  elim result_R0.
+  progress.
   smt().
 qed.
 
 lemma privacy:
-    equiv[Privacy(Phi).real ~ Privacy(Phi).ideal : 0 <= e{1} < 3 /\ ={c, e} /\ e{1} \in challenge /\ valid_circuit c{2} /\ eval_circuit c{1} x{1} = y{2} ==> ={res}].
+    equiv[Privacy(Phi).real ~ Privacy(Phi).ideal : ={c, e} /\ e{1} \in challenge /\ valid_circuit c{2} /\ eval_circuit c{1} x{1} = y{2} ==> ={res}].
 proof.
   proc.
   inline Phi.sample_tapes Phi.decomp Phi.share Phi.simulator.
@@ -2888,33 +2942,62 @@ proof.
   exists*c{1}. elim*=> c'.
   exists*e{1}. elim*=> e'.
   exists*x{1}. elim*=> x'.
+  have phi_equiv := phi_sim_circuit_equiv c' e' [] [x'].
 
   case (e' = 0).
-  have phi_equiv := phi_sim_circuit_equiv c' e' [] [x'].
   - call phi_equiv; clear phi_equiv. 
-    auto; smt(nth_last size_ge0).
+    auto; progress; try (move: H8; elim result_L; elim result_R); progress.
+    + smt().
+    + rewrite /output /eval_circuit -!nth_last=>/>.
+      rewrite -H18.
+      smt(size_ge0).
+      rewrite -H10 -!H9.
+      algebra.
 
   case (e' = 1).
   - seq 3 2 : (#pre /\ x1{2} = x20{1} /\ x30{1} = x2{2} /\ x' = x10{1} + x20{1} + x30{1}).
-    sp; wp.
+    sp. wp.
     swap{1} 2 - 1.
     rnd (fun z => x{1} - x20{1} - z).
     rnd.
-    skip; smt(dinput_funi dinput_fu).
-    have phi_equiv := phi_sim_circuit_equiv c' e' [] [x'].
-    call phi_equiv; clear phi_equiv.
-    auto; smt(nth_last size_ge0).
+    skip. progress.
+    + algebra.
+    + apply dinput_funi.
+    + apply dinput_fu.
+    + algebra.
+    + algebra.
+    + algebra.
+    call phi_equiv; clear phi_equiv. 
+    auto; progress; try (move: H5; elim result_L; elim result_R); progress.
+    + smt().
+    + rewrite /output /eval_circuit -!nth_last=>/>.
+      rewrite -H15.
+      smt(size_ge0).
+      rewrite -!H7 -H6.
+      algebra.
 
   case (e' = 2).
   - seq 3 2 : (#pre /\ x1{2} = x30{1} /\ x10{1} = x2{2} /\ x' = x10{1} + x20{1} + x30{1}).
     sp; wp.
     swap{2} 2 - 1.
     rnd (fun z => x{1} - x10{1} - z).
-    rnd.
-    skip; smt(dinput_funi dinput_fu).
-    have phi_equiv := phi_sim_circuit_equiv c' e' [] [x'].
+    rnd; skip; progress.
+    - algebra.
+    - apply dinput_funi.
+    - apply dinput_fu.
+    - algebra.
+    - algebra.
     call phi_equiv; clear phi_equiv.
-    auto; smt(nth_last size_ge0).
+    auto; progress; try (move: H6; elim result_L; elim result_R); progress.
+    + smt().
+    + rewrite /output /eval_circuit -!nth_last=>/>.
+      rewrite -H16.
+      smt(size_ge0).
+      rewrite -!H8 -H7.
+      algebra.
 
-  exfalso. smt().
+  exfalso. 
+  have : (e' \in challenge /\ e' <> 0 /\ e' <> 1 /\ e' <> 2) = false.
+  - rewrite supp_dinter. smt().
+  smt().
 qed.
