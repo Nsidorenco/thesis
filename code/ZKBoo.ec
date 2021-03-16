@@ -138,7 +138,8 @@ proof.
   elim s; progress.
 
   (* Inductive case *)
-  admit.
+  case (in_dom_f n e x)=> Hdom />.
+  smt().
 qed.
 
 lemma foldr_and_ge0 b s e (cs : commitment list) (ws' : view list) n:
@@ -158,7 +159,8 @@ proof.
   elim s; progress.
 
   (* Inductive case *)
-  admit.
+  case (0 <= x /\ in_dom_f n e x)=> Hdom />.
+  smt().
 qed.
 
 lemma foldr_rcons b e (ws' : view list) (cs : commitment list) x :
@@ -257,7 +259,12 @@ proof.
   have -> := range_ltn a i0. smt().
   simplify.
   have -> : (range 0 a ++ a :: range (a + 1) i0) = (range 0 a ++ [a] ++ range (a + 1) i0).
-  admit.
+  - case (a = 0)=> [->|Ha] />.
+    + rewrite range_geq; trivial.
+    + rewrite range_ltn. smt().
+      simplify.
+      by rewrite -cat1s catA.
+   
   rewrite foldr_cat.
   rewrite foldr_cat.
   simplify.
@@ -1141,7 +1148,16 @@ proof.
       rewrite behead_cons. progress.
       smt(drop_nth drop_size size_ge0).
       rewrite H1 in H11.
-      admit.
+      move: H11. apply: contraLR=> Hcontra />.
+      have : behead (drop q{2} es0{2}) = [] by smt().
+      rewrite -size_eq0.
+      have : exists x xs, (drop q{2} es0{2}) = x::xs. smt().
+      move=> [x xs Hdrop] Hempty.
+      have : size (behead (drop q{2} es0{2})) = size (drop q{2} es0{2}) - 1 by smt().
+      move: Hempty=>->.
+      rewrite size_drop. assumption.
+      simplify.
+      smt().
     skip; progress.
     smt(size_ge0).
     smt(size_ge0).
@@ -1200,7 +1216,16 @@ proof.
       rewrite behead_cons. progress.
       smt(drop_nth drop_size size_ge0).
       rewrite H1 in H11.
-      admit.
+      move: H11. apply: contraLR=> Hcontra />.
+      have : behead (drop q{2} es0{2}) = [] by smt().
+      rewrite -size_eq0.
+      have : exists x xs, (drop q{2} es0{2}) = x::xs. smt().
+      move=> [x xs Hdrop] Hempty.
+      have : size (behead (drop q{2} es0{2})) = size (drop q{2} es0{2}) - 1 by smt().
+      move: Hempty=>->.
+      rewrite size_drop. assumption.
+      simplify.
+      smt().
     skip; progress.
     smt(size_ge0).
     smt(size_ge0).
